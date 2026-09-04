@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#07050f">
+  <title>MultiQuiz · G⁵ Portal</title>
+  <link rel="stylesheet" href="../../src/css/style.css">
+  <link rel="stylesheet" href="multiquiz.css">
+  <script src="../../src/js/main.js" defer></script>
+</head>
+<body>
+  <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
+  <header class="page-header" style="text-align:center;padding:3rem 1.5rem 1rem;position:relative;z-index:1;">
+    <p style="margin-bottom:0.75rem;"><a href="../../index.html" class="btn btn-ghost" style="font-size:0.85rem;">← G⁵ Portal</a></p>
+    <h1 style="font-size:clamp(1.85rem,5vw,2.75rem);background:linear-gradient(105deg,#fff 10%,var(--pink) 50%,var(--cyan) 90%);-webkit-background-clip:text;background-clip:text;color:transparent;">MultiQuiz</h1>
+    <p style="color:var(--text-muted);font-size:0.95rem;">.multiquiz / .mq ファイルを解析・解答・採点</p>
+  </header>
+
+  <div class="mq-container">
+    <div class="controls">
+      <div class="upload-area" id="dropZone">
+        <p><strong>.multiquiz / .mq</strong> ファイルをドラッグ&amp;ドロップ<br>または</p>
+        <label class="btn btn-primary">ファイルを選択
+          <input type="file" id="fileInput" accept=".multiquiz,.mq" style="display:none">
+        </label>
+      </div>
+      <div class="url-load">
+        <input type="text" id="urlInput" placeholder="https://example.com/quiz.multiquiz">
+        <button type="button" id="loadUrlBtn" class="btn btn-ghost">URLから読み込み</button>
+      </div>
+    </div>
+
+    <div id="quizContainer" class="hidden">
+      <div class="quiz-header">
+        <h2 id="quizTitle"></h2>
+        <p id="quizDescription"></p>
+      </div>
+      <div id="sections"></div>
+      <div class="quiz-footer">
+        <button type="button" id="submitAllBtn" class="btn btn-primary">全問回答を提出</button>
+        <button type="button" id="resetBtn" class="btn btn-ghost">リセット</button>
+      </div>
+    </div>
+    <div id="errorMessage" class="hidden mq-error"></div>
+  </div>
+
+  <footer class="site-footer">
+    <p><strong>G⁵ Portal</strong> · MultiQuiz</p>
+    <p>© 2026 Reitaku H.S. 5G</p>
+  </footer>
+  <script src="multiquiz.js"></script>
+</body>
+</html>
