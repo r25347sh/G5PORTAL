@@ -1,0 +1,101 @@
+.tool-header {
+  text-align: center;
+  padding: 3rem 1.5rem 1.25rem;
+  position: relative;
+  z-index: 1;
+}
+.tool-back { font-size: 0.85rem; margin-bottom: 0.85rem; }
+.tool-header h1 {
+  font-size: clamp(1.85rem, 5vw, 2.6rem);
+  background: linear-gradient(105deg, #fff 10%, var(--pink) 50%, var(--cyan) 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.tool-sub { color: var(--text-muted); font-size: 0.95rem; margin-top: 0.5rem; }
+
+.tool-main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem 4rem;
+  position: relative;
+  z-index: 1;
+}
+
+.tool-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.35rem;
+}
+
+.mode-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.3rem;
+  border-radius: 999px;
+}
+.mode-tab {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.2s var(--ease-spring);
+}
+.mode-tab.active {
+  background: linear-gradient(135deg, var(--pink), #ff6bb5);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(255, 45, 149, 0.35);
+}
+
+.tool-card label {
+  display: block;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin: 0.85rem 0 0.35rem;
+}
+
+.key-row { display: flex; gap: 0.45rem; }
+#secret, #plain, #result {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+}
+#result { font-family: ui-monospace, Menlo, monospace; font-size: 0.88rem; color: var(--cyan); }
+#secret:focus, #plain:focus, #result:focus {
+  outline: none;
+  border-color: var(--pink);
+}
+textarea { resize: vertical; min-height: 100px; }
+
+.tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+}
+
+.algo-note {
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.msg {
+  margin-top: 0.65rem;
+  font-size: 0.88rem;
+  color: var(--cyan);
+  min-height: 1.25em;
+}
+.msg.error { color: #ff6b8a; }
