@@ -5,8 +5,8 @@
 ## 機能
 
 - **無料自作ツール配信** … `pages/` 配下（1機能 = 1ディレクトリ）
-- **MultiQuiz** … `.multiquiz` / `.mq` 解析・解答・採点
-- **文字数カウント** · **文字拡大鏡** · **パスワード生成** · **暗号化・復号**
+- **MultiQuiz** · **文字数カウント** · **文字拡大鏡** · **パスワード生成** · **暗号化・復号**
+- **QRコード** · **タイマー/SW** · **コイン・サイコロ・抽選** · **カラーピッカー**
 - **統一メニュー** … ラジアル + ハンバーガー（FAB）
 
 ## メニュー操作
@@ -24,11 +24,8 @@
 index.html
 MENU/MENU.css · MENU.js
 pages/
-  multiquiz/
-  char-count/
-  char-magnifier/
-  password-gen/
-  crypto/
+  multiquiz/ char-count/ char-magnifier/ password-gen/ crypto/
+  qr-code/ timer/ random/ color-picker/
 src/css/style.css · src/js/main.js
 ```
 
@@ -38,16 +35,20 @@ GitHub Pages。concurrency で横入りキャンセルを防止。
 
 ## 変更履歴
 
+### フェーズE
+- QRコード（作成・読取・PNG）
+- タイマー / ストップウォッチ（連続区間・ラップ・音）
+- コイン / サイコロ / 抽選
+- カラーピッカー（スポイト・画像・フォールバック）
+
 ### フェーズD
-- フェーズC 未同期資産の完全プッシュ（MENU / password / crypto の CSS·JS）
-- MultiQuiz への MENU 配線
-- style.css からログイン用スタイル削除
+- 未同期資産の完全プッシュ、MENU配線、ログインCSS削除
 
 ### フェーズC
 - 文字数カウント / 文字拡大鏡 / パスワード生成 / 暗号化・復号
 
 ### フェーズB
-- MENU 追加、deploy.yml 強化
+- MENU、deploy.yml
 
 ### フェーズA
 - ログイン・ユーザーファイル削除
