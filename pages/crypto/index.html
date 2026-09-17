@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#07050f">
+  <title>暗号化・復号 · G⁵ Portal</title>
+  <link rel="stylesheet" href="../../src/css/style.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../../MENU/MENU.css">
+  <script src="../../src/js/main.js" defer></script>
+  <script src="../../MENU/MENU.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
+  <header class="tool-header">
+    <a href="../../index.html" class="btn btn-ghost tool-back">← G⁵ Portal</a>
+    <h1>暗号化・復号</h1>
+    <p class="tool-sub">秘密鍵方式 · AES-GCM（Web Crypto）優先</p>
+  </header>
+  <main class="tool-main">
+    <div class="tool-card">
+      <div class="mode-tabs" role="tablist">
+        <button type="button" class="mode-tab active" data-mode="enc" role="tab" aria-selected="true">暗号化</button>
+        <button type="button" class="mode-tab" data-mode="dec" role="tab" aria-selected="false">復号</button>
+      </div>
+      <label for="secret">秘密鍵</label>
+      <div class="key-row">
+        <input type="password" id="secret" placeholder="共有する秘密の文字列" autocomplete="off">
+        <button type="button" id="btn-toggle-key" class="btn btn-ghost" title="表示切替">👁</button>
+      </div>
+      <label for="plain" id="label-in">平文</label>
+      <textarea id="plain" rows="5" placeholder="暗号化するテキスト"></textarea>
+      <div class="tool-actions">
+        <button type="button" id="btn-run" class="btn btn-primary">暗号化する</button>
+        <button type="button" id="btn-swap" class="btn btn-ghost">結果 → 入力</button>
+      </div>
+      <label for="result" id="label-out">暗号文（Base64）</label>
+      <textarea id="result" rows="5" readonly placeholder="結果がここに表示されます"></textarea>
+      <div class="tool-actions">
+        <button type="button" id="btn-copy" class="btn btn-ghost">結果をコピー</button>
+      </div>
+      <p class="algo-note" id="algo-note">方式: 検出中…</p>
+      <p id="msg" class="msg" role="status"></p>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <p><strong>G⁵ Portal</strong> · 暗号化・復号</p>
+    <p>© 2026 Reitaku H.S. 5G</p>
+  </footer>
+</body>
+</html>
