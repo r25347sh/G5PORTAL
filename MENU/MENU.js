@@ -1,5 +1,5 @@
 /**
- * G⁵ Portal Radial Menu + Hamburger (Phase D)
+ * G⁵ Portal Radial Menu + Hamburger (Phase E)
  */
 (function () {
   "use strict";
@@ -27,7 +27,11 @@
           { label: "\u6587\u5b57\u6570\u30ab\u30a6\u30f3\u30c8", icon: "\u6587\u5b57", url: root + "pages/char-count/index.html" },
           { label: "\u6587\u5b57\u62e1\u5927\u93e1", icon: "\ud83d\udd0d", url: root + "pages/char-magnifier/index.html" },
           { label: "\u30d1\u30b9\u30ef\u30fc\u30c9\u751f\u6210", icon: "\u9375", url: root + "pages/password-gen/index.html" },
-          { label: "\u6697\u53f7\u5316\u30fb\u5fa9\u53f7", icon: "\ud83d\udd12", url: root + "pages/crypto/index.html" }
+          { label: "\u6697\u53f7\u5316\u30fb\u5fa9\u53f7", icon: "\ud83d\udd12", url: root + "pages/crypto/index.html" },
+          { label: "QR\u30b3\u30fc\u30c9", icon: "QR", url: root + "pages/qr-code/index.html" },
+          { label: "\u30bf\u30a4\u30de\u30fc", icon: "\u23f1", url: root + "pages/timer/index.html" },
+          { label: "\u30b3\u30a4\u30f3\u30fb\u30b5\u30a4\u30b3\u30ed", icon: "\ud83c\udfb2", url: root + "pages/random/index.html" },
+          { label: "\u30ab\u30e9\u30fc\u30d4\u30c3\u30ab\u30fc", icon: "\ud83c\udfa8", url: root + "pages/color-picker/index.html" }
         ]
       },
       {
