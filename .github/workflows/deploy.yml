@@ -1,11 +1,13 @@
-name: Inline Visual CMS Deploy
+name: Deploy G5 Portal to GitHub Pages
 
 on:
   push:
     branches: ["main"]
+  workflow_dispatch:
 
+# 同一リポジトリ内のデプロイを直列化。横入りでの強制キャンセルを防止
 concurrency:
-  group: "pages-deploy-group"
+  group: g5portal-pages-deploy
   cancel-in-progress: false
 
 permissions:
@@ -21,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
@@ -31,7 +33,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: "."
 
       - name: Deploy to GitHub Pages
         id: deployment

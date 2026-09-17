@@ -4,17 +4,48 @@
 
 ## 機能
 
-- **無料自作ツール配信** … pages/ 配下に各ツールを集約
-- **勉強副教材** … PDF 等の配置
-- **ログイン** … ID/Pass または QR（asobiseminar 同様）
-- **ユーザーファイル** … ログイン後 `src/files/user/{id}/` へ保存（role: temporary は利用不可）
+- **無料自作ツール配信** … `pages/` 配下に各ツールを集約（1機能 = 1ディレクトリ）
+- **勉強副教材** … PDF 等の配置（準備中）
+- **MultiQuiz** … `.multiquiz` / `.mq` 解析・解答・採点
+- **文字数カウント** · **文字拡大鏡** · **パスワード生成** · **暗号化・復号**
+- **統一メニュー** … ラジアル + ハンバーガー（FAB）
 
-## ユーザー（初期）
+## メニュー操作
 
-5G-staff と同一の users.json を使用。
+| 操作 | 動作 |
+|------|------|
+| 右下 FAB（☰） | ハンバーガー |
+| ロングプレス / トリプルタップ | ラジアル |
+| Ctrl / ⌘ + K | ラジアル開閉 |
+| Escape | 閉じる |
+
+## 構成
+
+```
+index.html
+MENU/MENU.css · MENU.js
+pages/
+  multiquiz/
+  char-count/
+  char-magnifier/
+  password-gen/
+  crypto/
+src/css/style.css · src/js/main.js
+```
 
 ## デプロイ
 
-GitHub Pages（deploy.yml はasobiseminar のものを使用）。
+GitHub Pages。concurrency で横入りキャンセルを防止。
+
+## 変更履歴
+
+### フェーズC
+- 文字数カウント / 文字拡大鏡 / パスワード生成 / 暗号化・復号 を追加
+
+### フェーズB
+- MENU 追加、deploy.yml 強化
+
+### フェーズA
+- ログイン・ユーザーファイル削除
 
 © 2026 Reitaku H.S. 5G
