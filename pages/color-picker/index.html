@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#07050f">
+  <title>カラーピッカー · G⁵ Portal</title>
+  <link rel="stylesheet" href="../../src/css/style.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../../MENU/MENU.css">
+  <script src="../../src/js/main.js" defer></script>
+  <script src="../../MENU/MENU.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
+  <header class="tool-header">
+    <a href="../../index.html" class="btn btn-ghost tool-back">← G⁵ Portal</a>
+    <h1>カラーピッカー</h1>
+    <p class="tool-sub">画面 · 画像 · 手動入力</p>
+  </header>
+  <main class="tool-main">
+    <div class="swatch-row">
+      <div id="swatch" class="swatch" title="current"></div>
+      <div class="values">
+        <div><span class="lbl">HEX</span> <code id="v-hex">#ff2d95</code></div>
+        <div><span class="lbl">RGB</span> <code id="v-rgb">255, 45, 149</code></div>
+        <div><span class="lbl">HSL</span> <code id="v-hsl">330°, 100%, 59%</code></div>
+      </div>
+    </div>
+    <div class="tool-actions">
+      <button type="button" id="btn-copy-hex" class="btn btn-primary">HEX コピー</button>
+      <button type="button" id="btn-copy-rgb" class="btn btn-ghost">RGB コピー</button>
+    </div>
+    <section class="tool-card">
+      <h2 class="card-title">手動</h2>
+      <label>カラー <input type="color" id="color-input" value="#ff2d95"></label>
+      <label>HEX <input type="text" id="hex-input" value="#ff2d95" spellcheck="false"></label>
+    </section>
+    <section class="tool-card">
+      <h2 class="card-title">画面から取得</h2>
+      <p class="hint">EyeDropper API。非対応時は画面共有キャプチャフォールバック。</p>
+      <button type="button" id="btn-eyedrop" class="btn btn-primary">スポイト</button>
+    </section>
+    <section class="tool-card">
+      <h2 class="card-title">画像から取得</h2>
+      <label class="btn btn-ghost file-btn">画像をアップロード
+        <input type="file" id="img-file" accept="image/*" hidden>
+      </label>
+      <div class="canvas-wrap"><canvas id="img-canvas"></canvas></div>
+      <p class="hint">画像上をクリック</p>
+    </section>
+    <p id="toast" class="toast hidden" role="status"></p>
+  </main>
+  <footer class="site-footer"><p><strong>G⁵ Portal</strong> · Color</p></footer>
+</body>
+</html>
