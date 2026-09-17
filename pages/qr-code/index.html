@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#07050f">
+  <title>QRコード · G⁵ Portal</title>
+  <link rel="stylesheet" href="../../src/css/style.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../../MENU/MENU.css">
+  <script src="../../src/js/main.js" defer></script>
+  <script src="../../MENU/MENU.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
+  <header class="tool-header">
+    <a href="../../index.html" class="btn btn-ghost tool-back">← G⁵ Portal</a>
+    <h1>QRコード</h1>
+    <p class="tool-sub">作成 · 読み取り · 画像エクスポート</p>
+  </header>
+  <main class="tool-main">
+    <div class="mode-tabs" role="tablist">
+      <button type="button" class="mode-tab active" data-mode="create" role="tab" aria-selected="true">作成</button>
+      <button type="button" class="mode-tab" data-mode="read" role="tab" aria-selected="false">読み取り</button>
+    </div>
+    <section id="panel-create" class="tool-card">
+      <label for="qr-text">テキスト / URL</label>
+      <textarea id="qr-text" rows="3" placeholder="https://example.com または任意の文字列"></textarea>
+      <div class="opt-row">
+        <label>サイズ <span id="size-val">256</span>px</label>
+        <input type="range" id="qr-size" min="128" max="512" step="16" value="256">
+      </div>
+      <div class="opt-row colors">
+        <label>前景 <input type="color" id="qr-fg" value="#07050f"></label>
+        <label>背景 <input type="color" id="qr-bg" value="#ffffff"></label>
+      </div>
+      <div class="tool-actions">
+        <button type="button" id="btn-gen" class="btn btn-primary">生成</button>
+        <button type="button" id="btn-export" class="btn btn-ghost" disabled>PNG 保存</button>
+      </div>
+      <div id="qr-out" class="qr-out" aria-live="polite"></div>
+    </section>
+    <section id="panel-read" class="tool-card hidden">
+      <div class="read-actions">
+        <label class="btn btn-primary file-btn">画像を選択
+          <input type="file" id="qr-file" accept="image/*" hidden>
+        </label>
+        <button type="button" id="btn-cam" class="btn btn-ghost">カメラで読取</button>
+      </div>
+      <video id="qr-video" class="hidden" playsinline muted></video>
+      <canvas id="qr-canvas" class="hidden"></canvas>
+      <img id="qr-preview" class="qr-preview hidden" alt="プレビュー">
+      <div id="read-result" class="read-result" aria-live="polite"></div>
+      <div class="tool-actions">
+        <button type="button" id="btn-copy-read" class="btn btn-ghost hidden">コピー</button>
+        <button type="button" id="btn-stop-cam" class="btn btn-ghost hidden">カメラ停止</button>
+      </div>
+    </section>
+    <p id="toast" class="toast hidden" role="status"></p>
+  </main>
+  <footer class="site-footer">
+    <p><strong>G⁵ Portal</strong> · QRコード</p>
+  </footer>
+</body>
+</html>
