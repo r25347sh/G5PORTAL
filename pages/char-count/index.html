@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#07050f">
+  <title>文字数カウント · G⁵ Portal</title>
+  <link rel="stylesheet" href="../../src/css/style.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../../MENU/MENU.css">
+  <script src="../../src/js/main.js" defer></script>
+  <script src="../../MENU/MENU.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
+  <header class="tool-header">
+    <a href="../../index.html" class="btn btn-ghost tool-back">← G⁵ Portal</a>
+    <h1>文字数カウント</h1>
+    <p class="tool-sub">リアルタイムで文字・単語・行・バイトを集計</p>
+  </header>
+  <main class="tool-main">
+    <div class="tool-card">
+      <label class="sr-only" for="input">テキスト入力</label>
+      <textarea id="input" placeholder="ここにテキストを入力または貼り付け…" rows="10" spellcheck="false"></textarea>
+      <div class="tool-actions">
+        <button type="button" id="btn-clear" class="btn btn-ghost">クリア</button>
+        <button type="button" id="btn-copy" class="btn btn-primary">テキストをコピー</button>
+      </div>
+    </div>
+    <div class="stats-grid" id="stats" aria-live="polite">
+      <div class="stat-card"><span class="stat-label">文字数</span><span class="stat-value" id="s-chars">0</span></div>
+      <div class="stat-card"><span class="stat-label">文字数（空白除く）</span><span class="stat-value" id="s-chars-ns">0</span></div>
+      <div class="stat-card"><span class="stat-label">単語数</span><span class="stat-value" id="s-words">0</span></div>
+      <div class="stat-card"><span class="stat-label">行数</span><span class="stat-value" id="s-lines">0</span></div>
+      <div class="stat-card"><span class="stat-label">バイト (UTF-8)</span><span class="stat-value" id="s-bytes">0</span></div>
+      <div class="stat-card"><span class="stat-label">段落数</span><span class="stat-value" id="s-paras">0</span></div>
+    </div>
+    <p id="toast" class="toast hidden" role="status"></p>
+  </main>
+  <footer class="site-footer">
+    <p><strong>G⁵ Portal</strong> · 文字数カウント</p>
+    <p>© 2026 Reitaku H.S. 5G</p>
+  </footer>
+</body>
+</html>
