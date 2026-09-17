@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#07050f">
+  <title>ファイル共有 · G⁵ Portal</title>
+  <link rel="stylesheet" href="../../src/css/style.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../../MENU/MENU.css">
+  <script src="../../src/js/main.js" defer></script>
+  <script src="../../MENU/MENU.js" defer></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
+  <header class="tool-header">
+    <a href="../../index.html" class="btn btn-ghost tool-back">← G⁵ Portal</a>
+    <h1>ファイル共有</h1>
+    <p class="tool-sub">WebRTC DataChannel · 先にファイル選択 → 共有</p>
+  </header>
+  <main class="tool-main">
+    <div class="mode-tabs">
+      <button type="button" class="mode-tab active" data-mode="send">送信</button>
+      <button type="button" class="mode-tab" data-mode="recv">受信</button>
+    </div>
+    <section id="panel-send" class="tool-card">
+      <p class="hint">ファイルを選んでから「共有開始」。URL / QR を相手に渡すと転送が始まります。</p>
+      <label class="btn btn-ghost file-btn">ファイルを選択
+        <input type="file" id="file-input" hidden>
+      </label>
+      <p id="file-meta" class="file-meta">未選択</p>
+      <div class="tool-actions">
+        <button type="button" id="btn-send-start" class="btn btn-primary" disabled>共有開始</button>
+        <button type="button" id="btn-send-stop" class="btn btn-ghost hidden">停止</button>
+      </div>
+      <div id="send-info" class="share-info hidden">
+        <label>接続 URL</label>
+        <div class="url-row">
+          <input type="text" id="share-url" readonly>
+          <button type="button" id="btn-copy-url" class="btn btn-ghost">コピー</button>
+        </div>
+        <div id="qr-box" class="qr-box"></div>
+        <p id="send-status" class="status">待機中…</p>
+        <div class="progress"><div id="send-bar" class="bar"></div></div>
+      </div>
+    </section>
+    <section id="panel-recv" class="tool-card hidden">
+      <p class="hint">共有 URL を開くか、ルーム ID を入力して接続します。</p>
+      <label for="room-input">ルーム ID</label>
+      <input type="text" id="room-input" placeholder="送信側の ID" autocomplete="off" spellcheck="false">
+      <div class="tool-actions">
+        <button type="button" id="btn-recv-start" class="btn btn-primary">接続</button>
+        <button type="button" id="btn-recv-stop" class="btn btn-ghost hidden">切断</button>
+      </div>
+      <p id="recv-status" class="status"></p>
+      <div class="progress"><div id="recv-bar" class="bar"></div></div>
+      <a id="download-link" class="btn btn-primary hidden" download>ダウンロード</a>
+    </section>
+    <p id="toast" class="toast hidden" role="status"></p>
+  </main>
+  <footer class="site-footer"><p><strong>G⁵ Portal</strong> · File Share</p></footer>
+</body>
+</html>
