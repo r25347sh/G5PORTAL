@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#07050f">
+  <title>パスワード生成器 · G⁵ Portal</title>
+  <link rel="stylesheet" href="../../src/css/style.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../../MENU/MENU.css">
+  <script src="../../src/js/main.js" defer></script>
+  <script src="../../MENU/MENU.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
+  <header class="tool-header">
+    <a href="../../index.html" class="btn btn-ghost tool-back">← G⁵ Portal</a>
+    <h1>パスワード生成器</h1>
+    <p class="tool-sub">暗号論的乱数優先 · 強度メーター付き</p>
+  </header>
+  <main class="tool-main">
+    <div class="tool-card">
+      <div class="output-row">
+        <input type="text" id="output" readonly placeholder="生成ボタンを押してください" aria-label="生成されたパスワード">
+        <button type="button" id="btn-copy" class="btn btn-ghost" title="コピー">コピー</button>
+      </div>
+      <div class="strength" id="strength">
+        <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+        <span id="strength-label">—</span>
+      </div>
+      <div class="opt-grid">
+        <label class="opt">長さ <input type="range" id="len" min="8" max="64" value="16"><span id="len-val">16</span></label>
+        <label class="chk"><input type="checkbox" id="upper" checked> 大文字 A-Z</label>
+        <label class="chk"><input type="checkbox" id="lower" checked> 小文字 a-z</label>
+        <label class="chk"><input type="checkbox" id="digits" checked> 数字 0-9</label>
+        <label class="chk"><input type="checkbox" id="symbols"> 記号 !@#$…</label>
+        <label class="chk"><input type="checkbox" id="exclude-ambig"> 曖昧文字除外 (0OIl1)</label>
+      </div>
+      <div class="tool-actions">
+        <button type="button" id="btn-gen" class="btn btn-primary">生成</button>
+      </div>
+    </div>
+    <div class="tool-card history-card">
+      <h2>履歴（端末内のみ）</h2>
+      <ul id="history" class="history-list"></ul>
+      <button type="button" id="btn-clear-hist" class="btn btn-ghost" style="margin-top:0.75rem;font-size:0.85rem;">履歴を消去</button>
+    </div>
+    <p id="toast" class="toast hidden" role="status"></p>
+  </main>
+  <footer class="site-footer">
+    <p><strong>G⁵ Portal</strong> · パスワード生成器</p>
+    <p>© 2026 Reitaku H.S. 5G</p>
+  </footer>
+</body>
+</html>
