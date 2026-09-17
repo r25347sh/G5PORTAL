@@ -1,5 +1,5 @@
 /**
- * G⁵ Portal Radial Menu + Hamburger (Phase F)
+ * G⁵ Portal Radial Menu + Hamburger
  */
 (function () {
   "use strict";
@@ -33,7 +33,8 @@
           { label: "\u30b3\u30a4\u30f3\u30fb\u30b5\u30a4\u30b3\u30ed", icon: "\ud83c\udfb2", url: root + "pages/random/index.html" },
           { label: "\u30ab\u30e9\u30fc\u30d4\u30c3\u30ab\u30fc", icon: "\ud83c\udfa8", url: root + "pages/color-picker/index.html" },
           { label: "\u753b\u9762\u30b7\u30a7\u30a2", icon: "\ud83d\udcfa", url: root + "pages/screen-share/index.html" },
-          { label: "\u30d5\u30a1\u30a4\u30eb\u5171\u6709", icon: "\ud83d\udcc1", url: root + "pages/file-share/index.html" }
+          { label: "\u30d5\u30a1\u30a4\u30eb\u5171\u6709", icon: "\ud83d\udcc1", url: root + "pages/file-share/index.html" },
+          { label: "\u30c7\u30b8\u30bf\u30eb\u6642\u8a08", icon: "\ud83d\udd50", url: root + "pages/clock/index.html" }
         ]
       },
       {
