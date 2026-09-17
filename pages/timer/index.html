@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#07050f">
+  <title>タイマー / ストップウォッチ · G⁵ Portal</title>
+  <link rel="stylesheet" href="../../src/css/style.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../../MENU/MENU.css">
+  <script src="../../src/js/main.js" defer></script>
+  <script src="../../MENU/MENU.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
+  <header class="tool-header">
+    <a href="../../index.html" class="btn btn-ghost tool-back">← G⁵ Portal</a>
+    <h1>タイマー / ストップウォッチ</h1>
+    <p class="tool-sub">連続タイマー · ラップ · カスタム音</p>
+  </header>
+  <main class="tool-main">
+    <div class="mode-tabs" role="tablist">
+      <button type="button" class="mode-tab active" data-mode="timer">タイマー</button>
+      <button type="button" class="mode-tab" data-mode="stopwatch">ストップウォッチ</button>
+    </div>
+    <div class="display-wrap">
+      <div id="display" class="display" aria-live="polite">00:00.00</div>
+      <div id="phase-label" class="phase-label"></div>
+    </div>
+    <section id="panel-timer" class="tool-card">
+      <p class="hint">分を順番に入力（例: 25 → 5 → 25）。</p>
+      <div id="phases" class="phases">
+        <div class="phase-row">
+          <input type="number" min="0" max="999" step="1" value="5" class="phase-min" aria-label="分">
+          <span>分</span>
+          <input type="number" min="0" max="59" step="1" value="0" class="phase-sec" aria-label="秒">
+          <span>秒</span>
+          <button type="button" class="btn-icon rm-phase" title="削除">×</button>
+        </div>
+      </div>
+      <button type="button" id="btn-add-phase" class="btn btn-ghost">＋ 区間を追加</button>
+      <div class="sound-row">
+        <label>終了音
+          <select id="sound-preset">
+            <option value="beep">ビープ</option>
+            <option value="chime">チャイム</option>
+            <option value="alarm">アラーム</option>
+            <option value="custom">カスタムファイル</option>
+          </select>
+        </label>
+        <input type="file" id="sound-file" accept="audio/*" class="hidden">
+        <button type="button" id="btn-pick-sound" class="btn btn-ghost hidden">音声を選択</button>
+      </div>
+    </section>
+    <section id="panel-sw" class="tool-card hidden">
+      <p class="hint">ラップボタンで区間記録。</p>
+      <ul id="laps" class="laps"></ul>
+    </section>
+    <div class="tool-actions center">
+      <button type="button" id="btn-start" class="btn btn-primary">スタート</button>
+      <button type="button" id="btn-lap" class="btn btn-ghost hidden">ラップ</button>
+      <button type="button" id="btn-reset" class="btn btn-ghost">リセット</button>
+    </div>
+    <p id="toast" class="toast hidden" role="status"></p>
+  </main>
+  <footer class="site-footer"><p><strong>G⁵ Portal</strong> · Timer</p></footer>
+</body>
+</html>
