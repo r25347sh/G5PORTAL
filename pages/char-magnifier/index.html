@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#07050f">
+  <title>文字拡大鏡 · G⁵ Portal</title>
+  <link rel="stylesheet" href="../../src/css/style.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../../MENU/MENU.css">
+  <script src="../../src/js/main.js" defer></script>
+  <script src="../../MENU/MENU.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
+  <header class="tool-header">
+    <a href="../../index.html" class="btn btn-ghost tool-back">← G⁵ Portal</a>
+    <h1>文字拡大鏡</h1>
+    <p class="tool-sub">複数文字対応 · サイズ・コントラスト調整</p>
+  </header>
+  <main class="tool-main">
+    <div class="tool-card">
+      <label for="input">表示する文字</label>
+      <input type="text" id="input" placeholder="例: あいう / ABC / 漢字" maxlength="32" autocomplete="off">
+      <div class="controls-row">
+        <label class="ctrl">サイズ
+          <input type="range" id="size" min="32" max="220" value="96">
+          <span id="size-val">96px</span>
+        </label>
+        <label class="ctrl">モード
+          <select id="mode">
+            <option value="together">まとめて表示</option>
+            <option value="split">1文字ずつ</option>
+          </select>
+        </label>
+        <label class="ctrl">背景
+          <select id="theme">
+            <option value="dark">ダーク</option>
+            <option value="light">ライト</option>
+            <option value="high">ハイコントラスト</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div id="preview" class="preview theme-dark mode-together" aria-live="polite">
+      <p class="preview-hint">上に文字を入力してください</p>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <p><strong>G⁵ Portal</strong> · 文字拡大鏡</p>
+    <p>© 2026 Reitaku H.S. 5G</p>
+  </footer>
+</body>
+</html>
