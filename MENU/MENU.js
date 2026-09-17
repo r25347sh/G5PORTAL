@@ -1,5 +1,5 @@
 /**
- * G⁵ Portal Radial Menu + Hamburger (Phase E)
+ * G⁵ Portal Radial Menu + Hamburger (Phase F)
  */
 (function () {
   "use strict";
@@ -31,13 +31,15 @@
           { label: "QR\u30b3\u30fc\u30c9", icon: "QR", url: root + "pages/qr-code/index.html" },
           { label: "\u30bf\u30a4\u30de\u30fc", icon: "\u23f1", url: root + "pages/timer/index.html" },
           { label: "\u30b3\u30a4\u30f3\u30fb\u30b5\u30a4\u30b3\u30ed", icon: "\ud83c\udfb2", url: root + "pages/random/index.html" },
-          { label: "\u30ab\u30e9\u30fc\u30d4\u30c3\u30ab\u30fc", icon: "\ud83c\udfa8", url: root + "pages/color-picker/index.html" }
+          { label: "\u30ab\u30e9\u30fc\u30d4\u30c3\u30ab\u30fc", icon: "\ud83c\udfa8", url: root + "pages/color-picker/index.html" },
+          { label: "\u753b\u9762\u30b7\u30a7\u30a2", icon: "\ud83d\udcfa", url: root + "pages/screen-share/index.html" },
+          { label: "\u30d5\u30a1\u30a4\u30eb\u5171\u6709", icon: "\ud83d\udcc1", url: root + "pages/file-share/index.html" }
         ]
       },
       {
         label: "\u6559\u6750",
         icon: "\u25c7",
-        items: [{ label: "\u526f\u6559\u6750 (\u6e96\u5099\u4e2d)", icon: "\u25c7", url: root + "index.html#tools" }]
+        items: [{ label: "\u526f\u6559\u6750", icon: "\u25c7", url: root + "pages/materials/index.html" }]
       }
     ];
   }
