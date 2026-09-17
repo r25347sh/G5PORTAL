@@ -7,19 +7,22 @@
   <meta name="theme-color" content="#07050f">
   <title>G⁵ Portal</title>
   <link rel="stylesheet" href="src/css/style.css">
+  <link rel="stylesheet" href="MENU/MENU.css">
   <script src="src/js/main.js" defer></script>
+  <script src="MENU/MENU.js" defer></script>
 </head>
 <body>
   <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
+
   <header class="hero">
     <div class="hero-badge">Reitaku High School · 5G</div>
     <h1><span>FREE TOOLS &amp; MATERIALS</span> G⁵ Portal</h1>
     <p class="hero-sub">さまざまな無料自作ツールと勉強副教材を配信するポータルです。</p>
     <div class="hero-cta">
-      <a href="login.html" class="btn btn-primary">ログイン</a>
-      <a href="pages/multiquiz/index.html" class="btn btn-ghost">MultiQuiz</a>
+      <a href="pages/multiquiz/index.html" class="btn btn-primary">MultiQuiz を開く</a>
     </div>
   </header>
+
   <section id="tools" class="main_section">
     <div class="section-header">
       <h2>ツール</h2>
@@ -29,23 +32,42 @@
       <article class="card">
         <div class="card-icon">◈</div>
         <h3>MultiQuiz</h3>
-        <p>.multiquiz / .mq ファイルを解析し、多形式の問題（選択・穴埋め・マッチング等）を解答・採点できます。</p>
+        <p>.multiquiz / .mq ファイルを解析し、多形式の問題を解答・採点できます。</p>
         <a href="pages/multiquiz/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
+      </article>
+      <article class="card">
+        <div class="card-icon">文字</div>
+        <h3>文字数カウント</h3>
+        <p>文字・単語・行・バイト・段落をリアルタイム集計。</p>
+        <a href="pages/char-count/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
+      </article>
+      <article class="card">
+        <div class="card-icon">🔍</div>
+        <h3>文字拡大鏡</h3>
+        <p>複数文字対応。サイズ・表示モード・コントラスト調整。</p>
+        <a href="pages/char-magnifier/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
+      </article>
+      <article class="card">
+        <div class="card-icon">鍵</div>
+        <h3>パスワード生成</h3>
+        <p>暗号論的乱数・強度メーター・履歴（端末内）。</p>
+        <a href="pages/password-gen/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
+      </article>
+      <article class="card">
+        <div class="card-icon">🔒</div>
+        <h3>暗号化・復号</h3>
+        <p>秘密鍵方式。AES-GCM 優先、非対応時は XOR フォールバック。</p>
+        <a href="pages/crypto/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
       </article>
       <article class="card">
         <div class="card-icon">◇</div>
         <h3>副教材 (PDF)</h3>
-        <p>勉強用の PDF 等を後日配置予定です。</p>
+        <p>勉強用の PDF 等を日後配置予定です。</p>
         <span class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;opacity:0.5;cursor:default;">準備中</span>
-      </article>
-      <article class="card">
-        <div class="card-icon">✧</div>
-        <h3>ユーザーファイル</h3>
-        <p>ログイン後、各ユーザー専用フォルダへファイルを保存できます（temporary 陣除）。</p>
-        <a href="login.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">ログイン</a>
       </article>
     </div>
   </section>
+
   <footer class="site-footer">
     <p><strong>G⁵ Portal</strong> · 無料ツール・副教材ポータル</p>
     <p>© 2026 Reitaku H.S. 5G</p>
