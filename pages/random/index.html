@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#07050f">
+  <title>コイン / サイコロ / 抽選 · G⁵ Portal</title>
+  <link rel="stylesheet" href="../../src/css/style.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../../MENU/MENU.css">
+  <script src="../../src/js/main.js" defer></script>
+  <script src="../../MENU/MENU.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
+  <header class="tool-header">
+    <a href="../../index.html" class="btn btn-ghost tool-back">← G⁵ Portal</a>
+    <h1>コイン / サイコロ / 抽選</h1>
+    <p class="tool-sub">暗号論的乱数で公平に</p>
+  </header>
+  <main class="tool-main">
+    <div class="mode-tabs">
+      <button type="button" class="mode-tab active" data-mode="coin">コイン</button>
+      <button type="button" class="mode-tab" data-mode="dice">サイコロ</button>
+      <button type="button" class="mode-tab" data-mode="lotto">抽選</button>
+    </div>
+    <div class="stage" id="stage">
+      <div id="coin" class="coin-3d"><div class="coin-face front">表</div><div class="coin-face back">裏</div></div>
+      <div id="dice" class="dice hidden">?</div>
+      <div id="lotto-out" class="lotto-out hidden">—</div>
+    </div>
+    <p id="result" class="result" aria-live="polite"></p>
+    <section id="panel-coin" class="tool-card"><p class="hint">タップまたはボタンでコイントス。</p></section>
+    <section id="panel-dice" class="tool-card hidden">
+      <label>面の数 <span id="faces-val">6</span></label>
+      <input type="range" id="faces" min="2" max="20" value="6">
+      <label>個数 <span id="count-val">1</span></label>
+      <input type="range" id="dice-count" min="1" max="6" value="1">
+    </section>
+    <section id="panel-lotto" class="tool-card hidden">
+      <label for="lotto-items">候補（1行に1つ）</label>
+      <textarea id="lotto-items" rows="6" placeholder="A&#10;B&#10;C"></textarea>
+      <label>当選数 <input type="number" id="lotto-n" min="1" max="50" value="1"></label>
+    </section>
+    <div class="tool-actions center">
+      <button type="button" id="btn-roll" class="btn btn-primary">実行</button>
+    </div>
+  </main>
+  <footer class="site-footer"><p><strong>G⁵ Portal</strong> · Random</p></footer>
+</body>
+</html>
