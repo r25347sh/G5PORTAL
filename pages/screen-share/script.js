@@ -12,6 +12,45 @@
     ]
   };
 
+  var QUALITY = {
+    standard: {
+      label: "standard",
+      capture: {
+        width: { ideal: 1280, max: 1920 },
+        height: { ideal: 720, max: 1080 },
+        frameRate: { ideal: 20, max: 30 }
+      },
+      maxBitrate: 2500000,
+      maxFramerate: 20,
+      contentHint: "detail",
+      degradationPreference: "maintain-framerate"
+    },
+    high: {
+      label: "high",
+      capture: {
+        width: { ideal: 1920, max: 2560 },
+        height: { ideal: 1080, max: 1440 },
+        frameRate: { ideal: 30, max: 30 }
+      },
+      maxBitrate: 6000000,
+      maxFramerate: 30,
+      contentHint: "detail",
+      degradationPreference: "maintain-resolution"
+    },
+    ultra: {
+      label: "ultra",
+      capture: {
+        width: { ideal: 2560, max: 3840 },
+        height: { ideal: 1440, max: 2160 },
+        frameRate: { ideal: 30, max: 60 }
+      },
+      maxBitrate: 12000000,
+      maxFramerate: 30,
+      contentHint: "text",
+      degradationPreference: "maintain-resolution"
+    }
+  };
+
   var peer = null;
   var localStream = null;
   var hostId = null;
@@ -19,6 +58,7 @@
   var viewConn = null;
   var viewCall = null;
   var joinTimeout = null;
+  var currentQuality = QUALITY.high;
 
   var toastEl = document.getElementById("toast");
   var toastTimer = null;
@@ -35,6 +75,7 @@
   var viewerStage = document.getElementById("viewer-stage");
   var viewerConnecting = document.getElementById("viewer-connecting");
   var viewerConnectingText = document.getElementById("viewer-connecting-text");
+  var qualitySelect = document.getElementById("quality-select");
 
   function showToast(msg) {
     if (!toastEl) return;
@@ -59,6 +100,10 @@
   document.querySelectorAll(".mode-tab").forEach(function (tab) {
     tab.addEventListener("click", function () { setMode(tab.getAttribute("data-mode")); });
   });
+  function readQuality() {
+    var key = (qualitySelect && qualitySelect.value) || "high";
+    return QUALITY[key] || QUALITY.high;
+  }
 
   function enterViewerStage(msg) {
     document.body.classList.add("viewer-mode");
@@ -66,7 +111,7 @@
     if (viewerStage) { viewerStage.hidden = false; viewerStage.removeAttribute("hidden"); }
     if (viewerConnecting) {
       viewerConnecting.classList.remove("hidden");
-      if (viewerConnectingText) viewerConnectingText.textContent = msg || "\u63a5\u7d9a\u4e2d\u2026";
+      if (viewerConnectingText) viewerConnectingText.textContent = msg || "connecting...";
     }
   }
   function showVideoOnly() {
@@ -144,7 +189,11 @@
       var div = document.createElement("div");
       qrBox.appendChild(div);
       try {
-        new QRCode(div, { text: url, width: 180, height: 180, colorDark: "#07050f", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M });
+        new QRCode(div, {
+          text: url, width: 180, height: 180,
+          colorDark: "#07050f", colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
         return;
       } catch (e) {}
     }
@@ -154,6 +203,64 @@
     qrBox.appendChild(img);
   }
 
+  function boostCallQuality(call, q) {
+    if (!call || !q) return;
+    var tryApply = function (attempt) {
+      try {
+        var pc = call.peerConnection || call._pc || null;
+        if (!pc || typeof pc.getSenders !== "function") {
+          if (attempt < 8) setTimeout(function () { tryApply(attempt + 1); }, 200 * (attempt + 1));
+          return;
+        }
+        var senders = pc.getSenders();
+        var videoSender = null;
+        for (var i = 0; i < senders.length; i++) {
+          if (senders[i].track && senders[i].track.kind === "video") {
+            videoSender = senders[i];
+            break;
+          }
+        }
+        if (!videoSender || typeof videoSender.getParameters !== "function") {
+          if (attempt < 8) setTimeout(function () { tryApply(attempt + 1); }, 200 * (attempt + 1));
+          return;
+        }
+        var params = videoSender.getParameters();
+        if (!params.encodings || !params.encodings.length) params.encodings = [{}];
+        params.encodings[0].maxBitrate = q.maxBitrate;
+        params.encodings[0].maxFramerate = q.maxFramerate;
+        if (params.encodings[0].scaleResolutionDownBy != null) {
+          params.encodings[0].scaleResolutionDownBy = 1.0;
+        }
+        if (params.degradationPreference !== undefined) {
+          params.degradationPreference = q.degradationPreference || "maintain-resolution";
+        }
+        var p = videoSender.setParameters(params);
+        if (p && p.catch) p.catch(function () {});
+      } catch (e) {
+        if (attempt < 8) setTimeout(function () { tryApply(attempt + 1); }, 250);
+      }
+    };
+    setTimeout(function () { tryApply(0); }, 100);
+    setTimeout(function () { tryApply(1); }, 600);
+    setTimeout(function () { tryApply(2); }, 1500);
+  }
+
+  function applyTrackHints(stream, q) {
+    if (!stream) return;
+    stream.getVideoTracks().forEach(function (track) {
+      try {
+        if ("contentHint" in track) track.contentHint = q.contentHint || "detail";
+      } catch (e) {}
+      if (track.applyConstraints) {
+        track.applyConstraints({
+          width: q.capture.width,
+          height: q.capture.height,
+          frameRate: q.capture.frameRate
+        }).catch(function () {});
+      }
+    });
+  }
+
   function callViewer(viewerPeerId) {
     if (!peer || !localStream || !viewerPeerId) return;
     if (outboundCalls[viewerPeerId]) {
@@ -161,18 +268,26 @@
       delete outboundCalls[viewerPeerId];
     }
     setStatus(hostStatus, "calling viewer...", "ok");
-    var call = peer.call(viewerPeerId, localStream, { metadata: { type: "screen" } });
+    var call = peer.call(viewerPeerId, localStream, {
+      metadata: { type: "screen", quality: currentQuality.label }
+    });
     if (!call) { setStatus(hostStatus, "call failed", "err"); return; }
     outboundCalls[viewerPeerId] = call;
+    boostCallQuality(call, currentQuality);
     call.on("close", function () {
       delete outboundCalls[viewerPeerId];
-      setStatus(hostStatus, "viewer left · waiting · " + (hostId || ""), "ok");
+      setStatus(hostStatus, "viewer left \u00b7 waiting \u00b7 " + (hostId || ""), "ok");
     });
     call.on("error", function (err) {
       delete outboundCalls[viewerPeerId];
       setStatus(hostStatus, "call error: " + (err.message || err), "err");
     });
-    setStatus(hostStatus, "streaming · viewers " + Object.keys(outboundCalls).length + " · " + hostId, "ok");
+    setStatus(
+      hostStatus,
+      "streaming \u00b7 " + currentQuality.label + " \u00b7 viewers " +
+        Object.keys(outboundCalls).length + " \u00b7 " + hostId,
+      "ok"
+    );
   }
 
   document.getElementById("btn-host-start").addEventListener("click", async function () {
@@ -182,18 +297,52 @@
     }
     destroyAll();
     exitViewerStage();
+    currentQuality = readQuality();
     try { await waitForPeerJs(12000); } catch (e) {
       setStatus(hostStatus, e.message, "err"); showToast(e.message); return;
     }
+    var q = currentQuality;
     try {
       localStream = await navigator.mediaDevices.getDisplayMedia({
-        video: { frameRate: { ideal: 15, max: 30 }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: {
+          width: q.capture.width,
+          height: q.capture.height,
+          frameRate: q.capture.frameRate,
+          displaySurface: "monitor",
+          cursor: "always"
+        },
         audio: false
       });
-    } catch (e) { showToast("cancelled"); return; }
+    } catch (e) {
+      try {
+        localStream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            width: q.capture.width,
+            height: q.capture.height,
+            frameRate: q.capture.frameRate
+          },
+          audio: false
+        });
+      } catch (e2) {
+        showToast("cancelled");
+        return;
+      }
+    }
+
+    applyTrackHints(localStream, q);
 
     var vTrack = localStream.getVideoTracks()[0];
-    if (vTrack) vTrack.addEventListener("ended", function () { stopHost(); });
+    if (vTrack) {
+      vTrack.addEventListener("ended", function () { stopHost(); });
+      try {
+        var settings = vTrack.getSettings ? vTrack.getSettings() : {};
+        var res =
+          (settings.width || "?") + "\u00d7" + (settings.height || "?") +
+          "@" + (settings.frameRate ? Math.round(settings.frameRate) : "?") + "fps";
+        showToast("capture " + res + " \u00b7 " + q.label);
+      } catch (e) {}
+    }
+
     localPreview.srcObject = localStream;
     localPreview.classList.remove("hidden");
     localPreview.play().catch(function () {});
@@ -221,7 +370,13 @@
       if (!localStream) { call.close(); return; }
       call.answer(localStream);
       outboundCalls[call.peer] = call;
-      setStatus(hostStatus, "streaming · viewers " + Object.keys(outboundCalls).length + " · " + hostId, "ok");
+      boostCallQuality(call, currentQuality);
+      setStatus(
+        hostStatus,
+        "streaming \u00b7 " + currentQuality.label + " \u00b7 viewers " +
+          Object.keys(outboundCalls).length + " \u00b7 " + hostId,
+        "ok"
+      );
       call.on("close", function () { delete outboundCalls[call.peer]; });
     });
 
@@ -236,7 +391,7 @@
     document.getElementById("btn-host-stop").classList.remove("hidden");
     document.getElementById("btn-host-start").classList.add("hidden");
     renderQr(url);
-    setStatus(hostStatus, "waiting · room " + hostId, "ok");
+    setStatus(hostStatus, "waiting \u00b7 " + currentQuality.label + " \u00b7 room " + hostId, "ok");
   });
 
   function stopHost() {
@@ -387,7 +542,7 @@
     });
     viewConn.on("error", function () {
       setStatus(viewStatus, "data connection error", "err");
-      if (viewerConnectingText) viewerConnectingText.textContent = "data connection error — check room id";
+      if (viewerConnectingText) viewerConnectingText.textContent = "data connection error \u2014 check room id";
     });
 
     joinTimeout = setTimeout(function () {
@@ -399,7 +554,7 @@
     setTimeout(function () {
       if (remoteVideo && remoteVideo.srcObject) return;
       if (viewerConnectingText && viewerConnecting && !viewerConnecting.classList.contains("hidden")) {
-        viewerConnectingText.textContent = "timeout — is host still sharing?";
+        viewerConnectingText.textContent = "timeout \u2014 is host still sharing?";
       }
       setStatus(viewStatus, "timeout", "err");
     }, 25000);
