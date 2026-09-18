@@ -30,7 +30,16 @@
       </div>
 
       <section id="panel-host" class="tool-card">
-        <p class="hint">「共有開始」で画面を選び、発行された URL / QR を相手に渡してください。共有を押した側の画面が配信されます。</p>
+        <p class="hint">「共有開始」で画面を選び、発行された URL / QR を相手に渡してください。</p>
+
+        <label for="quality-select">画質</label>
+        <select id="quality-select" class="quality-select">
+          <option value="standard">標準（軽量 · 720p · 2Mbps）</option>
+          <option value="high" selected>高画質（1080p · 6Mbps）</option>
+          <option value="ultra">最高（最大解像度 · 12Mbps · 文字優先）</option>
+        </select>
+        <p class="quality-hint">回線が細い場合は「標準」。文字・スライドは「最高」が鮮明です。共有開始前に選んでください。</p>
+
         <div class="tool-actions">
           <button type="button" id="btn-host-start" class="btn btn-primary">共有開始</button>
           <button type="button" id="btn-host-stop" class="btn btn-ghost hidden">共有停止</button>

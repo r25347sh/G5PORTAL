@@ -60,17 +60,35 @@
   color: var(--text-muted);
   margin: 0.75rem 0 0.35rem;
 }
-.tool-card input[type="text"] {
+.tool-card input[type="text"],
+.quality-select {
   width: 100%;
   padding: 0.8rem 1rem;
   background: rgba(0, 0, 0, 0.35);
   border: 1px solid var(--border);
   border-radius: 12px;
   color: var(--cyan);
-  font-family: ui-monospace, Menlo, monospace;
+  font-family: inherit;
   font-size: 0.9rem;
 }
-.tool-card input:focus { outline: none; border-color: var(--pink); }
+.quality-select {
+  color: #fff;
+  cursor: pointer;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--cyan) 50%),
+    linear-gradient(135deg, var(--cyan) 50%, transparent 50%);
+  background-position: calc(100% - 18px) calc(50% - 3px), calc(100% - 12px) calc(50% - 3px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+.quality-select option { background: #120e1a; color: #fff; }
+.tool-card input:focus, .quality-select:focus { outline: none; border-color: var(--pink); }
+.quality-hint {
+  margin: 0.45rem 0 0.85rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
 
 .tool-actions {
   display: flex;
@@ -163,6 +181,8 @@
   padding: 0;
   border: 0;
   outline: none;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .viewer-connecting {
