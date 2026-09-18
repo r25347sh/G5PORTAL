@@ -40,8 +40,13 @@ jobs:
           npm init -y
           npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
 
-      - name: Add Android platform and sync
+      - name: Prepare dummy webDir and add Android platform
         run: |
+          mkdir -p dummy_web
+          # server.url で外部を読み込むため、ローカル資産は最小限でよい
+          if [ ! -f dummy_web/index.html ]; then
+            echo '<!DOCTYPE html><html><body><p>G5PORTAL</p></body></html>' > dummy_web/index.html
+          fi
           npx cap add android
           npx cap sync android
 
