@@ -10,52 +10,64 @@
   <link rel="stylesheet" href="../../MENU/MENU.css">
   <script src="../../src/js/main.js" defer></script>
   <script src="../../MENU/MENU.js" defer></script>
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
   <script src="script.js" defer></script>
 </head>
 <body>
   <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
-  <header class="tool-header">
-    <a href="../../index.html" class="btn btn-ghost tool-back">← G⁵ Portal</a>
-    <h1>画面シェア</h1>
-    <p class="tool-sub">WebRTC · 共有側の画面を配信 · URL / QR で接続</p>
-  </header>
-  <main class="tool-main">
-    <div class="mode-tabs">
-      <button type="button" class="mode-tab active" data-mode="host">共有する</button>
-      <button type="button" class="mode-tab" data-mode="view">視聴する</button>
-    </div>
-    <section id="panel-host" class="tool-card">
-      <p class="hint">「共有開始」で画面を選び、発行された URL / QR を相手に渡してください。共有を押した側の画面が配信されます。</p>
-      <div class="tool-actions">
-        <button type="button" id="btn-host-start" class="btn btn-primary">共有開始</button>
-        <button type="button" id="btn-host-stop" class="btn btn-ghost hidden">共有停止</button>
+
+  <div id="app-shell">
+    <header class="tool-header">
+      <a href="../../index.html" class="btn btn-ghost tool-back">← G⁵ Portal</a>
+      <h1>画面シェア</h1>
+      <p class="tool-sub">WebRTC · 共有側の画面を配信 · URL / QR で接続</p>
+    </header>
+    <main class="tool-main">
+      <div class="mode-tabs">
+        <button type="button" class="mode-tab active" data-mode="host">共有する</button>
+        <button type="button" class="mode-tab" data-mode="view">視聴する</button>
       </div>
-      <div id="host-info" class="share-info hidden">
-        <label>接続 URL</label>
-        <div class="url-row">
-          <input type="text" id="share-url" readonly>
-          <button type="button" id="btn-copy-url" class="btn btn-ghost">コピー</button>
+
+      <section id="panel-host" class="tool-card">
+        <p class="hint">「共有開始」で画面を選び、発行された URL / QR を相手に渡してください。共有を押した側の画面が配信されます。</p>
+        <div class="tool-actions">
+          <button type="button" id="btn-host-start" class="btn btn-primary">共有開始</button>
+          <button type="button" id="btn-host-stop" class="btn btn-ghost hidden">共有停止</button>
         </div>
-        <div id="qr-box" class="qr-box"></div>
-        <p id="host-status" class="status">待機中…</p>
-      </div>
-      <video id="local-preview" class="preview hidden" muted autoplay playsinline></video>
-    </section>
-    <section id="panel-view" class="tool-card hidden">
-      <p class="hint">共有 URL を開くか、ルーム ID を入力して接続します。</p>
-      <label for="room-input">ルーム ID</label>
-      <input type="text" id="room-input" placeholder="共有側の ID" autocomplete="off" spellcheck="false">
-      <div class="tool-actions">
-        <button type="button" id="btn-join" class="btn btn-primary">接続</button>
-        <button type="button" id="btn-leave" class="btn btn-ghost hidden">切断</button>
-      </div>
-      <p id="view-status" class="status"></p>
-      <video id="remote-video" class="preview hidden" autoplay playsinline controls></video>
-    </section>
-    <p id="toast" class="toast hidden" role="status"></p>
-  </main>
-  <footer class="site-footer"><p><strong>G⁵ Portal</strong> · Screen Share</p></footer>
+        <div id="host-info" class="share-info hidden">
+          <label>接続 URL</label>
+          <div class="url-row">
+            <input type="text" id="share-url" readonly>
+            <button type="button" id="btn-copy-url" class="btn btn-ghost">コピー</button>
+          </div>
+          <p class="room-id-line">ルーム ID: <code id="host-room-id">—</code></p>
+          <div id="qr-box" class="qr-box"></div>
+          <p id="host-status" class="status">待機中…</p>
+        </div>
+        <video id="local-preview" class="preview hidden" muted autoplay playsinline></video>
+      </section>
+
+      <section id="panel-view" class="tool-card hidden">
+        <p class="hint">共有 URL を開くか、ルーム ID を入力して接続します。接続後は映像のみの全画面表示になります。</p>
+        <label for="room-input">ルーム ID</label>
+        <input type="text" id="room-input" placeholder="共有側の ID" autocomplete="off" spellcheck="false">
+        <div class="tool-actions">
+          <button type="button" id="btn-join" class="btn btn-primary">接続</button>
+        </div>
+        <p id="view-status" class="status"></p>
+      </section>
+      <p id="toast" class="toast hidden" role="status"></p>
+    </main>
+    <footer class="site-footer"><p><strong>G⁵ Portal</strong> · Screen Share</p></footer>
+  </div>
+
+  <div id="viewer-stage" class="viewer-stage" hidden>
+    <video id="remote-video" autoplay playsinline muted></video>
+    <div id="viewer-connecting" class="viewer-connecting">
+      <div class="spinner"></div>
+      <p id="viewer-connecting-text">接続中…</p>
+    </div>
+  </div>
 </body>
 </html>
