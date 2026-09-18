@@ -1,0 +1,8 @@
+{
+  "appId": "com.g5portal.app",
+  "appName": "G5PORTAL",
+  "webDir": ".",
+  "server": {
+    "url": "https://r25347sh.github.io/G5PORTAL/"
+  }
+}
