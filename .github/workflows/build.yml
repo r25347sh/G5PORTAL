@@ -96,25 +96,56 @@ jobs:
           npm init -y
           npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/ios@latest
 
-      - name: Prepare dummy webDir and add iOS platform
+      - name: Prepare dummy webDir and add iOS platform (CocoaPods)
         run: |
+          set -euo pipefail
           mkdir -p dummy_web
           if [ ! -f dummy_web/index.html ]; then
             echo '<!DOCTYPE html><html><body><p>G5PORTAL</p></body></html>' > dummy_web/index.html
           fi
-          npx cap add ios
+          # Capacitor 8+ はデフォルトが SPM のため、Podfile を確実に生成する
+          npx cap add ios --packagemanager CocoaPods
           npx cap sync ios
+          echo "=== ios tree ==="
+          find ios -maxdepth 4 \( -name Podfile -o -name "*.xcworkspace" -o -name "*.xcodeproj" \) 2>/dev/null || true
 
       - name: Install CocoaPods dependencies
-        working-directory: ios/App
         run: |
+          set -euo pipefail
+          PODFILE=$(find ios -name Podfile -type f | head -n 1)
+          if [ -z "$PODFILE" ]; then
+            echo "Podfile not found under ios/"
+            find ios -type f 2>/dev/null | head -50 || true
+            exit 1
+          fi
+          POD_DIR=$(dirname "$PODFILE")
+          echo "Using Podfile at: $PODFILE"
+          echo "POD_DIR=$POD_DIR" >> "$GITHUB_ENV"
+          cd "$POD_DIR"
           pod install --repo-update
 
       - name: Build iOS Simulator app (unsigned)
         run: |
           set -euo pipefail
+
+          # workspace / project を自動検出
+          WORKSPACE=$(find ios -name "*.xcworkspace" -type d | grep -v "xcodeproj" | head -n 1 || true)
+          PROJECT=$(find ios -name "*.xcodeproj" -type d | head -n 1 || true)
+
+          if [ -n "$WORKSPACE" ]; then
+            echo "Building workspace: $WORKSPACE"
+            BUILD_ARGS=(-workspace "$WORKSPACE")
+          elif [ -n "$PROJECT" ]; then
+            echo "Building project: $PROJECT"
+            BUILD_ARGS=(-project "$PROJECT")
+          else
+            echo "No Xcode workspace/project found under ios/"
+            find ios -type d 2>/dev/null | head -50 || true
+            exit 1
+          fi
+
           xcodebuild \
-            -workspace ios/App/App.xcworkspace \
+            "${BUILD_ARGS[@]}" \
             -scheme App \
             -sdk iphonesimulator \
             -configuration Debug \
@@ -126,14 +157,13 @@ jobs:
 
           APP_PATH=$(find build/ios -name "App.app" -type d | head -n 1)
           if [ -z "$APP_PATH" ]; then
-            echo "App.app not found"
+            echo "App.app not found; searching all .app bundles..."
             find build/ios -type d -name "*.app" || true
             exit 1
           fi
           echo "Found app at: $APP_PATH"
           mkdir -p dist-ios
           cp -R "$APP_PATH" dist-ios/G5PORTAL.app
-          # 配布しやすいよう zip も作成
           cd dist-ios
           zip -r G5PORTAL-ios-simulator.zip G5PORTAL.app
 
