@@ -16,30 +16,28 @@
 </head>
 <body>
   <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
-
   <div id="app-shell">
     <header class="tool-header">
       <a href="../../index.html" class="btn btn-ghost tool-back">← G⁵ Portal</a>
       <h1>画面シェア</h1>
-      <p class="tool-sub">WebRTC · 共有側の画面を配信 · URL / QR で接続</p>
+      <p class="tool-sub">WebRTC · 高画質配信 · 双方でリアルタイム画質変更</p>
     </header>
     <main class="tool-main">
       <div class="mode-tabs">
         <button type="button" class="mode-tab active" data-mode="host">共有する</button>
         <button type="button" class="mode-tab" data-mode="view">視聴する</button>
       </div>
-
       <section id="panel-host" class="tool-card">
-        <p class="hint">「共有開始」で画面を選び、発行された URL / QR を相手に渡してください。</p>
-
-        <label for="quality-select">画質</label>
+        <p class="hint">画面を選んで共有開始。画質は配信中も変更できます。視聴側は送信側以下の画質まで指定可能です。</p>
+        <label for="quality-select">送信画質（上限）</label>
         <select id="quality-select" class="quality-select">
-          <option value="standard">標準（軽量 · 720p · 2Mbps）</option>
-          <option value="high" selected>高画質（1080p · 6Mbps）</option>
-          <option value="ultra">最高（最大解像度 · 12Mbps · 文字優先）</option>
+          <option value="low">低（540p · 1.5Mbps）</option>
+          <option value="standard">標準（720p · 4Mbps）</option>
+          <option value="high">高（1080p · 10Mbps）</option>
+          <option value="ultra" selected>最高（最大解像度 · 25Mbps · 文字優先）</option>
+          <option value="max">限界突破（制約ほぼなし · 40Mbps · LAN向け）</option>
         </select>
-        <p class="quality-hint">回線が細い場合は「標準」。文字・スライドは「最高」が鮮明です。共有開始前に選んでください。</p>
-
+        <p class="quality-hint">同一 Wi‑Fi / 有線なら「最高」か「限界突破」。配信中に切り替えても再接続不要です。</p>
         <div class="tool-actions">
           <button type="button" id="btn-host-start" class="btn btn-primary">共有開始</button>
           <button type="button" id="btn-host-stop" class="btn btn-ghost hidden">共有停止</button>
@@ -53,12 +51,12 @@
           <p class="room-id-line">ルーム ID: <code id="host-room-id">—</code></p>
           <div id="qr-box" class="qr-box"></div>
           <p id="host-status" class="status">待機中…</p>
+          <p id="host-effective" class="effective-line hidden">実効画質: —</p>
         </div>
         <video id="local-preview" class="preview hidden" muted autoplay playsinline></video>
       </section>
-
       <section id="panel-view" class="tool-card hidden">
-        <p class="hint">共有 URL を開くか、ルーム ID を入力して接続します。接続後は映像のみの全画面表示になります。</p>
+        <p class="hint">URL を開くかルーム ID で接続。接続後は映像全画面。画面タップで受信画質パネルを表示できます。</p>
         <label for="room-input">ルーム ID</label>
         <input type="text" id="room-input" placeholder="共有側の ID" autocomplete="off" spellcheck="false">
         <div class="tool-actions">
@@ -70,12 +68,22 @@
     </main>
     <footer class="site-footer"><p><strong>G⁵ Portal</strong> · Screen Share</p></footer>
   </div>
-
   <div id="viewer-stage" class="viewer-stage" hidden>
     <video id="remote-video" autoplay playsinline muted></video>
     <div id="viewer-connecting" class="viewer-connecting">
       <div class="spinner"></div>
       <p id="viewer-connecting-text">接続中…</p>
+    </div>
+    <div id="viewer-hud" class="viewer-hud" hidden>
+      <label for="viewer-quality">受信画質（送信側以下）</label>
+      <select id="viewer-quality" class="quality-select">
+        <option value="low">低</option>
+        <option value="standard">標準</option>
+        <option value="high">高</option>
+        <option value="ultra" selected>最高</option>
+        <option value="max">限界突破</option>
+      </select>
+      <p id="viewer-effective" class="effective-line">実効: —</p>
     </div>
   </div>
 </body>
