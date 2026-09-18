@@ -15,6 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
+    env:
+      # GitHub-hosted Ubuntu runners に標準搭載されている Android SDK
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,20 +33,14 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: "temurin"
-          java-version: "21"
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept Android licenses
-        run: yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          java-version: "17"
 
       - name: Install Capacitor dependencies
         run: |
           npm init -y
           npm install @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest
 
-      - name: Sync Capacitor (add Android platform)
+      - name: Add Android platform and sync
         run: |
           npx cap add android
           npx cap sync android
