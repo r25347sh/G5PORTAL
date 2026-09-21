@@ -1,0 +1,85 @@
+<svg id="autonomous-agent" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <defs>
+    <!-- オーラ用グラデーション -->
+    <radialGradient id="grad-aura" cx="50%" cy="50%" r="50%">
+      <stop id="aura-stop-1" offset="0%" stop-color="#E0F7FA" stop-opacity="0.9"/>
+      <stop id="aura-stop-2" offset="70%" stop-color="#26C6DA" stop-opacity="0.3"/>
+      <stop id="aura-stop-3" offset="100%" stop-color="#00838F" stop-opacity="0"/>
+    </radialGradient>
+    <!-- コア用グラデーション -->
+    <linearGradient id="grad-core" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop id="core-stop-1" offset="0%" stop-color="#FFFFFF"/>
+      <stop id="core-stop-2" offset="50%" stop-color="#4DD0E1"/>
+      <stop id="core-stop-3" offset="100%" stop-color="#006064"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 【全体ルート】サイト内の移動（translate）や拡大縮小（scale）用 -->
+  <g id="agent-root" transform="translate(0, 0) scale(1)">
+    
+    <!-- 1. 背景発光オーラ層 -->
+    <g id="layer-aura">
+      <circle id="agent-aura" cx="8" cy="8" r="7.5" fill="url(#grad-aura)" />
+      <circle id="aura-pulse" cx="8" cy="8" r="5" fill="none" stroke="#FFFFFF" stroke-width="0.3" opacity="0.5"/>
+    </g>
+
+    <!-- 2. シールド・軌道リング層（多重回転可能） -->
+    <g id="layer-shields" transform-origin="8 8">
+      <ellipse id="shield-outer" cx="8" cy="8" rx="7" ry="2.2" fill="none" stroke="#80DEEA" stroke-width="0.5" stroke-dasharray="2 2" transform="rotate(-20 8 8)"/>
+      <ellipse id="shield-inner" cx="8" cy="8" rx="5" ry="1.5" fill="none" stroke="#FFFFFF" stroke-width="0.4" stroke-dasharray="3 1" transform="rotate(40 8 8)"/>
+    </g>
+
+    <!-- 3. マニピュレーター（左右の可動アーム・指示や挨拶に使える） -->
+    <g id="layer-arms">
+      <g id="arm-left-group" transform-origin="5 8">
+        <path id="arm-left" d="M 5 8 Q 3 7 2 9" fill="none" stroke="#B2EBF2" stroke-width="0.8" stroke-linecap="round"/>
+        <circle id="hand-left" cx="2" cy="9" r="0.6" fill="#FFFFFF"/>
+      </g>
+      <g id="arm-right-group" transform-origin="11 8">
+        <path id="arm-right" d="M 11 8 Q 13 7 14 9" fill="none" stroke="#B2EBF2" stroke-width="0.8" stroke-linecap="round"/>
+        <circle id="hand-right" cx="14" cy="9" r="0.6" fill="#FFFFFF"/>
+      </g>
+    </g>
+
+    <!-- 4. 本体コア（メインボディ） -->
+    <g id="layer-body">
+      <circle id="agent-core" cx="8" cy="8" r="3.6" fill="url(#grad-core)" stroke="#FFFFFF" stroke-width="0.5"/>
+      <ellipse id="core-highlight" cx="7" cy="6.5" rx="1.2" ry="0.6" fill="#FFFFFF" opacity="0.7" transform="rotate(-20 7 6.5)"/>
+    </g>
+
+    <!-- 5. アンテナ・通信センサー層（思考中や送受信時にアニメーション） -->
+    <g id="layer-antenna">
+      <path id="antenna-stem" d="M 8 4.4 L 8 2.5" stroke="#FFFFFF" stroke-width="0.6" stroke-linecap="round"/>
+      <circle id="antenna-tip" cx="8" cy="2" r="0.8" fill="#FFF59D"/>
+      <path id="antenna-wave" d="M 6.5 1.2 Q 8 0.5 9.5 1.2" fill="none" stroke="#80DEEA" stroke-width="0.4" opacity="0.8"/>
+    </g>
+
+    <!-- 6. 表情・センサーアイ層（視線移動・喜怒哀楽の表現） -->
+    <g id="layer-face">
+      <!-- 眉毛（角度や位置で感情変化） -->
+      <line id="brow-left" x1="6" y1="6.2" x2="7.2" y2="6.2" stroke="#00363A" stroke-width="0.4" stroke-linecap="round"/>
+      <line id="brow-right" x1="8.8" y1="6.2" x2="10" y2="6.2" stroke="#00363A" stroke-width="0.4" stroke-linecap="round"/>
+      
+      <!-- 目と瞳孔（pupilの cx/cy を動かしてキョロキョロ視線変更） -->
+      <g id="eyes-group">
+        <circle id="eye-left" cx="6.6" cy="7.2" r="0.7" fill="#00363A"/>
+        <circle id="pupil-left" cx="6.5" cy="7.1" r="0.3" fill="#FFFFFF"/>
+        
+        <circle id="eye-right" cx="9.4" cy="7.2" r="0.7" fill="#00363A"/>
+        <circle id="pupil-right" cx="9.3" cy="7.1" r="0.3" fill="#FFFFFF"/>
+      </g>
+
+      <!-- 口 / ステータスインジケーター（パスを変えて笑顔・真顔・エラー等） -->
+      <path id="agent-mouth" d="M 7.3 9.2 Q 8 9.8 8.7 9.2" fill="none" stroke="#00363A" stroke-width="0.5" stroke-linecap="round"/>
+    </g>
+
+    <!-- 7. パーティクル・データビット層 -->
+    <g id="layer-particles">
+      <circle id="particle-1" cx="3" cy="3" r="0.5" fill="#FFFDE7"/>
+      <circle id="particle-2" cx="13" cy="4" r="0.4" fill="#80DEEA"/>
+      <circle id="particle-3" cx="12.5" cy="12.5" r="0.5" fill="#FFD54F"/>
+      <circle id="particle-4" cx="3.5" cy="12" r="0.4" fill="#E0F7FA"/>
+    </g>
+
+  </g>
+</svg>
