@@ -1,6 +1,6 @@
 /**
  * G⁵ Portal - core utilities (auth-free)
- * Ambient particles, base path detection, shared helpers.
+ * Ambient particles, base path, weather/time atmosphere loader.
  */
 (function () {
   "use strict";
@@ -22,7 +22,24 @@
   window.G5 = window.G5 || {};
   G5.BASE = BASE;
 
-  /** Safe localStorage wrapper (memory fallback) */
+  /** Resolve asset under src/ from any page depth */
+  function asset(path) {
+    var p = path.replace(/^\//, "");
+    if (BASE === "." || BASE === "") return p;
+    /* pages/xxx → ../../src/... */
+    var depth = 0;
+    var pathName = location.pathname || "";
+    if (pathName.indexOf("/pages/") >= 0) depth = 2;
+    else if (pathName.match(/\/[^/]+\/[^/]+\.html$/)) depth = 1;
+    var prefix = depth === 2 ? "../../" : depth === 1 ? "../" : (BASE.charAt(0) === "/" ? BASE + "/" : "./");
+    if (BASE.charAt(0) === "/") {
+      return BASE.replace(/\/$/, "") + "/" + p;
+    }
+    return prefix + p;
+  }
+
+  G5.asset = asset;
+
   var _mem = Object.create(null);
   G5.storage = {
     get: function (key) {
@@ -48,21 +65,39 @@
     }
   };
 
+  function loadAtmosphere() {
+    if (!document.querySelector('link[href*="atmosphere.css"]')) {
+      var link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = asset("src/css/atmosphere.css");
+      document.head.appendChild(link);
+    }
+    if (!window.G5Theme && !document.querySelector('script[src*="time-theme.js"]')) {
+      var s = document.createElement("script");
+      s.src = asset("src/js/time-theme.js");
+      s.async = true;
+      document.head.appendChild(s);
+    }
+  }
+
   function initAmbient() {
     var el = document.getElementById("ambient");
     if (!el) return;
-    for (var i = 0; i < 12; i++) {
+    /* 多めのパーティクルでクラブ感 */
+    var count = 18;
+    for (var i = 0; i < count; i++) {
       var p = document.createElement("div");
       p.className = "g5-ambient-particle " + ["pink", "cyan", "gold"][i % 3];
       p.style.left = Math.random() * 100 + "%";
-      p.style.width = p.style.height = 2 + Math.random() * 4 + "px";
-      p.style.animationDuration = 12 + Math.random() * 18 + "s";
-      p.style.animationDelay = Math.random() * 10 + "s";
+      p.style.width = p.style.height = 2 + Math.random() * 5 + "px";
+      p.style.animationDuration = 10 + Math.random() * 20 + "s";
+      p.style.animationDelay = Math.random() * 12 + "s";
       el.appendChild(p);
     }
   }
 
   function boot() {
+    loadAtmosphere();
     initAmbient();
   }
 
