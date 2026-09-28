@@ -2,8 +2,7 @@
  * G⁵ Portal — time-theme.js
  * 時間帯・天気連動（ナイトラグジュアリー演出）
  * 天気座標: リアルタイム現在地（失敗時は東京）
- * Open-Meteo は HTTPS
- * body に filter を付けない
+ * Open-Meteo は HTTPS / body に filter なし
  */
 (function () {
   'use strict';
@@ -24,13 +23,9 @@
     );
   }
 
-  function getJST() {
-    /* 端末ローカルで時間帯判定（ユーザー現在地の体感時間） */
+  function getLocalHours() {
     var d = new Date();
-    var h = d.getHours();
-    var m = d.getMinutes();
-    var s = d.getSeconds();
-    return { h: h, m: m, s: s, hours: h + m / 60 + s / 3600 };
+    return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
   }
 
   function periodFromHours(hours) {
@@ -56,7 +51,15 @@
     return 'cloudy';
   }
 
-  /** G⁵ ネオンパレット（ピンク・シアン・ゴールド・パープル） */
+  function hexToRgba(hex, a) {
+    var h = (hex || '#ff2d95').replace('#', '');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    var n = parseInt(h, 16);
+    if (isNaN(n)) return 'rgba(255,45,149,' + a + ')';
+    var r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+  }
+
   function palette(period, kind, isDay, temp) {
     var base = {
       dawn: { bg: '#12081a', accent: '#ff6bb5', glow: 'rgba(255,120,180,0.45)', lab: '#00f5ff' },
@@ -92,9 +95,6 @@
 
     return {
       bg: b.bg,
-      card: 'rgba(16, 11, 26, 0.88)',
-      text: '#f5f0ff',
-      textMuted: 'rgba(245, 240, 255, 0.64)',
       accent: b.accent,
       cyan: '#00f5ff',
       gold: '#ffd700',
@@ -111,8 +111,7 @@
   function apply(p) {
     ROOT.style.setProperty('--bg-deep', p.bg);
     ROOT.style.setProperty('--pink', p.accent);
-    ROOT.style.setProperty('--pink-soft', p.accent.replace(')', ', 0.45)').replace('rgb', 'rgba').replace('#', ''));
-    /* シンプルに accent を直接 */
+    ROOT.style.setProperty('--pink-soft', hexToRgba(p.accent, 0.45));
     ROOT.style.setProperty('--g5-glow', p.glow);
     ROOT.style.setProperty('--cyan', p.cyan);
     ROOT.style.setProperty('--gold', p.gold);
@@ -144,7 +143,8 @@
 
   function syncBubbles(layer, p) {
     var existing = layer.querySelector('.g5-bubbles');
-    var want = !p.isDay && (p.weather === 'clear' || p.weather === 'partly' || p.period === 'night' || p.period === 'late' || p.period === 'dusk');
+    var want = !p.isDay && (p.weather === 'clear' || p.weather === 'partly' ||
+      p.period === 'night' || p.period === 'late' || p.period === 'dusk');
     if (!want) {
       if (existing) existing.remove();
       return;
@@ -179,11 +179,11 @@
   }
 
   function tick() {
-    var j = getJST();
-    var period = periodFromHours(j.hours);
+    var hours = getLocalHours();
+    var period = periodFromHours(hours);
     var w = lastWeather || {};
     var kind = weatherKind(w.weather_code, w.precipitation, w.cloud_cover);
-    var isDay = w.is_day != null ? !!w.is_day : (j.hours >= 6 && j.hours < 18);
+    var isDay = w.is_day != null ? !!w.is_day : (hours >= 6 && hours < 18);
     var p = palette(period, kind, isDay, w.temperature_2m);
     apply(p);
     return p;
@@ -197,7 +197,9 @@
           lastWeather = data.current;
           tick();
           try {
-            sessionStorage.setItem('g5-wx', JSON.stringify({ t: Date.now(), c: data.current, lat: LAT, lon: LON }));
+            sessionStorage.setItem('g5-wx', JSON.stringify({
+              t: Date.now(), c: data.current, lat: LAT, lon: LON
+            }));
           } catch (e) {}
         }
       })
