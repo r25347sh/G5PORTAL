@@ -1,4 +1,4 @@
-/* G⁵ Portal — theme selector (dark / light / system) */
+/* G⁵ Portal — theme selector + atmosphere toggle */
 html.g5-theme-switching,
 html.g5-theme-switching *,
 html.g5-theme-switching *::before,
@@ -12,7 +12,12 @@ html.g5-theme-switching *::after {
   top: max(0.65rem, env(safe-area-inset-top));
   right: max(0.75rem, env(safe-area-inset-right));
   z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.45rem;
 }
+
 .g5-theme-trigger {
   width: 40px;
   height: 40px;
@@ -24,7 +29,7 @@ html.g5-theme-switching *::after {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   transition: transform 0.25s var(--ease-spring, ease), background 0.2s, border-color 0.2s;
   padding: 0;
 }
@@ -32,7 +37,11 @@ html.g5-theme-switching *::after {
   transform: scale(1.06);
   border-color: var(--pink);
 }
-.g5-theme-trigger svg { width: 18px; height: 18px; display: block; }
+.g5-theme-trigger svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
 
 .g5-theme-panel {
   position: absolute;
@@ -47,12 +56,12 @@ html.g5-theme-switching *::after {
   background: var(--bg-card);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
   opacity: 0;
   visibility: hidden;
   transform: translateY(-6px) scale(0.96);
   transition: opacity 0.22s ease, transform 0.26s var(--ease-spring, ease), visibility 0s linear 0.22s;
-  min-width: 9.5rem;
+  min-width: 10.5rem;
 }
 .g5-theme-panel.is-open {
   opacity: 1;
@@ -75,40 +84,157 @@ html.g5-theme-switching *::after {
   text-align: left;
   transition: background 0.15s, color 0.15s;
 }
-.g5-theme-mode:hover { color: var(--text); background: rgba(255,45,149,0.1); }
+.g5-theme-mode:hover {
+  color: var(--text);
+  background: rgba(255, 45, 149, 0.1);
+}
 .g5-theme-mode.is-active {
   background: linear-gradient(135deg, var(--pink), #ff6bb5);
   color: #fff;
 }
 
-/* LIGHT scheme — ラグジュアリーな明るいトーン（クラシックではない） */
+.g5-theme-panel-divider {
+  height: 1px;
+  margin: 0.25rem 0.35rem;
+  background: var(--border);
+}
+
+/* 天気・時間連動トグル行 */
+.g5-atmo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.45rem 0.55rem;
+}
+.g5-atmo-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+.g5-atmo-label strong {
+  display: block;
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+/* トグルスイッチ */
+.g5-switch {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.g5-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+.g5-switch-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: rgba(128, 128, 140, 0.35);
+  border: 1px solid var(--border);
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+.g5-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: transform 0.28s cubic-bezier(0.34, 1.45, 0.64, 1);
+  pointer-events: none;
+}
+.g5-switch input:checked + .g5-switch-track {
+  background: linear-gradient(135deg, var(--pink), #ff6bb5);
+  border-color: transparent;
+}
+.g5-switch input:checked + .g5-switch-track .g5-switch-thumb {
+  transform: translateX(18px);
+}
+.g5-switch input:focus-visible + .g5-switch-track {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+/* LIGHT — かなり明るく */
 html[data-color-scheme="light"] {
   color-scheme: light;
-  --bg-deep: #f4eef8;
-  --bg-card: rgba(255, 252, 255, 0.92);
+  --bg-deep: #faf9fc;
+  --bg-card: rgba(255, 255, 255, 0.94);
   --pink: #e91e8c;
-  --pink-soft: rgba(233, 30, 140, 0.2);
-  --cyan: #0099b8;
-  --gold: #c9a227;
+  --pink-soft: rgba(233, 30, 140, 0.14);
+  --cyan: #0088a8;
+  --gold: #b8941f;
   --purple: #7b3fd4;
   --text: #1a1228;
-  --text-muted: rgba(26, 18, 40, 0.58);
-  --border: rgba(26, 18, 40, 0.12);
+  --text-muted: rgba(26, 18, 40, 0.55);
+  --border: rgba(26, 18, 40, 0.1);
+}
+html[data-color-scheme="light"] body {
+  background: #faf9fc;
 }
 html[data-color-scheme="light"] body::before {
   background:
-    radial-gradient(ellipse 70% 45% at 18% -5%, rgba(233, 30, 140, 0.12), transparent 60%),
-    radial-gradient(ellipse 50% 35% at 88% 8%, rgba(0, 180, 210, 0.1), transparent 55%),
-    radial-gradient(ellipse 45% 30% at 50% 100%, rgba(155, 93, 229, 0.1), transparent 55%);
+    radial-gradient(ellipse 70% 45% at 18% -5%, rgba(233, 30, 140, 0.06), transparent 60%),
+    radial-gradient(ellipse 50% 35% at 88% 8%, rgba(0, 160, 190, 0.05), transparent 55%),
+    radial-gradient(ellipse 45% 30% at 50% 100%, rgba(155, 93, 229, 0.05), transparent 55%);
 }
-html[data-color-scheme="light"] .card h3 { color: var(--text); }
+html[data-color-scheme="light"] .card {
+  background: #ffffff;
+  box-shadow: 0 4px 20px rgba(26, 18, 40, 0.06);
+}
+html[data-color-scheme="light"] .card h3 {
+  color: var(--text);
+}
 html[data-color-scheme="light"] .hero h1 {
   background: linear-gradient(105deg, #2a1840 5%, var(--pink) 50%, var(--cyan) 95%);
   -webkit-background-clip: text;
   background-clip: text;
 }
-html[data-color-scheme="light"] .btn-primary { color: #fff; }
-html[data-color-scheme="light"] ::-webkit-scrollbar-track { background: #ebe4f2; }
-html[data-color-scheme="light"] ::-webkit-scrollbar-thumb { background: rgba(233, 30, 140, 0.4); }
+html[data-color-scheme="light"] .btn-primary {
+  color: #fff;
+}
+html[data-color-scheme="light"] .btn-ghost {
+  background: rgba(255, 255, 255, 0.7);
+}
+html[data-color-scheme="light"] ::-webkit-scrollbar-track {
+  background: #f0eef5;
+}
+html[data-color-scheme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(233, 30, 140, 0.35);
+}
+html[data-color-scheme="light"] .g5-theme-trigger,
+html[data-color-scheme="light"] .g5-theme-panel {
+  background: #ffffff;
+  box-shadow: 0 8px 28px rgba(26, 18, 40, 0.1);
+}
 
-html[data-color-scheme="dark"] { color-scheme: dark; }
+/* 連動オフ時は大気レイヤーを隠す */
+html[data-atmosphere="off"] .g5-atmosphere,
+html[data-atmosphere="off"] .g5-period-overlay,
+html[data-atmosphere="off"] .g5-rain-glass,
+html[data-atmosphere="off"] .g5-shooting-star,
+html[data-atmosphere="off"] #g5-wx-badge {
+  display: none !important;
+  animation: none !important;
+}
+html[data-atmosphere="off"] .g5-ambient {
+  opacity: 0.35;
+}
+
+html[data-color-scheme="dark"] {
+  color-scheme: dark;
+}

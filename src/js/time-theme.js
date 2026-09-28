@@ -1,7 +1,7 @@
 /**
  * G⁵ Portal — time-theme.js
  * 時間帯・天気連動 + ガラス雨粒 + 希少流れ星
- * 天気: リアルタイム現在地 / Open-Meteo HTTPS
+ * data-atmosphere="off" のときは演出・取得を抑制
  */
 (function () {
   'use strict';
@@ -13,14 +13,26 @@
   var lastWeather = null;
   var geoReady = false;
   var reducedMotion = false;
+  var rainTimer = null;
+  var starLoopActive = true;
+
   try {
     reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   } catch (e) {}
 
+  function atmosphereOn() {
+    if (window.G5ThemeControl && typeof window.G5ThemeControl.isAtmosphereEnabled === 'function') {
+      return window.G5ThemeControl.isAtmosphereEnabled();
+    }
+    return ROOT.getAttribute('data-atmosphere') !== 'off';
+  }
+
   function weatherUrl() {
     return (
-      'https://api.open-meteo.com/v1/forecast?latitude=' + LAT +
-      '&longitude=' + LON +
+      'https://api.open-meteo.com/v1/forecast?latitude=' +
+      LAT +
+      '&longitude=' +
+      LON +
       '&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,cloud_cover,wind_speed_10m' +
       '&timezone=auto'
     );
@@ -81,21 +93,23 @@
       late: { bg: '#05040c', accent: '#e91e8c', glow: 'rgba(155,93,229,0.38)' }
     };
     var baseLight = {
-      dawn: { bg: '#f6eef5', accent: '#e91e8c', glow: 'rgba(233,30,140,0.2)' },
-      morning: { bg: '#f2f4fa', accent: '#e91e8c', glow: 'rgba(0,153,184,0.15)' },
-      noon: { bg: '#f5f0fa', accent: '#e91e8c', glow: 'rgba(201,162,39,0.18)' },
-      afternoon: { bg: '#f7efe8', accent: '#d63384', glow: 'rgba(255,100,60,0.15)' },
-      dusk: { bg: '#f3e8f4', accent: '#e91e8c', glow: 'rgba(233,30,140,0.22)' },
-      night: { bg: '#ebe4f4', accent: '#c2185b', glow: 'rgba(123,63,212,0.18)' },
-      late: { bg: '#e8e2f0', accent: '#ad1457', glow: 'rgba(123,63,212,0.16)' }
+      dawn: { bg: '#fcfafc', accent: '#e91e8c', glow: 'rgba(233,30,140,0.08)' },
+      morning: { bg: '#fafbfd', accent: '#e91e8c', glow: 'rgba(0,136,168,0.06)' },
+      noon: { bg: '#fbfafc', accent: '#e91e8c', glow: 'rgba(184,148,31,0.07)' },
+      afternoon: { bg: '#fcfaf8', accent: '#d63384', glow: 'rgba(255,100,60,0.06)' },
+      dusk: { bg: '#fbf8fc', accent: '#e91e8c', glow: 'rgba(233,30,140,0.09)' },
+      night: { bg: '#f8f6fb', accent: '#c2185b', glow: 'rgba(123,63,212,0.07)' },
+      late: { bg: '#f7f5fa', accent: '#ad1457', glow: 'rgba(123,63,212,0.06)' }
     };
     var map = light ? baseLight : baseDark;
     var b = map[period] || map.night;
 
-    if (kind === 'rain' || kind === 'rain-heavy') b.glow = light ? 'rgba(0,120,180,0.2)' : 'rgba(0,245,255,0.35)';
-    else if (kind === 'storm') { b.glow = light ? 'rgba(123,63,212,0.25)' : 'rgba(155,93,229,0.55)'; b.accent = light ? '#7b3fd4' : '#c77dff'; }
-    else if (kind === 'snow') b.glow = light ? 'rgba(200,180,220,0.25)' : 'rgba(255,200,230,0.35)';
-    else if (kind === 'clear' && isDay) b.glow = light ? 'rgba(201,162,39,0.22)' : 'rgba(255,215,0,0.4)';
+    if (kind === 'rain' || kind === 'rain-heavy') b.glow = light ? 'rgba(0,120,180,0.1)' : 'rgba(0,245,255,0.35)';
+    else if (kind === 'storm') {
+      b.glow = light ? 'rgba(123,63,212,0.12)' : 'rgba(155,93,229,0.55)';
+      b.accent = light ? '#7b3fd4' : '#c77dff';
+    } else if (kind === 'snow') b.glow = light ? 'rgba(180,190,220,0.1)' : 'rgba(255,200,230,0.35)';
+    else if (kind === 'clear' && isDay) b.glow = light ? 'rgba(184,148,31,0.08)' : 'rgba(255,215,0,0.4)';
 
     if (typeof temp === 'number' && temp >= 30) {
       b.accent = light ? '#d6336c' : '#ff4d6d';
@@ -104,8 +118,8 @@
     return {
       bg: b.bg,
       accent: b.accent,
-      cyan: light ? '#0099b8' : '#00f5ff',
-      gold: light ? '#c9a227' : '#ffd700',
+      cyan: light ? '#0088a8' : '#00f5ff',
+      gold: light ? '#b8941f' : '#ffd700',
       purple: light ? '#7b3fd4' : '#9b5de5',
       glow: b.glow,
       period: period,
@@ -116,7 +130,11 @@
   }
 
   function apply(p) {
-    /* ライト時は CSS の data-color-scheme に任せる部分を尊重 */
+    if (!atmosphereOn()) {
+      stopRain();
+      return;
+    }
+
     if (!isLightScheme()) {
       ROOT.style.setProperty('--bg-deep', p.bg);
       ROOT.style.setProperty('--pink', p.accent);
@@ -125,8 +143,10 @@
       ROOT.style.setProperty('--gold', p.gold);
       ROOT.style.setProperty('--purple', p.purple);
     } else {
+      /* ライトは CSS 側を優先しつつアクセントだけ微調整 */
       ROOT.style.setProperty('--pink', p.accent);
-      ROOT.style.setProperty('--pink-soft', hexToRgba(p.accent, 0.2));
+      ROOT.style.setProperty('--pink-soft', hexToRgba(p.accent, 0.14));
+      ROOT.style.removeProperty('--bg-deep');
     }
     ROOT.style.setProperty('--g5-glow', p.glow);
 
@@ -144,8 +164,10 @@
     var layer = document.getElementById('g5-atmosphere');
     if (layer) {
       layer.className =
-        'g5-atmosphere wx-' + p.weather +
-        ' pd-' + p.period +
+        'g5-atmosphere wx-' +
+        p.weather +
+        ' pd-' +
+        p.period +
         (p.isDay ? ' day' : ' night');
       syncBubbles(layer, p);
     }
@@ -154,7 +176,6 @@
     updateBadge(p);
   }
 
-  /* ---------- ガラス雨粒 ---------- */
   function ensureRainGlass() {
     var el = document.getElementById('g5-rain-glass');
     if (el) return el;
@@ -171,65 +192,74 @@
     if (el) el.innerHTML = '';
   }
 
+  function stopRain() {
+    if (rainTimer) {
+      clearInterval(rainTimer);
+      rainTimer = null;
+    }
+    clearRainGlass();
+  }
+
   function spawnDrop(container, heavy) {
-    if (reducedMotion) return;
+    if (reducedMotion || !atmosphereOn()) return;
     var drop = document.createElement('div');
-    var size = heavy ? (8 + Math.random() * 16) : (5 + Math.random() * 12);
+    var size = heavy ? 8 + Math.random() * 16 : 5 + Math.random() * 12;
     drop.className = 'g5-drop' + (Math.random() < (heavy ? 0.45 : 0.28) ? ' is-drip' : '');
     drop.style.width = size + 'px';
     drop.style.height = size * (1.15 + Math.random() * 0.35) + 'px';
     drop.style.left = Math.random() * 100 + '%';
     drop.style.top = Math.random() * 92 + '%';
-    drop.style.setProperty('--drip-dur', (3.2 + Math.random() * 4.5) + 's');
-    drop.style.setProperty('--drip-delay', (0.4 + Math.random() * 2.5) + 's');
-    drop.style.setProperty('--drip-dist', (24 + Math.random() * 70) + 'px');
+    drop.style.setProperty('--drip-dur', 3.2 + Math.random() * 4.5 + 's');
+    drop.style.setProperty('--drip-delay', 0.4 + Math.random() * 2.5 + 's');
+    drop.style.setProperty('--drip-dist', 24 + Math.random() * 70 + 'px');
     container.appendChild(drop);
 
-    /* 垂れるものは跡を残す */
     if (drop.classList.contains('is-drip')) {
       setTimeout(function () {
-        if (!drop.parentNode) return;
+        if (!drop.parentNode || !atmosphereOn()) return;
         var trail = document.createElement('div');
         trail.className = 'g5-drop-trail';
         trail.style.left = drop.style.left;
         trail.style.top = drop.style.top;
-        trail.style.height = (30 + Math.random() * 50) + 'px';
+        trail.style.height = 30 + Math.random() * 50 + 'px';
         container.appendChild(trail);
-        setTimeout(function () { if (trail.parentNode) trail.remove(); }, 3000);
+        setTimeout(function () {
+          if (trail.parentNode) trail.remove();
+        }, 3000);
       }, 900);
     }
 
-    var life = drop.classList.contains('is-drip')
-      ? 5000 + Math.random() * 4000
-      : 3500 + Math.random() * 5000;
+    var life = drop.classList.contains('is-drip') ? 5000 + Math.random() * 4000 : 3500 + Math.random() * 5000;
     setTimeout(function () {
       if (drop.parentNode) {
         drop.style.transition = 'opacity 0.8s ease';
         drop.style.opacity = '0';
-        setTimeout(function () { if (drop.parentNode) drop.remove(); }, 850);
+        setTimeout(function () {
+          if (drop.parentNode) drop.remove();
+        }, 850);
       }
     }, life);
   }
 
-  var rainTimer = null;
   function syncRainGlass(p) {
+    if (!atmosphereOn()) {
+      stopRain();
+      return;
+    }
     var raining = p.weather === 'rain' || p.weather === 'rain-heavy' || p.weather === 'storm';
     if (!raining) {
-      if (rainTimer) { clearInterval(rainTimer); rainTimer = null; }
-      clearRainGlass();
+      stopRain();
       return;
     }
     var box = ensureRainGlass();
     var heavy = p.weather === 'rain-heavy' || p.weather === 'storm';
     if (!rainTimer) {
-      /* 初期付着 */
       var n = heavy ? 28 : 16;
       for (var i = 0; i < n; i++) spawnDrop(box, heavy);
       rainTimer = setInterval(function () {
-        if (document.hidden) return;
+        if (document.hidden || !atmosphereOn()) return;
         var c = heavy ? 3 : 2;
         for (var j = 0; j < c; j++) spawnDrop(box, heavy);
-        /* 上限 */
         while (box.children.length > (heavy ? 55 : 36)) {
           if (box.firstChild) box.removeChild(box.firstChild);
         }
@@ -237,15 +267,12 @@
     }
   }
 
-  /* ---------- 流れ星（夜のみ・希少） ---------- */
   function spawnShootingStar() {
-    if (reducedMotion || document.hidden) return;
+    if (reducedMotion || document.hidden || !atmosphereOn()) return;
     var star = document.createElement('div');
     star.className = 'g5-shooting-star';
-    var startX = 5 + Math.random() * 70;
-    var startY = 2 + Math.random() * 35;
-    star.style.left = startX + 'vw';
-    star.style.top = startY + 'vh';
+    star.style.left = 5 + Math.random() * 70 + 'vw';
+    star.style.top = 2 + Math.random() * 35 + 'vh';
     var angle = -18 - Math.random() * 28;
     var dist = 180 + Math.random() * 220;
     var rad = (angle * Math.PI) / 180;
@@ -253,30 +280,36 @@
     star.style.setProperty('--shoot-x', Math.cos(rad) * dist + 'px');
     star.style.setProperty('--shoot-y', Math.sin(rad) * dist + 'px');
     document.body.appendChild(star);
-    setTimeout(function () { if (star.parentNode) star.remove(); }, 1000);
+    setTimeout(function () {
+      if (star.parentNode) star.remove();
+    }, 1000);
   }
 
   function shootingStarLoop() {
-    /* 8〜25秒ごとに判定、夜帯のみ約 8〜12% の確率 */
     var delay = 8000 + Math.random() * 17000;
     setTimeout(function () {
-      var period = ROOT.dataset.period;
-      var night = period === 'night' || period === 'late' || period === 'dusk';
-      if (night && Math.random() < 0.11) {
-        spawnShootingStar();
-        /* ごく稀に連続2発 */
-        if (Math.random() < 0.15) {
-          setTimeout(spawnShootingStar, 400 + Math.random() * 600);
+      if (atmosphereOn()) {
+        var period = ROOT.dataset.period;
+        var night = period === 'night' || period === 'late' || period === 'dusk';
+        if (night && Math.random() < 0.11) {
+          spawnShootingStar();
+          if (Math.random() < 0.15) setTimeout(spawnShootingStar, 400 + Math.random() * 600);
         }
       }
-      shootingStarLoop();
+      if (starLoopActive) shootingStarLoop();
     }, delay);
   }
 
   function syncBubbles(layer, p) {
     var existing = layer.querySelector('.g5-bubbles');
-    var want = !p.isDay && (p.weather === 'clear' || p.weather === 'partly' ||
-      p.period === 'night' || p.period === 'late' || p.period === 'dusk');
+    var want =
+      atmosphereOn() &&
+      !p.isDay &&
+      (p.weather === 'clear' ||
+        p.weather === 'partly' ||
+        p.period === 'night' ||
+        p.period === 'late' ||
+        p.period === 'dusk');
     if (!want) {
       if (existing) existing.remove();
       return;
@@ -301,9 +334,20 @@
   function updateBadge(p) {
     var el = document.getElementById('g5-wx-badge');
     if (!el) return;
+    if (!atmosphereOn()) {
+      el.textContent = '';
+      return;
+    }
     var labels = {
-      clear: 'Clear', partly: 'Partly', cloudy: 'Cloudy', fog: 'Fog',
-      rain: 'Rain', 'rain-heavy': 'Heavy Rain', snow: 'Snow', storm: 'Storm', unknown: '—'
+      clear: 'Clear',
+      partly: 'Partly',
+      cloudy: 'Cloudy',
+      fog: 'Fog',
+      rain: 'Rain',
+      'rain-heavy': 'Heavy Rain',
+      snow: 'Snow',
+      storm: 'Storm',
+      unknown: '—'
     };
     var t = p.temp != null ? Math.round(p.temp) + '°' : '';
     var geo = geoReady ? ' · LOC' : '';
@@ -311,31 +355,41 @@
   }
 
   function tick() {
+    if (!atmosphereOn()) {
+      stopRain();
+      return null;
+    }
     var hours = getLocalHours();
     var period = periodFromHours(hours);
     var w = lastWeather || {};
     var kind = weatherKind(w.weather_code, w.precipitation, w.cloud_cover);
-    var isDay = w.is_day != null ? !!w.is_day : (hours >= 6 && hours < 18);
+    var isDay = w.is_day != null ? !!w.is_day : hours >= 6 && hours < 18;
     var p = palette(period, kind, isDay, w.temperature_2m);
     apply(p);
     return p;
   }
 
   function fetchWeather() {
+    if (!atmosphereOn()) return Promise.resolve();
     return fetch(weatherUrl())
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        return r.json();
+      })
       .then(function (data) {
         if (data && data.current) {
           lastWeather = data.current;
           tick();
           try {
-            sessionStorage.setItem('g5-wx', JSON.stringify({
-              t: Date.now(), c: data.current, lat: LAT, lon: LON
-            }));
+            sessionStorage.setItem(
+              'g5-wx',
+              JSON.stringify({ t: Date.now(), c: data.current, lat: LAT, lon: LON })
+            );
           } catch (e) {}
         }
       })
-      .catch(function () { tick(); });
+      .catch(function () {
+        tick();
+      });
   }
 
   function ensureLayers() {
@@ -371,7 +425,11 @@
   }
 
   function requestGeo() {
-    if (!navigator.geolocation) { fetchWeather(); return; }
+    if (!atmosphereOn()) return;
+    if (!navigator.geolocation) {
+      fetchWeather();
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
       function (pos) {
         LAT = pos.coords.latitude;
@@ -388,7 +446,9 @@
           if (c) {
             var o = JSON.parse(c);
             if (o && o.lat != null && Date.now() - o.t < 60 * 60 * 1000) {
-              LAT = o.lat; LON = o.lon; geoReady = true;
+              LAT = o.lat;
+              LON = o.lon;
+              geoReady = true;
             }
           }
         } catch (e) {}
@@ -396,6 +456,17 @@
       },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 5 * 60 * 1000 }
     );
+  }
+
+  function onAtmosphereChange() {
+    if (atmosphereOn()) {
+      tick();
+      requestGeo();
+    } else {
+      stopRain();
+      ROOT.style.removeProperty('--bg-deep');
+      ROOT.style.removeProperty('--g5-glow');
+    }
   }
 
   function boot() {
@@ -406,18 +477,34 @@
         var o = JSON.parse(cached);
         if (o && o.c && Date.now() - o.t < 15 * 60 * 1000) {
           lastWeather = o.c;
-          if (o.lat != null) { LAT = o.lat; LON = o.lon; geoReady = true; }
+          if (o.lat != null) {
+            LAT = o.lat;
+            LON = o.lon;
+            geoReady = true;
+          }
         }
       }
     } catch (e) {}
-    tick();
-    requestGeo();
-    setInterval(tick, 30000);
-    setInterval(fetchWeather, 10 * 60 * 1000);
+    if (atmosphereOn()) {
+      tick();
+      requestGeo();
+    }
+    setInterval(function () {
+      if (atmosphereOn()) tick();
+    }, 30000);
+    setInterval(function () {
+      if (atmosphereOn()) fetchWeather();
+    }, 10 * 60 * 1000);
     document.addEventListener('visibilitychange', function () {
-      if (!document.hidden) { tick(); fetchWeather(); }
+      if (!document.hidden && atmosphereOn()) {
+        tick();
+        fetchWeather();
+      }
     });
-    document.addEventListener('g5-theme-change', function () { tick(); });
+    document.addEventListener('g5-theme-change', function () {
+      if (atmosphereOn()) tick();
+    });
+    document.addEventListener('g5-atmosphere-change', onAtmosphereChange);
     shootingStarLoop();
   }
 
@@ -428,7 +515,10 @@
     tick: tick,
     fetchWeather: fetchWeather,
     setCoords: function (lat, lon) {
-      LAT = lat; LON = lon; geoReady = true; fetchWeather();
+      LAT = lat;
+      LON = lon;
+      geoReady = true;
+      fetchWeather();
     },
     spawnShootingStar: spawnShootingStar
   };
