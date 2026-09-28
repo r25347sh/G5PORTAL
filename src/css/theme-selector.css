@@ -1,0 +1,114 @@
+/* G⁵ Portal — theme selector (dark / light / system) */
+html.g5-theme-switching,
+html.g5-theme-switching *,
+html.g5-theme-switching *::before,
+html.g5-theme-switching *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
+.g5-theme-ctrl {
+  position: fixed;
+  top: max(0.65rem, env(safe-area-inset-top));
+  right: max(0.75rem, env(safe-area-inset-right));
+  z-index: 1200;
+}
+.g5-theme-trigger {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--gold);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  transition: transform 0.25s var(--ease-spring, ease), background 0.2s, border-color 0.2s;
+  padding: 0;
+}
+.g5-theme-trigger:hover {
+  transform: scale(1.06);
+  border-color: var(--pink);
+}
+.g5-theme-trigger svg { width: 18px; height: 18px; display: block; }
+
+.g5-theme-panel {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.55rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px) scale(0.96);
+  transition: opacity 0.22s ease, transform 0.26s var(--ease-spring, ease), visibility 0s linear 0.22s;
+  min-width: 9.5rem;
+}
+.g5-theme-panel.is-open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  transition: opacity 0.22s ease, transform 0.26s var(--ease-spring, ease), visibility 0s linear 0s;
+}
+.g5-theme-mode {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.5rem 0.7rem;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, color 0.15s;
+}
+.g5-theme-mode:hover { color: var(--text); background: rgba(255,45,149,0.1); }
+.g5-theme-mode.is-active {
+  background: linear-gradient(135deg, var(--pink), #ff6bb5);
+  color: #fff;
+}
+
+/* LIGHT scheme — ラグジュアリーな明るいトーン（クラシックではない） */
+html[data-color-scheme="light"] {
+  color-scheme: light;
+  --bg-deep: #f4eef8;
+  --bg-card: rgba(255, 252, 255, 0.92);
+  --pink: #e91e8c;
+  --pink-soft: rgba(233, 30, 140, 0.2);
+  --cyan: #0099b8;
+  --gold: #c9a227;
+  --purple: #7b3fd4;
+  --text: #1a1228;
+  --text-muted: rgba(26, 18, 40, 0.58);
+  --border: rgba(26, 18, 40, 0.12);
+}
+html[data-color-scheme="light"] body::before {
+  background:
+    radial-gradient(ellipse 70% 45% at 18% -5%, rgba(233, 30, 140, 0.12), transparent 60%),
+    radial-gradient(ellipse 50% 35% at 88% 8%, rgba(0, 180, 210, 0.1), transparent 55%),
+    radial-gradient(ellipse 45% 30% at 50% 100%, rgba(155, 93, 229, 0.1), transparent 55%);
+}
+html[data-color-scheme="light"] .card h3 { color: var(--text); }
+html[data-color-scheme="light"] .hero h1 {
+  background: linear-gradient(105deg, #2a1840 5%, var(--pink) 50%, var(--cyan) 95%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+html[data-color-scheme="light"] .btn-primary { color: #fff; }
+html[data-color-scheme="light"] ::-webkit-scrollbar-track { background: #ebe4f2; }
+html[data-color-scheme="light"] ::-webkit-scrollbar-thumb { background: rgba(233, 30, 140, 0.4); }
+
+html[data-color-scheme="dark"] { color-scheme: dark; }
