@@ -112,7 +112,15 @@
             }
           }
           const noteEl = document.getElementById('note-' + idx);
-          if (noteEl) noteEl.classList.remove('hidden');
+          if (noteEl) {
+            noteEl.classList.remove('hidden');
+            if (!noteEl.querySelector('.note-label')) {
+              const lab = document.createElement('div');
+              lab.className = 'note-label';
+              lab.textContent = '解説';
+              noteEl.insertBefore(lab, noteEl.firstChild);
+            }
+          }
         });
       });
 
