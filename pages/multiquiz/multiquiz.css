@@ -1,4 +1,4 @@
-/* MultiQuiz — G⁵ Portal theme + File Manager */
+/* MultiQuiz — G⁵ Portal theme + File Manager + Scoring */
 .mq-container {
   max-width: 880px;
   margin: 0 auto 3rem;
@@ -185,15 +185,46 @@
   border-radius: 14px;
   padding: 1.35rem 1.25rem;
   margin-bottom: 1.25rem;
+  transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
+}
+.question.is-correct {
+  border-color: rgba(46, 213, 115, 0.65);
+  background: rgba(46, 213, 115, 0.08);
+  box-shadow: 0 0 0 1px rgba(46, 213, 115, 0.25);
+}
+.question.is-incorrect {
+  border-color: rgba(255, 107, 138, 0.65);
+  background: rgba(255, 107, 138, 0.08);
+  box-shadow: 0 0 0 1px rgba(255, 107, 138, 0.25);
 }
 .question-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
   margin-bottom: 0.85rem;
   font-size: 0.95rem;
+  flex-wrap: wrap;
 }
 .q-number { color: var(--gold); font-weight: 600; }
 .points { color: var(--text-muted); }
+.result-badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+.result-badge.badge-ok {
+  background: rgba(46, 213, 115, 0.2);
+  color: #2ed573;
+  border: 1px solid rgba(46, 213, 115, 0.45);
+}
+.result-badge.badge-ng {
+  background: rgba(255, 107, 138, 0.2);
+  color: #ff6b8a;
+  border: 1px solid rgba(255, 107, 138, 0.45);
+}
 .question-text {
   font-size: 1.05rem;
   margin-bottom: 1rem;
@@ -214,6 +245,49 @@
   border-color: rgba(255, 45, 149, 0.4);
   background: rgba(255, 45, 149, 0.08);
 }
+.option.opt-correct {
+  border-color: rgba(46, 213, 115, 0.7);
+  background: rgba(46, 213, 115, 0.12);
+}
+.option.opt-wrong {
+  border-color: rgba(255, 107, 138, 0.7);
+  background: rgba(255, 107, 138, 0.12);
+  text-decoration: line-through;
+  opacity: 0.9;
+}
+.correct-answer-line {
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  background: rgba(46, 213, 115, 0.1);
+  border-left: 3px solid #2ed573;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  color: #2ed573;
+}
+.score-summary {
+  margin: 1.5rem 0 0.5rem;
+  padding: 1.25rem 1.35rem;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  text-align: center;
+}
+.score-summary.hidden { display: none; }
+.score-main {
+  font-size: 1.25rem;
+  color: #fff;
+  margin-bottom: 0.5rem;
+}
+.score-main strong {
+  color: var(--gold);
+  font-size: 1.45rem;
+}
+.score-detail {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+.score-ok { color: #2ed573; font-weight: 600; }
+.score-ng { color: #ff6b8a; font-weight: 600; }
 .question input[type="text"],
 .fill-container input {
   padding: 0.65rem 0.9rem;
