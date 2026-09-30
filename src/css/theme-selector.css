@@ -1,4 +1,4 @@
-/* G⁵ Portal — theme selector + atmosphere toggle */
+/* G⁵ Portal — theme selector + atmosphere toggle + light readability */
 html.g5-theme-switching,
 html.g5-theme-switching *,
 html.g5-theme-switching *::before,
@@ -169,57 +169,259 @@ html.g5-theme-switching *::after {
   outline-offset: 2px;
 }
 
-/* LIGHT — かなり明るく */
+/* ============================================================
+   LIGHT scheme — global tokens
+   ============================================================ */
 html[data-color-scheme="light"] {
   color-scheme: light;
-  --bg-deep: #faf9fc;
-  --bg-card: rgba(255, 255, 255, 0.94);
-  --pink: #e91e8c;
-  --pink-soft: rgba(233, 30, 140, 0.14);
-  --cyan: #0088a8;
-  --gold: #b8941f;
-  --purple: #7b3fd4;
+  --bg-deep: #f5f3f9;
+  --bg-card: rgba(255, 255, 255, 0.96);
+  --pink: #d4147a;
+  --pink-soft: rgba(212, 20, 122, 0.14);
+  --cyan: #007a96;
+  --gold: #9a7b12;
+  --purple: #6b2fc0;
   --text: #1a1228;
-  --text-muted: rgba(26, 18, 40, 0.55);
-  --border: rgba(26, 18, 40, 0.1);
+  --text-muted: rgba(26, 18, 40, 0.62);
+  --border: rgba(26, 18, 40, 0.14);
+  /* MENU tokens for light */
+  --rm-text: #1a1228;
+  --rm-item-bg: linear-gradient(145deg, #ffffff, #f3f0f8);
+  --rm-parent-bg: linear-gradient(145deg, rgba(155, 93, 229, 0.18), #f0ecf8);
+  --rm-border: rgba(212, 20, 122, 0.4);
+  --rm-orbit: rgba(0, 122, 150, 0.28);
+  --rm-label-bg: linear-gradient(135deg, #ffffff, #f7f5fb);
+  --rm-label-border: rgba(154, 123, 18, 0.45);
+  --ham-bg: linear-gradient(165deg, #faf9fc 0%, #f0eef6 50%, #ebe7f3 100%);
+  --ham-card: rgba(26, 18, 40, 0.05);
+  --ham-border: rgba(212, 20, 122, 0.22);
 }
+
 html[data-color-scheme="light"] body {
-  background: #faf9fc;
+  background: var(--bg-deep);
+  color: var(--text);
 }
 html[data-color-scheme="light"] body::before {
   background:
-    radial-gradient(ellipse 70% 45% at 18% -5%, rgba(233, 30, 140, 0.06), transparent 60%),
-    radial-gradient(ellipse 50% 35% at 88% 8%, rgba(0, 160, 190, 0.05), transparent 55%),
-    radial-gradient(ellipse 45% 30% at 50% 100%, rgba(155, 93, 229, 0.05), transparent 55%);
+    radial-gradient(ellipse 70% 45% at 18% -5%, rgba(212, 20, 122, 0.07), transparent 60%),
+    radial-gradient(ellipse 50% 35% at 88% 8%, rgba(0, 140, 170, 0.06), transparent 55%),
+    radial-gradient(ellipse 45% 30% at 50% 100%, rgba(123, 63, 212, 0.06), transparent 55%);
 }
+
+/* Top page cards */
 html[data-color-scheme="light"] .card {
   background: #ffffff;
-  box-shadow: 0 4px 20px rgba(26, 18, 40, 0.06);
+  box-shadow: 0 4px 20px rgba(26, 18, 40, 0.07);
+  border-color: var(--border);
 }
 html[data-color-scheme="light"] .card h3 {
   color: var(--text);
 }
-html[data-color-scheme="light"] .hero h1 {
-  background: linear-gradient(105deg, #2a1840 5%, var(--pink) 50%, var(--cyan) 95%);
-  -webkit-background-clip: text;
-  background-clip: text;
+html[data-color-scheme="light"] .card p {
+  color: var(--text-muted);
 }
+
+/* Gradients that used white as start — dark start on light bg */
+html[data-color-scheme="light"] .hero h1,
+html[data-color-scheme="light"] .tool-header h1,
+html[data-color-scheme="light"] #ham-panel .ham-title {
+  background: linear-gradient(105deg, #1a1228 8%, var(--pink) 48%, var(--cyan) 92%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent;
+}
+
+html[data-color-scheme="light"] .display,
+html[data-color-scheme="light"] .clock-face,
+html[data-color-scheme="light"] .clock-time,
+html[data-color-scheme="light"] .time-digits,
+html[data-color-scheme="light"] .big-num,
+html[data-color-scheme="light"] .result-num {
+  background: linear-gradient(135deg, #1a1228 12%, var(--cyan) 55%, var(--pink) 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Hardcoded white titles / labels → theme text */
+html[data-color-scheme="light"] .mat-title,
+html[data-color-scheme="light"] .preview-title,
+html[data-color-scheme="light"] .empty h2,
+html[data-color-scheme="light"] .tool-card h2,
+html[data-color-scheme="light"] .tool-card h3,
+html[data-color-scheme="light"] .section-header h2,
+html[data-color-scheme="light"] .status.ok,
+html[data-color-scheme="light"] .panel-title {
+  color: var(--text);
+}
+
+/* Tabs / chips */
+html[data-color-scheme="light"] .mode-tabs,
+html[data-color-scheme="light"] .view-tabs {
+  background: rgba(26, 18, 40, 0.06);
+  border-color: var(--border);
+}
+html[data-color-scheme="light"] .mode-tab,
+html[data-color-scheme="light"] .view-tab {
+  color: var(--text-muted);
+}
+html[data-color-scheme="light"] .mode-tab.active,
+html[data-color-scheme="light"] .view-tab.active {
+  color: #fff;
+}
+
+/* Form controls */
+html[data-color-scheme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+html[data-color-scheme="light"] textarea,
+html[data-color-scheme="light"] select {
+  background: #ffffff;
+  color: var(--text);
+  border-color: var(--border);
+}
+html[data-color-scheme="light"] input::placeholder,
+html[data-color-scheme="light"] textarea::placeholder {
+  color: rgba(26, 18, 40, 0.4);
+}
+html[data-color-scheme="light"] select option {
+  background: #ffffff;
+  color: var(--text);
+}
+
+/* Tool cards / rows */
+html[data-color-scheme="light"] .tool-card,
+html[data-color-scheme="light"] .mat-row,
+html[data-color-scheme="light"] .mat-card {
+  background: #ffffff;
+  border-color: var(--border);
+  box-shadow: 0 2px 14px rgba(26, 18, 40, 0.05);
+}
+
+/* Strength bars / subtle tracks */
+html[data-color-scheme="light"] .strength-bar {
+  background: rgba(26, 18, 40, 0.1);
+}
+
+/* Buttons */
 html[data-color-scheme="light"] .btn-primary {
   color: #fff;
 }
 html[data-color-scheme="light"] .btn-ghost {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text);
+  border-color: var(--border);
 }
-html[data-color-scheme="light"] ::-webkit-scrollbar-track {
+html[data-color-scheme="light"] .btn-ghost:hover {
+  border-color: var(--pink);
+  color: var(--pink);
+}
+
+/* Materials preview modal */
+html[data-color-scheme="light"] .preview-panel {
+  background: #ffffff;
+  border-color: var(--border);
+}
+html[data-color-scheme="light"] .preview-header {
+  background: rgba(245, 243, 249, 0.95);
+  border-bottom-color: var(--border);
+}
+html[data-color-scheme="light"] .preview-body {
+  background: #e8e4f0;
+}
+html[data-color-scheme="light"] .preview-body iframe {
   background: #f0eef5;
 }
-html[data-color-scheme="light"] ::-webkit-scrollbar-thumb {
-  background: rgba(233, 30, 140, 0.35);
+html[data-color-scheme="light"] .preview-fallback {
+  color: var(--text-muted);
 }
+
+/* Dice / random big numbers with white text */
+html[data-color-scheme="light"] .dice-result,
+html[data-color-scheme="light"] .roll-result {
+  color: var(--text);
+  text-shadow: none;
+}
+
+/* Screen share / video chrome that used pure black */
+html[data-color-scheme="light"] .video-wrap,
+html[data-color-scheme="light"] .share-stage {
+  background: #1a1228;
+}
+
+/* QR black boxes stay black (intentional) */
+
+/* Scrollbar */
+html[data-color-scheme="light"] ::-webkit-scrollbar-track {
+  background: #ebe8f2;
+}
+html[data-color-scheme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(212, 20, 122, 0.35);
+}
+
+/* Theme control chrome */
 html[data-color-scheme="light"] .g5-theme-trigger,
 html[data-color-scheme="light"] .g5-theme-panel {
   background: #ffffff;
-  box-shadow: 0 8px 28px rgba(26, 18, 40, 0.1);
+  box-shadow: 0 8px 28px rgba(26, 18, 40, 0.12);
+}
+
+/* Footer */
+html[data-color-scheme="light"] .site-footer {
+  color: var(--text-muted);
+}
+html[data-color-scheme="light"] .site-footer strong {
+  color: var(--pink);
+}
+
+/* ============================================================
+   MENU — light readability (hamburger + radial)
+   ============================================================ */
+html[data-color-scheme="light"] #ham-panel {
+  color: var(--text);
+  box-shadow: -12px 0 40px rgba(26, 18, 40, 0.12);
+}
+html[data-color-scheme="light"] .ham-link,
+html[data-color-scheme="light"] .ham-group-btn {
+  color: var(--text);
+  border-color: var(--border);
+  background: var(--ham-card);
+}
+html[data-color-scheme="light"] .ham-link:hover,
+html[data-color-scheme="light"] .ham-group-btn:hover {
+  border-color: var(--pink);
+  background: rgba(212, 20, 122, 0.08);
+}
+html[data-color-scheme="light"] .ham-sub a {
+  color: var(--text-muted);
+}
+html[data-color-scheme="light"] .ham-sub a:hover {
+  color: var(--cyan);
+  background: rgba(0, 122, 150, 0.08);
+}
+html[data-color-scheme="light"] .ham-close {
+  background: rgba(26, 18, 40, 0.08);
+  color: var(--text);
+}
+html[data-color-scheme="light"] .ham-close:hover {
+  background: rgba(212, 20, 122, 0.2);
+  color: var(--pink);
+}
+html[data-color-scheme="light"] .rm-item::after {
+  color: var(--text);
+}
+html[data-color-scheme="light"] .rm-item:hover,
+html[data-color-scheme="light"] .rm-item:active {
+  color: #fff;
+}
+
+/* MultiQuiz cards on light */
+html[data-color-scheme="light"] .mq-card,
+html[data-color-scheme="light"] .mq-question,
+html[data-color-scheme="light"] .score-summary {
+  background: #ffffff;
+  border-color: var(--border);
+  color: var(--text);
 }
 
 /* 連動オフ時は大気レイヤーを隠す */
