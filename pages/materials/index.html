@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="../../MENU/MENU.css">
   <script src="../../src/js/main.js" defer></script>
   <script src="../../MENU/MENU.js" defer></script>
+  <script src="script.js" defer></script>
 </head>
 <body>
   <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
@@ -19,16 +20,43 @@
     <p class="tool-sub">勉強用 PDF 等の配信スペース</p>
   </header>
   <main class="tool-main">
-    <div class="tool-card">
-      <div class="empty">
-        <div class="empty-icon">◇</div>
-        <h2>準備中</h2>
-        <p>PDF などの副教材は、ファイルが揃い次第ここに配置します。<br>
-        配置先: <code>pages/materials/files/</code></p>
-        <a href="../../index.html#tools" class="btn btn-primary" style="margin-top:1.25rem;">ツール一覧へ</a>
+    <div class="view-toolbar">
+      <div class="view-tabs" role="tablist" aria-label="表示切替">
+        <button type="button" class="view-tab active" data-view="list" role="tab" aria-selected="true">リスト</button>
+        <button type="button" class="view-tab" data-view="gallery" role="tab" aria-selected="false">ギャラリー</button>
       </div>
+      <p class="file-count" id="file-count"></p>
+    </div>
+
+    <div id="list-view" class="materials-list" role="tabpanel"></div>
+    <div id="gallery-view" class="materials-gallery hidden" role="tabpanel"></div>
+
+    <div id="empty-state" class="tool-card empty hidden">
+      <div class="empty-icon">◇</div>
+      <h2>教材がありません</h2>
+      <p>PDF などの副教材は <code>pages/materials/files/</code> に配置してください。</p>
     </div>
   </main>
+
+  <!-- プレビューモーダル -->
+  <div id="preview-modal" class="preview-modal hidden" role="dialog" aria-modal="true" aria-labelledby="preview-title">
+    <div class="preview-backdrop" data-close></div>
+    <div class="preview-panel">
+      <header class="preview-header">
+        <h2 id="preview-title" class="preview-title"></h2>
+        <div class="preview-actions">
+          <a id="preview-download" class="btn btn-ghost btn-sm" download>ダウンロード</a>
+          <a id="preview-open" class="btn btn-ghost btn-sm" target="_blank" rel="noopener">新しいタブで開く</a>
+          <button type="button" class="btn btn-ghost btn-sm" data-close aria-label="閉じる">×</button>
+        </div>
+      </header>
+      <div class="preview-body">
+        <iframe id="preview-frame" title="PDFプレビュー"></iframe>
+        <p class="preview-fallback">プレビューが表示されない場合は「新しいタブで開く」またはダウンロードしてください。</p>
+      </div>
+    </div>
+  </div>
+
   <footer class="site-footer"><p><strong>G⁵ Portal</strong> · Materials</p></footer>
 </body>
 </html>
