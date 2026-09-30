@@ -1,8 +1,8 @@
 /**
- * G5 Portal - Materials
+ * G5 Portal - Materials (legacy filename; prefer materials.js)
  * files/ 配下の PDF を GitHub API で自動取得して表示
  * サブフォルダ名 = カテゴリ、ファイル名 = タイトル
- * script への手動登録は不要
+ * 手動登録は不要。files/ に PDF を置くだけ
  */
 (function () {
   "use strict";
@@ -28,11 +28,17 @@
   var previewOpen = document.getElementById("preview-open");
 
   function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, "\u0026amp;")
-      .replace(/</g, "\u0026lt;")
-      .replace(/>/g, "\u0026gt;")
-      .replace(/"/g, "\u0026quot;");
+    var s = String(str);
+    var out = "";
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charAt(i);
+      if (c === "&") out += "&" + "amp;";
+      else if (c === "<") out += "&" + "lt;";
+      else if (c === ">") out += "&" + "gt;";
+      else if (c === '"') out += "&" + "quot;";
+      else out += c;
+    }
+    return out;
   }
 
   function encodePath(relPath) {
@@ -59,7 +65,6 @@
     return name.replace(/\.pdf$/i, "");
   }
 
-  /** GitHub Contents API を再帰的に辿って PDF 一覧を取得 */
   function fetchDir(apiPath, folderLabel) {
     var url =
       "https://api.github.com/repos/" +
@@ -71,147 +76,145 @@
 
     return fetch(url, {
       headers: { Accept: "application/vnd.github+json" },
-    }).then(function (res) {
-      if (!res.ok) throw new Error("API " + res.status + ": " + apiPath);
-      return res.json();
-    }).then(function (items) {
-      if (!Array.isArray(items)) return [];
+    })
+      .then(function (res) {
+        if (!res.ok) throw new Error("API " + res.status + ": " + apiPath);
+        return res.json();
+      })
+      .then(function (items) {
+        if (!Array.isArray(items)) return [];
 
-      var tasks = items.map(function (item) {
-        if (item.type === "dir") {
-          var nextLabel = folderLabel
-            ? folderLabel + " / " + item.name
-            : item.name;
-          return fetchDir(item.path, nextLabel);
-        }
-
-        if (item.type === "file" && ALLOWED_EXT.test(item.name)) {
-          // pages/materials/files/ 以降の相対パス
-          var prefix = FILES_API_PATH + "/";
-          var rel =
-            item.path.indexOf(prefix) === 0
-              ? item.path.slice(prefix.length)
+        var tasks = items.map(function (item) {
+          if (item.type === "dir") {
+            var nextLabel = folderLabel
+              ? folderLabel + " / " + item.name
               : item.name;
+            return fetchDir(item.path, nextLabel);
+          }
 
-          return [
-            {
-              id: item.sha || rel,
-              title: titleFromName(item.name),
-              relPath: rel,
-              filename: item.name,
-              category: folderLabel || "",
-              size: formatSize(item.size),
-              sizeBytes: item.size || 0,
-            },
-          ];
-        }
+          if (item.type === "file" && ALLOWED_EXT.test(item.name)) {
+            var prefix = FILES_API_PATH + "/";
+            var rel =
+              item.path.indexOf(prefix) === 0
+                ? item.path.slice(prefix.length)
+                : item.name;
 
-        return [];
+            return [
+              {
+                id: item.sha || rel,
+                title: titleFromName(item.name),
+                relPath: rel,
+                filename: item.name,
+                category: folderLabel || "",
+                size: formatSize(item.size),
+                sizeBytes: item.size || 0,
+              },
+            ];
+          }
+
+          return [];
+        });
+
+        return Promise.all(tasks).then(function (chunks) {
+          var acc = [];
+          for (var i = 0; i < chunks.length; i++) {
+            acc = acc.concat(chunks[i]);
+          }
+          return acc;
+        });
       });
-
-      return Promise.all(tasks).then(function (chunks) {
-        return chunks.reduce(function (acc, c) {
-          return acc.concat(c);
-        }, []);
-      });
-    });
   }
 
   function renderList() {
     if (!listEl) return;
-    listEl.innerHTML = materials
-      .map(function (m) {
-        var url = fileUrl(m.relPath);
-        var meta = "";
-        if (m.category) {
-          meta +=
-            '<span class="mat-tag">' +
-            escapeHtml(m.category) +
-            "</span>";
-        }
-        if (m.size) {
-          meta += "<span>" + escapeHtml(m.size) + "</span>";
-        }
-        return (
-          '<article class="mat-row" data-id="' +
-          escapeHtml(m.id) +
-          '">' +
-          '<div class="mat-icon" aria-hidden="true">PDF</div>' +
-          '<div class="mat-body">' +
-          '<h3 class="mat-title">' +
-          escapeHtml(m.title) +
-          "</h3>" +
-          '<div class="mat-meta">' +
-          meta +
-          "</div></div>" +
-          '<div class="mat-actions">' +
-          '<button type="button" class="btn btn-primary btn-sm" data-preview="' +
-          escapeHtml(m.id) +
-          '">プレビュー</button>' +
-          '<a class="btn btn-ghost btn-sm" href="' +
-          url +
-          '" download="' +
-          escapeHtml(m.filename) +
-          '">ダウンロード</a>' +
-          '<a class="btn btn-ghost btn-sm" href="' +
-          url +
-          '" target="_blank" rel="noopener">開く</a>' +
-          "</div></article>"
-        );
-      })
-      .join("");
+    var html = "";
+    for (var i = 0; i < materials.length; i++) {
+      var m = materials[i];
+      var url = fileUrl(m.relPath);
+      var meta = "";
+      if (m.category) {
+        meta += '<span class="mat-tag">' + escapeHtml(m.category) + "</span>";
+      }
+      if (m.size) {
+        meta += "<span>" + escapeHtml(m.size) + "</span>";
+      }
+      html +=
+        '<article class="mat-row" data-id="' +
+        escapeHtml(m.id) +
+        '">' +
+        '<div class="mat-icon" aria-hidden="true">PDF</div>' +
+        '<div class="mat-body">' +
+        '<h3 class="mat-title">' +
+        escapeHtml(m.title) +
+        "</h3>" +
+        '<div class="mat-meta">' +
+        meta +
+        "</div></div>" +
+        '<div class="mat-actions">' +
+        '<button type="button" class="btn btn-primary btn-sm" data-preview="' +
+        escapeHtml(m.id) +
+        '">プレビュー</button>' +
+        '<a class="btn btn-ghost btn-sm" href="' +
+        url +
+        '" download="' +
+        escapeHtml(m.filename) +
+        '">ダウンロード</a>' +
+        '<a class="btn btn-ghost btn-sm" href="' +
+        url +
+        '" target="_blank" rel="noopener">開く</a>' +
+        "</div></article>";
+    }
+    listEl.innerHTML = html;
   }
 
   function renderGallery() {
     if (!galleryEl) return;
-    galleryEl.innerHTML = materials
-      .map(function (m) {
-        var url = fileUrl(m.relPath);
-        var meta = "";
-        if (m.category) {
-          meta +=
-            '<span class="mat-tag">' +
-            escapeHtml(m.category) +
-            "</span>";
-        }
-        if (m.size) {
-          meta += "<span>" + escapeHtml(m.size) + "</span>";
-        }
-        return (
-          '<article class="mat-card" data-id="' +
-          escapeHtml(m.id) +
-          '">' +
-          '<div class="mat-icon" aria-hidden="true">PDF</div>' +
-          '<h3 class="mat-title">' +
-          escapeHtml(m.title) +
-          "</h3>" +
-          '<div class="mat-meta">' +
-          meta +
-          "</div>" +
-          '<div class="mat-actions">' +
-          '<button type="button" class="btn btn-primary btn-sm" data-preview="' +
-          escapeHtml(m.id) +
-          '">プレビュー</button>' +
-          '<a class="btn btn-ghost btn-sm" href="' +
-          url +
-          '" download="' +
-          escapeHtml(m.filename) +
-          '">DL</a>' +
-          "</div></article>"
-        );
-      })
-      .join("");
+    var html = "";
+    for (var i = 0; i < materials.length; i++) {
+      var m = materials[i];
+      var url = fileUrl(m.relPath);
+      var meta = "";
+      if (m.category) {
+        meta += '<span class="mat-tag">' + escapeHtml(m.category) + "</span>";
+      }
+      if (m.size) {
+        meta += "<span>" + escapeHtml(m.size) + "</span>";
+      }
+      html +=
+        '<article class="mat-card" data-id="' +
+        escapeHtml(m.id) +
+        '">' +
+        '<div class="mat-icon" aria-hidden="true">PDF</div>' +
+        '<h3 class="mat-title">' +
+        escapeHtml(m.title) +
+        "</h3>" +
+        '<div class="mat-meta">' +
+        meta +
+        "</div>" +
+        '<div class="mat-actions">' +
+        '<button type="button" class="btn btn-primary btn-sm" data-preview="' +
+        escapeHtml(m.id) +
+        '">プレビュー</button>' +
+        '<a class="btn btn-ghost btn-sm" href="' +
+        url +
+        '" download="' +
+        escapeHtml(m.filename) +
+        '">DL</a>' +
+        "</div></article>";
+    }
+    galleryEl.innerHTML = html;
   }
 
   function setView(view) {
     var isList = view === "list";
     if (listEl) listEl.classList.toggle("hidden", !isList);
     if (galleryEl) galleryEl.classList.toggle("hidden", isList);
-    tabs.forEach(function (tab) {
+    for (var i = 0; i < tabs.length; i++) {
+      var tab = tabs[i];
       var active = tab.getAttribute("data-view") === view;
       tab.classList.toggle("active", active);
       tab.setAttribute("aria-selected", active ? "true" : "false");
-    });
+    }
     try {
       localStorage.setItem("g5-materials-view", view);
     } catch (e) {}
@@ -246,21 +249,27 @@
   }
 
   function bindEvents() {
-    tabs.forEach(function (tab) {
-      tab.addEventListener("click", function () {
-        setView(tab.getAttribute("data-view"));
-      });
-    });
+    for (var i = 0; i < tabs.length; i++) {
+      (function (tab) {
+        tab.addEventListener("click", function () {
+          setView(tab.getAttribute("data-view"));
+        });
+      })(tabs[i]);
+    }
 
     document.addEventListener("click", function (e) {
-      var btn = e.target.closest("[data-preview]");
-      if (btn) {
-        e.preventDefault();
-        openPreview(btn.getAttribute("data-preview"));
-        return;
-      }
-      if (e.target.closest("[data-close]")) {
-        closePreview();
+      var t = e.target;
+      while (t && t !== document) {
+        if (t.getAttribute && t.getAttribute("data-preview")) {
+          e.preventDefault();
+          openPreview(t.getAttribute("data-preview"));
+          return;
+        }
+        if (t.getAttribute && t.getAttribute("data-close") !== null) {
+          closePreview();
+          return;
+        }
+        t = t.parentNode;
       }
     });
 
