@@ -17,7 +17,7 @@
   <header class="tool-header">
     <a href="../../index.html" class="btn btn-ghost tool-back">← G⁵ Portal</a>
     <h1>副教材</h1>
-    <p class="tool-sub">勉強用 PDF 等の配信スペース</p>
+    <p class="tool-sub">勉強用 PDF・画像・動画・音声の配信スペース</p>
   </header>
   <main class="tool-main">
     <div class="view-toolbar">
@@ -34,7 +34,7 @@
     <div id="empty-state" class="tool-card empty hidden">
       <div class="empty-icon">◇</div>
       <h2>教材がありません</h2>
-      <p>PDF などの副教材は <code>pages/materials/files/</code> に配置してください。サブフォルダも自動で読み込みます。</p>
+      <p>PDF・PNG・MP4・MOV・MP3 などを <code>pages/materials/files/</code> に配置してください。サブフォルダも自動で読み込みます。</p>
     </div>
   </main>
 
@@ -49,10 +49,7 @@
           <button type="button" class="btn btn-ghost btn-sm" data-close aria-label="閉じる">×</button>
         </div>
       </header>
-      <div class="preview-body">
-        <iframe id="preview-frame" title="PDFプレビュー"></iframe>
-        <p class="preview-fallback">プレビューが表示されない場合は「新しいタブで開く」またはダウンロードしてください。</p>
-      </div>
+      <div class="preview-body" id="preview-body"></div>
     </div>
   </div>
 
