@@ -13,10 +13,10 @@
 </head>
 <body>
   <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
-  <header class="page-header" style="text-align:center;padding:3rem 1.5rem 1rem;position:relative;z-index:1;">
-    <p style="margin-bottom:0.75rem;"><a href="../../index.html" class="btn btn-ghost" style="font-size:0.85rem;">← G⁵ Portal</a></p>
-    <h1 style="font-size:clamp(1.85rem,5vw,2.75rem);background:linear-gradient(105deg,#fff 10%,var(--pink) 50%,var(--cyan) 90%);-webkit-background-clip:text;background-clip:text;color:transparent;">MultiQuiz</h1>
-    <p style="color:var(--text-muted);font-size:0.95rem;">公開中の問題をファイルマネージャー感覚で選択 · .multiquiz / .mq</p>
+  <header class="page-header mq-page-header">
+    <p class="mq-back"><a href="../../index.html" class="btn btn-ghost mq-back">← G⁵ Portal</a></p>
+    <h1 class="mq-title">MultiQuiz</h1>
+    <p class="mq-subtitle">公開中の問題をファイルマネージャー感覚で選択 · .multiquiz / .mq</p>
   </header>
 
   <div class="mq-container">
@@ -39,7 +39,7 @@
       <summary>ローカルファイル / URL から読み込む</summary>
       <div class="controls">
         <div class="upload-area" id="dropZone">
-          <p><strong>.multiquiz / .mq</strong> ファイルをドラッグ&amp;ドロップ<br>または</p>
+          <p><strong>.multiquiz / .mq</strong> ファイルをドラッグ&ドロップ<br>または</p>
           <label class="btn btn-primary">ファイルを選択
             <input type="file" id="fileInput" accept=".multiquiz,.mq" style="display:none">
           </label>
