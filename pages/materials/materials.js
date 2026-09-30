@@ -1,8 +1,8 @@
 /**
  * G5 Portal - Materials
- * files/ 配下の PDF を GitHub API で自動取得して表示
+ * files/ 配下の教材を GitHub API で自動取得
+ * 対応: PDF / PNG / MP4 / MOV / MP3（＋一般的な画像・音声・動画）
  * サブフォルダ名 = カテゴリ、ファイル名 = タイトル
- * 手動登録は不要。files/ に PDF を置くだけ
  */
 (function () {
   "use strict";
@@ -11,7 +11,40 @@
   var GH_REPO = "G5PORTAL";
   var FILES_API_PATH = "pages/materials/files";
   var FILES_BASE = "files/";
-  var ALLOWED_EXT = /\.pdf$/i;
+
+  var EXT_KIND = {
+    pdf: "pdf",
+    png: "image",
+    jpg: "image",
+    jpeg: "image",
+    gif: "image",
+    webp: "image",
+    bmp: "image",
+    svg: "image",
+    mp4: "video",
+    mov: "video",
+    webm: "video",
+    m4v: "video",
+    mp3: "audio",
+    wav: "audio",
+    ogg: "audio",
+    m4a: "audio",
+    aac: "audio"
+  };
+
+  var KIND_LABEL = {
+    pdf: "PDF",
+    image: "画像",
+    video: "動画",
+    audio: "音声"
+  };
+
+  var KIND_ICON = {
+    pdf: "PDF",
+    image: "IMG",
+    video: "VID",
+    audio: "AUD"
+  };
 
   var materials = [];
 
@@ -23,7 +56,7 @@
 
   var modal = document.getElementById("preview-modal");
   var previewTitle = document.getElementById("preview-title");
-  var previewFrame = document.getElementById("preview-frame");
+  var previewBody = document.getElementById("preview-body");
   var previewDownload = document.getElementById("preview-download");
   var previewOpen = document.getElementById("preview-open");
 
@@ -61,8 +94,17 @@
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   }
 
+  function extOf(name) {
+    var m = String(name).match(/\.([a-z0-9]+)$/i);
+    return m ? m[1].toLowerCase() : "";
+  }
+
+  function kindOf(name) {
+    return EXT_KIND[extOf(name)] || null;
+  }
+
   function titleFromName(name) {
-    return name.replace(/\.pdf$/i, "");
+    return name.replace(/\.[a-z0-9]+$/i, "");
   }
 
   function fetchDir(apiPath, folderLabel) {
@@ -75,7 +117,7 @@
       encodePath(apiPath);
 
     return fetch(url, {
-      headers: { Accept: "application/vnd.github+json" },
+      headers: { Accept: "application/vnd.github+json" }
     })
       .then(function (res) {
         if (!res.ok) throw new Error("API " + res.status + ": " + apiPath);
@@ -92,7 +134,10 @@
             return fetchDir(item.path, nextLabel);
           }
 
-          if (item.type === "file" && ALLOWED_EXT.test(item.name)) {
+          if (item.type === "file") {
+            var kind = kindOf(item.name);
+            if (!kind) return [];
+
             var prefix = FILES_API_PATH + "/";
             var rel =
               item.path.indexOf(prefix) === 0
@@ -108,7 +153,9 @@
                 category: folderLabel || "",
                 size: formatSize(item.size),
                 sizeBytes: item.size || 0,
-              },
+                kind: kind,
+                ext: extOf(item.name)
+              }
             ];
           }
 
@@ -125,30 +172,55 @@
       });
   }
 
+  function kindBadge(m) {
+    return (
+      '<span class="mat-kind mat-kind-' +
+      escapeHtml(m.kind) +
+      '">' +
+      escapeHtml(KIND_LABEL[m.kind] || m.ext.toUpperCase()) +
+      "</span>"
+    );
+  }
+
+  function metaHtml(m) {
+    var meta = kindBadge(m);
+    if (m.category) {
+      meta +=
+        '<span class="mat-tag">' + escapeHtml(m.category) + "</span>";
+    }
+    if (m.size) {
+      meta += "<span>" + escapeHtml(m.size) + "</span>";
+    }
+    return meta;
+  }
+
+  function iconHtml(m) {
+    return (
+      '<div class="mat-icon mat-icon-' +
+      escapeHtml(m.kind) +
+      '" aria-hidden="true">' +
+      escapeHtml(KIND_ICON[m.kind] || "FILE") +
+      "</div>"
+    );
+  }
+
   function renderList() {
     if (!listEl) return;
     var html = "";
     for (var i = 0; i < materials.length; i++) {
       var m = materials[i];
       var url = fileUrl(m.relPath);
-      var meta = "";
-      if (m.category) {
-        meta += '<span class="mat-tag">' + escapeHtml(m.category) + "</span>";
-      }
-      if (m.size) {
-        meta += "<span>" + escapeHtml(m.size) + "</span>";
-      }
       html +=
         '<article class="mat-row" data-id="' +
         escapeHtml(m.id) +
         '">' +
-        '<div class="mat-icon" aria-hidden="true">PDF</div>' +
+        iconHtml(m) +
         '<div class="mat-body">' +
         '<h3 class="mat-title">' +
         escapeHtml(m.title) +
         "</h3>" +
         '<div class="mat-meta">' +
-        meta +
+        metaHtml(m) +
         "</div></div>" +
         '<div class="mat-actions">' +
         '<button type="button" class="btn btn-primary btn-sm" data-preview="' +
@@ -173,23 +245,25 @@
     for (var i = 0; i < materials.length; i++) {
       var m = materials[i];
       var url = fileUrl(m.relPath);
-      var meta = "";
-      if (m.category) {
-        meta += '<span class="mat-tag">' + escapeHtml(m.category) + "</span>";
-      }
-      if (m.size) {
-        meta += "<span>" + escapeHtml(m.size) + "</span>";
+      var thumb = "";
+      if (m.kind === "image") {
+        thumb =
+          '<div class="mat-thumb"><img src="' +
+          url +
+          '" alt="" loading="lazy"></div>';
+      } else {
+        thumb = iconHtml(m);
       }
       html +=
         '<article class="mat-card" data-id="' +
         escapeHtml(m.id) +
         '">' +
-        '<div class="mat-icon" aria-hidden="true">PDF</div>' +
+        thumb +
         '<h3 class="mat-title">' +
         escapeHtml(m.title) +
         "</h3>" +
         '<div class="mat-meta">' +
-        meta +
+        metaHtml(m) +
         "</div>" +
         '<div class="mat-actions">' +
         '<button type="button" class="btn btn-primary btn-sm" data-preview="' +
@@ -220,6 +294,17 @@
     } catch (e) {}
   }
 
+  function clearPreviewMedia() {
+    if (!previewBody) return;
+    var media = previewBody.querySelectorAll("video, audio");
+    for (var i = 0; i < media.length; i++) {
+      try {
+        media[i].pause();
+      } catch (e) {}
+    }
+    previewBody.innerHTML = "";
+  }
+
   function openPreview(id) {
     var m = null;
     for (var i = 0; i < materials.length; i++) {
@@ -231,12 +316,55 @@
     if (!m || !modal) return;
     var url = fileUrl(m.relPath);
     if (previewTitle) previewTitle.textContent = m.title;
-    if (previewFrame) previewFrame.src = url;
     if (previewDownload) {
       previewDownload.href = url;
       previewDownload.setAttribute("download", m.filename);
     }
     if (previewOpen) previewOpen.href = url;
+
+    clearPreviewMedia();
+    if (!previewBody) return;
+
+    var el;
+    if (m.kind === "image") {
+      el = document.createElement("img");
+      el.className = "preview-media preview-image";
+      el.src = url;
+      el.alt = m.title;
+    } else if (m.kind === "video") {
+      el = document.createElement("video");
+      el.className = "preview-media preview-video";
+      el.src = url;
+      el.controls = true;
+      el.playsInline = true;
+    } else if (m.kind === "audio") {
+      var wrap = document.createElement("div");
+      wrap.className = "preview-audio-wrap";
+      var label = document.createElement("p");
+      label.className = "preview-audio-label";
+      label.textContent = m.filename;
+      el = document.createElement("audio");
+      el.className = "preview-media preview-audio";
+      el.src = url;
+      el.controls = true;
+      wrap.appendChild(label);
+      wrap.appendChild(el);
+      previewBody.appendChild(wrap);
+      el = null;
+    } else {
+      el = document.createElement("iframe");
+      el.className = "preview-media preview-frame";
+      el.src = url;
+      el.title = "プレビュー";
+    }
+    if (el) previewBody.appendChild(el);
+
+    var fallback = document.createElement("p");
+    fallback.className = "preview-fallback";
+    fallback.textContent =
+      "プレビューが表示されない場合は「新しいタブで開く」またはダウンロードしてください。";
+    previewBody.appendChild(fallback);
+
     modal.classList.remove("hidden");
     document.body.style.overflow = "hidden";
   }
@@ -244,7 +372,7 @@
   function closePreview() {
     if (!modal) return;
     modal.classList.add("hidden");
-    if (previewFrame) previewFrame.src = "";
+    clearPreviewMedia();
     document.body.style.overflow = "";
   }
 
@@ -309,12 +437,13 @@
           var ca = a.category || "";
           var cb = b.category || "";
           if (ca !== cb) return ca < cb ? -1 : 1;
+          if (a.kind !== b.kind) return a.kind < b.kind ? -1 : 1;
           return a.title < b.title ? -1 : a.title > b.title ? 1 : 0;
         });
 
         if (materials.length === 0) {
           showEmpty(
-            "PDF がありません。pages/materials/files/ に配置してください。"
+            "教材がありません。pages/materials/files/ に PDF・PNG・MP4・MOV・MP3 などを配置してください。"
           );
           return;
         }
