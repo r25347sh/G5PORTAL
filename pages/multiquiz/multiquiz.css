@@ -1,4 +1,4 @@
-/* MultiQuiz — G⁵ Portal theme-aware (dark / light / classic→light) */
+/* MultiQuiz — G5 Portal theme-aware (dark / light / classic→light) */
 
 .mq-container {
   max-width: 880px;
@@ -8,7 +8,6 @@
   z-index: 1;
 }
 
-/* ===== Page header (theme-safe) ===== */
 .mq-page-header {
   text-align: center;
   padding: 3rem 1.5rem 1rem;
@@ -32,7 +31,6 @@
   font-size: 0.95rem;
 }
 
-/* ===== File Manager ===== */
 .fm-section {
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -216,7 +214,6 @@
   border-left: 3px solid var(--cyan);
 }
 
-/* ===== Questions ===== */
 .question {
   background: color-mix(in srgb, var(--text) 4%, transparent);
   border: 1px solid var(--border);
@@ -267,6 +264,9 @@
   font-size: 1.05rem;
   margin-bottom: 1rem;
   color: var(--text);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 .option {
   display: block;
@@ -303,7 +303,6 @@
   color: var(--mq-ok);
 }
 
-/* Scoring palette — defaults (dark) */
 :root,
 html[data-color-scheme="dark"] {
   --mq-ok: #2ed573;
@@ -316,7 +315,6 @@ html[data-color-scheme="dark"] {
   --mq-ng-ring: rgba(255, 107, 138, 0.25);
 }
 
-/* Scoring palette — light / classic */
 html[data-color-scheme="light"] {
   --mq-ok: #0d8a45;
   --mq-ok-bg: rgba(13, 138, 69, 0.1);
@@ -422,12 +420,30 @@ html[data-color-scheme="light"] {
 }
 .note {
   margin-top: 1rem;
-  padding: 0.85rem 1rem;
-  background: color-mix(in srgb, var(--gold) 10%, transparent);
-  border-left: 3px solid var(--gold);
+  padding: 1rem 1.1rem;
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
+  border-left: 4px solid var(--gold);
   border-radius: 8px;
-  font-size: 0.92rem;
-  color: var(--text-muted);
+  font-size: 0.95rem;
+  color: var(--text);
+  line-height: 1.75;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-width: 100%;
+}
+.note-label {
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  color: var(--gold);
+  margin-bottom: 0.45rem;
+}
+.note-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.note.hidden {
+  display: none;
 }
 .quiz-footer {
   text-align: center;
@@ -447,7 +463,6 @@ html[data-color-scheme="light"] {
   border: 1px solid var(--mq-ng-border);
 }
 
-/* Light: slightly stronger card surfaces for readability */
 html[data-color-scheme="light"] .fm-section,
 html[data-color-scheme="light"] #quizContainer,
 html[data-color-scheme="light"] .mq-advanced {
