@@ -23,7 +23,6 @@
         label: "\u30c4\u30fc\u30eb",
         icon: "\u25c8",
         items: [
-          { label: "MultiQuiz", icon: "\u25c8", url: root + "pages/multiquiz/index.html" },
           { label: "\u6587\u5b57\u6570\u30ab\u30a6\u30f3\u30c8", icon: "\u6587\u5b57", url: root + "pages/char-count/index.html" },
           { label: "\u6587\u5b57\u62e1\u5927\u93e1", icon: "\ud83d\udd0d", url: root + "pages/char-magnifier/index.html" },
           { label: "\u30d1\u30b9\u30ef\u30fc\u30c9\u751f\u6210", icon: "\u9375", url: root + "pages/password-gen/index.html" },
@@ -40,7 +39,10 @@
       {
         label: "\u6559\u6750",
         icon: "\u25c7",
-        items: [{ label: "\u526f\u6559\u6750", icon: "\u25c7", url: root + "pages/materials/index.html" }]
+        items: [
+          { label: "MultiQuiz", icon: "\u25c8", url: root + "pages/multiquiz/index.html" },
+          { label: "\u526f\u6559\u6750 (PDF)", icon: "\u25c7", url: root + "pages/materials/index.html" }
+        ]
       }
     ];
   }
@@ -51,28 +53,23 @@
   var SHELL_CAPACITIES = [6, 10, 14];
   var SHELL_RADII = [118, 190, 262];
   var menuEl, itemsContainer, orbitsContainer, coreBtn;
-  var timer, startX, startY, isOpen = false, menuStack = [];
-  var pieDisabled = false;
-  var tapCount = 0, tapTimer = null;
-
-  function navigateWithDelay(url) {
-    closeMenu();
-    closeHamburger();
-    setTimeout(function () { location.href = url; }, 180);
-  }
+  var timer, startX, startY, isOpen = false;
+  var menuStack = [];
+  var tapTimes = [];
 
   function calculateShellLayout(items) {
     var layout = [], remaining = items.length, itemIdx = 0;
-    for (var sIdx = 0; sIdx < SHELL_CAPACITIES.length && remaining > 0; sIdx++) {
-      var count = Math.min(remaining, SHELL_CAPACITIES[sIdx]);
-      var radius = SHELL_RADII[sIdx];
+    for (var s = 0; s < SHELL_CAPACITIES.length && remaining > 0; s++) {
+      var cap = SHELL_CAPACITIES[s];
+      var count = Math.min(remaining, cap);
+      var radius = SHELL_RADII[s];
       for (var i = 0; i < count; i++) {
-        var angle = (i / count) * 2 * Math.PI - Math.PI / 2;
+        var angle = (Math.PI * 2 * i) / count - Math.PI / 2;
         layout.push({
           item: items[itemIdx],
-          x: Math.round(Math.cos(angle) * radius),
-          y: Math.round(Math.sin(angle) * radius),
-          shellIndex: sIdx
+          x: Math.cos(angle) * radius,
+          y: Math.sin(angle) * radius,
+          shell: s
         });
         itemIdx++;
       }
@@ -84,268 +81,147 @@
   function renderMenuLevel(items) {
     if (!itemsContainer) return;
     var old = itemsContainer.querySelectorAll(".rm-item");
-    for (var i = 0; i < old.length; i++) {
-      old[i].classList.remove("rendered");
-      (function (el) {
-        setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 220);
-      })(old[i]);
-    }
-    orbitsContainer.innerHTML = "";
+    old.forEach(function (el) { el.remove(); });
+    if (orbitsContainer) orbitsContainer.innerHTML = "";
+
     var layout = calculateShellLayout(items);
-    var activeShells = {};
-    layout.forEach(function (data, index) {
-      activeShells[data.shellIndex] = true;
+    layout.forEach(function (data, idx) {
       var btn = document.createElement("button");
       btn.type = "button";
       btn.className = "rm-item" + (data.item.items ? " has-sub" : "");
-      btn.setAttribute("data-label", data.item.label);
-      btn.innerHTML = data.item.icon || "\u2022";
       btn.style.setProperty("--x", data.x + "px");
       btn.style.setProperty("--y", data.y + "px");
-      btn.style.transitionDelay = index * 0.024 + "s";
+      btn.style.setProperty("--delay", idx * 30 + "ms");
+      btn.innerHTML = "<span class=\"rm-icon\">" + (data.item.icon || "·") + "</span><span class=\"rm-label\">" + data.item.label + "</span>";
       btn.addEventListener("click", function (e) {
-        e.preventDefault();
         e.stopPropagation();
         if (data.item.items && data.item.items.length) {
           menuStack.push(items);
           renderMenuLevel(data.item.items);
         } else if (data.item.url) {
-          navigateWithDelay(data.item.url);
+          location.href = data.item.url;
         }
       });
       itemsContainer.appendChild(btn);
-      requestAnimationFrame(function () {
-        setTimeout(function () { btn.classList.add("rendered"); }, 14);
+    });
+
+    // orbits
+    if (orbitsContainer) {
+      var shells = {};
+      layout.forEach(function (d) { shells[d.shell] = true; });
+      Object.keys(shells).forEach(function (s) {
+        var ring = document.createElement("div");
+        ring.className = "rm-orbit";
+        ring.style.width = SHELL_RADII[s] * 2 + "px";
+        ring.style.height = SHELL_RADII[s] * 2 + "px";
+        orbitsContainer.appendChild(ring);
       });
-    });
-    Object.keys(activeShells).forEach(function (sIdx) {
-      sIdx = +sIdx;
-      var orbit = document.createElement("div");
-      orbit.className = "rm-shell-orbit";
-      var d = SHELL_RADII[sIdx] * 2;
-      orbit.style.width = d + "px";
-      orbit.style.height = d + "px";
-      orbit.style.marginTop = -SHELL_RADII[sIdx] + "px";
-      orbit.style.marginLeft = -SHELL_RADII[sIdx] + "px";
-      orbitsContainer.appendChild(orbit);
-    });
-    if (coreBtn) coreBtn.classList.toggle("visible", menuStack.length > 0);
+    }
   }
 
-  function createMenuDOM() {
-    if (document.querySelector(".radial-menu-wrapper")) return;
-    menuEl = document.createElement("div");
-    menuEl.className = "radial-menu-wrapper";
-    var canvas = document.createElement("canvas");
-    canvas.className = "rm-canvas-layer";
-    menuEl.appendChild(canvas);
-    orbitsContainer = document.createElement("div");
-    menuEl.appendChild(orbitsContainer);
-    itemsContainer = document.createElement("div");
-    menuEl.appendChild(itemsContainer);
-    coreBtn = document.createElement("button");
-    coreBtn.type = "button";
-    coreBtn.className = "rm-core-btn";
-    coreBtn.setAttribute("aria-label", "\u623b\u308b");
-    coreBtn.innerHTML = "\u2190";
-    coreBtn.addEventListener("click", function (e) {
-      e.stopPropagation();
-      if (menuStack.length) renderMenuLevel(menuStack.pop());
-      else closeMenu();
-    });
-    menuEl.appendChild(coreBtn);
-    document.body.appendChild(menuEl);
-  }
-
-  function openMenu(x, y) {
-    if (!menuEl) return;
-    var margin = 180;
-    var cx = typeof x === "number" ? x : window.innerWidth / 2;
-    var cy = typeof y === "number" ? y : window.innerHeight / 2;
-    menuEl.style.left = Math.max(margin, Math.min(cx, window.innerWidth - margin)) + "px";
-    menuEl.style.top = Math.max(margin, Math.min(cy, window.innerHeight - margin)) + "px";
-    menuEl.classList.add("active");
+  function openMenu() {
+    if (isOpen) return;
     isOpen = true;
     menuStack = [];
+    if (menuEl) menuEl.classList.add("open");
     renderMenuLevel(buildMenuData());
   }
 
   function closeMenu() {
-    if (!menuEl) return;
-    menuEl.classList.remove("active");
-    if (itemsContainer) {
-      itemsContainer.querySelectorAll(".rm-item").forEach(function (i) {
-        i.classList.remove("rendered");
-      });
-    }
-    if (coreBtn) coreBtn.classList.remove("visible");
     isOpen = false;
+    if (menuEl) menuEl.classList.remove("open");
+    menuStack = [];
   }
 
-  function ensureFab() {
-    if (document.querySelector(".menu-fab")) return;
-    var fab = document.createElement("button");
-    fab.type = "button";
-    fab.className = "menu-fab";
-    fab.setAttribute("aria-label", "\u30e1\u30cb\u30e5\u30fc");
-    fab.innerHTML = "\u2630";
-    document.body.appendChild(fab);
-    fab.addEventListener("click", function (e) {
+  function goBack() {
+    if (menuStack.length) {
+      renderMenuLevel(menuStack.pop());
+    } else {
+      closeMenu();
+    }
+  }
+
+  function createMenuDom() {
+    menuEl = document.createElement("div");
+    menuEl.id = "radialMenu";
+    menuEl.className = "radial-menu";
+    menuEl.setAttribute("aria-hidden", "true");
+
+    orbitsContainer = document.createElement("div");
+    orbitsContainer.className = "rm-orbits";
+    menuEl.appendChild(orbitsContainer);
+
+    itemsContainer = document.createElement("div");
+    menuEl.appendChild(itemsContainer);
+
+    coreBtn = document.createElement("button");
+    coreBtn.type = "button";
+    coreBtn.className = "rm-core";
+    coreBtn.setAttribute("aria-label", "メニュー");
+    coreBtn.innerHTML = "<span></span><span></span><span></span>";
+    coreBtn.addEventListener("click", function (e) {
       e.stopPropagation();
-      openHamburger();
+      if (isOpen) goBack();
+      else openMenu();
+    });
+    menuEl.appendChild(coreBtn);
+
+    document.body.appendChild(menuEl);
+
+    document.addEventListener("click", function (e) {
+      if (isOpen && menuEl && !menuEl.contains(e.target)) closeMenu();
     });
   }
 
-  function ensureHamburgerUI() {
-    if (document.getElementById("ham-overlay")) return;
-    var ov = document.createElement("div");
-    ov.id = "ham-overlay";
-    ov.setAttribute("aria-hidden", "true");
-    var panel = document.createElement("div");
-    panel.id = "ham-panel";
-    panel.setAttribute("role", "dialog");
-    panel.innerHTML =
-      '<div class="ham-header">' +
-      '<div class="ham-title">G\u2075 Portal</div>' +
-      '<button type="button" class="ham-close" id="ham-close">\u2715</button>' +
-      '</div><div id="ham-list"></div>';
-    document.body.appendChild(ov);
-    document.body.appendChild(panel);
-    document.getElementById("ham-close").onclick = closeHamburger;
-    ov.onclick = closeHamburger;
+  // Long-press / triple-tap on empty area
+  function onPointerDown(e) {
+    if (e.target.closest("a, button, input, textarea, select, .radial-menu")) return;
+    startX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+    startY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+    timer = setTimeout(function () {
+      openMenu();
+      timer = null;
+    }, LONG_PRESS_MS);
   }
-
-  function openHamburger() {
-    ensureHamburgerUI();
-    pieDisabled = true;
-    closeMenu();
-    var list = document.getElementById("ham-list");
-    if (!list) return;
-    list.innerHTML = "";
-    buildMenuData().forEach(function (item) {
-      if (item.items && item.items.length) {
-        var wrap = document.createElement("div");
-        var btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "ham-group-btn";
-        btn.textContent = (item.icon ? item.icon + " " : "") + item.label;
-        var sub = document.createElement("div");
-        sub.className = "ham-sub";
-        item.items.forEach(function (subItem) {
-          var a = document.createElement("a");
-          a.href = subItem.url || "#";
-          a.textContent = (subItem.icon ? subItem.icon + " " : "") + subItem.label;
-          a.addEventListener("click", function (e) {
-            e.preventDefault();
-            navigateWithDelay(subItem.url);
-          });
-          sub.appendChild(a);
-        });
-        btn.onclick = function () { sub.classList.toggle("open"); };
-        wrap.appendChild(btn);
-        wrap.appendChild(sub);
-        list.appendChild(wrap);
-      } else {
-        var a = document.createElement("a");
-        a.className = "ham-link";
-        a.href = item.url || "#";
-        a.textContent = (item.icon ? item.icon + " " : "") + item.label;
-        a.addEventListener("click", function (e) {
-          e.preventDefault();
-          navigateWithDelay(item.url);
-        });
-        list.appendChild(a);
-      }
-    });
-    var ov = document.getElementById("ham-overlay");
-    var panel = document.getElementById("ham-panel");
-    if (ov) { ov.classList.add("open"); ov.setAttribute("aria-hidden", "false"); }
-    if (panel) panel.classList.add("open");
-  }
-
-  function closeHamburger() {
-    var ov = document.getElementById("ham-overlay");
-    var panel = document.getElementById("ham-panel");
-    if (ov) { ov.classList.remove("open"); ov.setAttribute("aria-hidden", "true"); }
-    if (panel) panel.classList.remove("open");
-    pieDisabled = false;
-  }
-
-  function initEvents() {
-    document.addEventListener("pointerdown", function (e) {
-      if (
-        e.target.closest &&
-        (e.target.closest(".menu-fab") ||
-          e.target.closest(".radial-menu-wrapper") ||
-          e.target.closest("#ham-panel") ||
-          e.target.closest("#ham-overlay"))
-      ) return;
-      if (isOpen && menuEl && !menuEl.contains(e.target)) {
-        closeMenu();
-        return;
-      }
-      startX = e.clientX;
-      startY = e.clientY;
-      tapCount++;
-      clearTimeout(tapTimer);
-      if (tapCount === 3) {
-        clearTimeout(timer);
-        timer = null;
-        tapCount = 0;
-        if (!pieDisabled) openMenu(startX, startY);
-        return;
-      }
-      tapTimer = setTimeout(function () { tapCount = 0; }, TRIPLE_TAP_DELAY_MS);
-      if (pieDisabled) return;
+  function onPointerMove(e) {
+    if (!timer) return;
+    var x = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+    var y = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+    if (Math.abs(x - startX) > MOVE_THRESHOLD || Math.abs(y - startY) > MOVE_THRESHOLD) {
       clearTimeout(timer);
-      timer = setTimeout(function () {
-        if (pieDisabled) return;
-        tapCount = 0;
-        openMenu(startX, startY);
-      }, LONG_PRESS_MS);
-    });
-
-    document.addEventListener("pointermove", function (e) {
-      if (!timer || isOpen) return;
-      if (Math.hypot(e.clientX - startX, e.clientY - startY) > MOVE_THRESHOLD) {
-        clearTimeout(timer);
-        timer = null;
-      }
-    });
-
-    document.addEventListener("pointerup", function () {
-      if (timer && !isOpen) {
-        clearTimeout(timer);
-        timer = null;
-      }
-    });
-
-    document.addEventListener("keydown", function (e) {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        if (pieDisabled) return;
-        if (isOpen) closeMenu();
-        else openMenu();
-      }
-      if (e.key === "Escape") {
-        if (document.getElementById("ham-panel") &&
-            document.getElementById("ham-panel").classList.contains("open")) {
-          closeHamburger();
-        }
-        if (isOpen) closeMenu();
-      }
-    });
+      timer = null;
+    }
+  }
+  function onPointerUp() {
+    if (timer) { clearTimeout(timer); timer = null; }
   }
 
-  function boot() {
-    createMenuDOM();
-    ensureFab();
-    initEvents();
+  function onTap(e) {
+    if (e.target.closest("a, button, input, textarea, select, .radial-menu")) return;
+    var now = Date.now();
+    tapTimes.push(now);
+    tapTimes = tapTimes.filter(function (t) { return now - t < TRIPLE_TAP_DELAY_MS * 2; });
+    if (tapTimes.length >= 3) {
+      tapTimes = [];
+      openMenu();
+    }
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", boot);
-  } else {
-    boot();
+  function init() {
+    createMenuDom();
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("mousemove", onPointerMove);
+    document.addEventListener("mouseup", onPointerUp);
+    document.addEventListener("touchstart", onPointerDown, { passive: true });
+    document.addEventListener("touchmove", onPointerMove, { passive: true });
+    document.addEventListener("touchend", onPointerUp);
+    document.addEventListener("click", onTap);
+
+    // Hamburger fallback in header if present
+    var ham = document.getElementById("menuToggle") || document.querySelector(".menu-toggle");
+    if (ham) ham.addEventListener("click", function (e) { e.preventDefault(); openMenu(); });
   }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
 })();
