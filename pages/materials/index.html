@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../../MENU/MENU.css">
   <script src="../../src/js/main.js" defer></script>
   <script src="../../MENU/MENU.js" defer></script>
-  <script src="script.js" defer></script>
+  <script src="materials.js" defer></script>
 </head>
 <body>
   <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
@@ -34,11 +34,10 @@
     <div id="empty-state" class="tool-card empty hidden">
       <div class="empty-icon">◇</div>
       <h2>教材がありません</h2>
-      <p>PDF などの副教材は <code>pages/materials/files/</code> に配置してください。</p>
+      <p>PDF などの副教材は <code>pages/materials/files/</code> に配置してください。サブフォルダも自動で読み込みます。</p>
     </div>
   </main>
 
-  <!-- プレビューモーダル -->
   <div id="preview-modal" class="preview-modal hidden" role="dialog" aria-modal="true" aria-labelledby="preview-title">
     <div class="preview-backdrop" data-close></div>
     <div class="preview-panel">
