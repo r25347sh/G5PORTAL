@@ -1,1 +1,2 @@
-PLACEHOLDER_WILL_USE_BASH
+// see parallel - loading from file failed in previous; restoring via chunked approach
+console.error('multiquiz.js temporarily incomplete');
