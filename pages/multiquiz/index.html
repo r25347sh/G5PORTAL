@@ -56,6 +56,14 @@
         <button type="button" id="backToFmBtn" class="btn btn-ghost" style="margin-bottom:0.75rem;font-size:0.85rem;">← 公開中の問題に戻る</button>
         <h2 id="quizTitle"></h2>
         <p id="quizDescription"></p>
+        <div class="scoring-mode-bar" id="scoringModeBar">
+          <span class="scoring-mode-label">採点タイプ</span>
+          <div class="scoring-mode-toggle" role="group" aria-label="採点タイプ切替">
+            <button type="button" class="mode-btn is-active" data-mode="batch" id="modeBatchBtn">一括採点</button>
+            <button type="button" class="mode-btn" data-mode="per" id="modePerBtn">各問採点</button>
+          </div>
+          <p class="scoring-mode-hint" id="scoringModeHint">全問回答後にまとめて採点します</p>
+        </div>
       </div>
       <div id="sections"></div>
       <div class="quiz-footer">
