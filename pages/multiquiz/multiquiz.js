@@ -103,19 +103,107 @@ window.MultiQuizScanner = MultiQuizScanner;
     return escapeHtml(String(s).replace(/\\n/g, '\n')).replace(/\n/g, '<br>');
   }
 
+  /* ── 公開問題一覧: GitHub Contents API を使わず jsDelivr で取得（403 回避） ── */
+  let _packageTreeCache = null;
+  let _packageTreePromise = null;
+
+  async function fetchPackageTree() {
+    if (_packageTreeCache) return _packageTreeCache;
+    if (_packageTreePromise) return _packageTreePromise;
+    _packageTreePromise = (async () => {
+      const url = 'https://data.jsdelivr.com/v1/packages/gh/' + GITHUB_OWNER + '/' + GITHUB_REPO + '@main';
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('jsDelivr API ' + res.status);
+      const data = await res.json();
+      _packageTreeCache = data;
+      return data;
+    })();
+    try {
+      return await _packageTreePromise;
+    } catch (e) {
+      _packageTreePromise = null;
+      throw e;
+    }
+  }
+
+  /** jsDelivr の files ツリーから path（ROOT_PATH からの相対）の直下エントリを取り出す */
+  function listChildrenFromTree(rootFiles, relativePath) {
+    let files = rootFiles || [];
+    // ROOT_PATH まで降りる
+    const rootParts = ROOT_PATH.split('/').filter(Boolean);
+    for (const part of rootParts) {
+      const dir = files.find(f => f.type === 'directory' && f.name === part);
+      if (!dir) return [];
+      files = dir.files || [];
+    }
+    if (relativePath) {
+      for (const part of relativePath.split('/').filter(Boolean)) {
+        const dir = files.find(f => f.type === 'directory' && f.name === part);
+        if (!dir) return [];
+        files = dir.files || [];
+      }
+    }
+    // GitHub Contents API 互換の shape に変換（name / type / path）
+    const base = relativePath ? (ROOT_PATH + '/' + relativePath) : ROOT_PATH;
+    return (files || [])
+      .filter(f => {
+        // _ で始まる内部フォルダは非表示（_assets など）
+        if (f.name && f.name.startsWith('_')) return false;
+        if (f.type === 'file') {
+          return /\.(multiquiz|mq)$/i.test(f.name);
+        }
+        return f.type === 'directory';
+      })
+      .map(f => ({
+        name: f.name,
+        type: f.type === 'directory' ? 'dir' : 'file',
+        path: base + '/' + f.name,
+        size: f.size || 0
+      }));
+  }
+
   async function loadTree(path) {
-    const apiPath = path ? ROOT_PATH + '/' + path : ROOT_PATH;
-    const url = 'https://api.github.com/repos/' + GITHUB_OWNER + '/' + GITHUB_REPO + '/contents/' + encodeURIComponent(apiPath).replace(/%2F/g, '/');
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('GitHub API ' + res.status);
-    return await res.json();
+    try {
+      const data = await fetchPackageTree();
+      return listChildrenFromTree(data.files || [], path || '');
+    } catch (jsdErr) {
+      // フォールバック: GitHub Contents API（レート制限で 403 になり得る）
+      console.warn('jsDelivr failed, falling back to GitHub API:', jsdErr);
+      const apiPath = path ? ROOT_PATH + '/' + path : ROOT_PATH;
+      const url = 'https://api.github.com/repos/' + GITHUB_OWNER + '/' + GITHUB_REPO + '/contents/' + encodeURIComponent(apiPath).replace(/%2F/g, '/');
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('GitHub API ' + res.status + '（公開一覧の取得に失敗。時間をおいて再試行するか、ページを再読み込みしてください）');
+      const items = await res.json();
+      if (!Array.isArray(items)) return [];
+      return items
+        .filter(i => {
+          if (i.name && i.name.startsWith('_')) return false;
+          if (i.type === 'file') return /\.(multiquiz|mq)$/i.test(i.name);
+          return i.type === 'dir';
+        })
+        .map(i => ({ name: i.name, type: i.type, path: i.path, size: i.size || 0 }));
+    }
   }
 
   async function loadFileContent(path) {
-    const raw = 'https://raw.githubusercontent.com/' + GITHUB_OWNER + '/' + GITHUB_REPO + '/main/' + path;
-    const res = await fetch(raw);
-    if (!res.ok) throw new Error('raw ' + res.status);
-    return await res.text();
+    // path は ROOT_PATH からの相対、またはフル（G5PORTAL/...）の両方に対応
+    let full = path;
+    if (!full.startsWith(ROOT_PATH)) full = ROOT_PATH + '/' + path.replace(/^\//, '');
+    const candidates = [
+      'https://cdn.jsdelivr.net/gh/' + GITHUB_OWNER + '/' + GITHUB_REPO + '@main/' + full,
+      'https://raw.githubusercontent.com/' + GITHUB_OWNER + '/' + GITHUB_REPO + '/main/' + full
+    ];
+    let lastErr = null;
+    for (const url of candidates) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) { lastErr = new Error('HTTP ' + res.status + ' @ ' + url); continue; }
+        return await res.text();
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw lastErr || new Error('ファイルの取得に失敗しました');
   }
 
   function renderBreadcrumb() {
@@ -168,13 +256,14 @@ window.MultiQuizScanner = MultiQuizScanner;
     });
   }
 
-  async function refreshFm() {
+  async function refreshFm(force) {
     const status = document.getElementById('fmStatus');
     const list = document.getElementById('fmList');
     if (status) status.textContent = '読み込み中…';
     if (list) list.innerHTML = '<p class="fm-loading">読み込み中…</p>';
     renderBreadcrumb();
     try {
+      if (force) { _packageTreeCache = null; _packageTreePromise = null; }
       const data = await loadTree(currentPath);
       const items = Array.isArray(data) ? data.map(d => ({
         name: d.name,
@@ -309,12 +398,15 @@ window.MultiQuizScanner = MultiQuizScanner;
     /* scoring handled by scoring-overlay.js */
   }
 
-  const backBtn = document.getElementById('backToListBtn');
+  const backBtn = document.getElementById('backToFmBtn');
   if (backBtn) backBtn.addEventListener('click', () => {
     document.getElementById('quizContainer').classList.add('hidden');
     document.getElementById('publishedSection').classList.remove('hidden');
     refreshFm();
   });
+
+  const refreshBtn = document.getElementById('fmRefreshBtn');
+  if (refreshBtn) refreshBtn.addEventListener('click', () => refreshFm(true));
 
   if (document.getElementById('fmList')) refreshFm();
 })();
