@@ -78,6 +78,7 @@ const MultiQuizScanner = (function () {
   }
   return { parse };
 })();
+
 window.MultiQuizScanner = MultiQuizScanner;
 
 (function () {
@@ -87,14 +88,20 @@ window.MultiQuizScanner = MultiQuizScanner;
   let currentPath = '';
   let currentQuiz = null;
   let userAnswers = {};
+  /** 'batch' | 'per' */
+  let scoringMode = (function () {
+    try { return localStorage.getItem('mq_scoring_mode') === 'per' ? 'per' : 'batch'; }
+    catch (_) { return 'batch'; }
+  })();
+  window.__mqScoringMode = scoringMode;
 
   function escapeHtml(s) {
     if (s == null) return '';
     return String(s)
-      .replace(/&/g, '&')
-      .replace(/</g, '<')
-      .replace(/>/g, '>')
-      .replace(/"/g, '"')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
   }
 
@@ -288,6 +295,9 @@ window.MultiQuizScanner = MultiQuizScanner;
       userAnswers = {};
       window.__mqCurrentQuiz = currentQuiz;
       window.__mqUserAnswers = userAnswers;
+      // 前回の採点表示をクリア
+      const summary = document.getElementById('scoreSummary');
+      if (summary) { summary.classList.add('hidden'); summary.innerHTML = ''; }
       document.getElementById('publishedSection').classList.add('hidden');
       document.getElementById('quizContainer').classList.remove('hidden');
       document.getElementById('errorMessage').classList.add('hidden');
@@ -301,6 +311,35 @@ window.MultiQuizScanner = MultiQuizScanner;
   function showError(msg) {
     const el = document.getElementById('errorMessage');
     if (el) { el.textContent = msg; el.classList.remove('hidden'); }
+  }
+
+  function updateScoringModeUI() {
+    const batchBtn = document.getElementById('modeBatchBtn');
+    const perBtn = document.getElementById('modePerBtn');
+    const hint = document.getElementById('scoringModeHint');
+    const submitBtn = document.getElementById('submitAllBtn');
+    if (batchBtn) batchBtn.classList.toggle('is-active', scoringMode === 'batch');
+    if (perBtn) perBtn.classList.toggle('is-active', scoringMode === 'per');
+    if (hint) {
+      hint.textContent = scoringMode === 'per'
+        ? '各問の下の「この問題を採点」で1問ずつ採点できます'
+        : '全問回答後にまとめて採点します';
+    }
+    if (submitBtn) {
+      submitBtn.style.display = scoringMode === 'batch' ? '' : 'none';
+    }
+    // per-score buttons visibility
+    document.querySelectorAll('.per-score-btn').forEach(function (btn) {
+      btn.style.display = scoringMode === 'per' ? '' : 'none';
+    });
+  }
+
+  function setScoringMode(mode) {
+    if (mode !== 'batch' && mode !== 'per') return;
+    scoringMode = mode;
+    window.__mqScoringMode = scoringMode;
+    try { localStorage.setItem('mq_scoring_mode', scoringMode); } catch (_) {}
+    updateScoringModeUI();
   }
 
   function renderQuiz() {
@@ -319,6 +358,7 @@ window.MultiQuizScanner = MultiQuizScanner;
         const idx = secIdx + '-' + qIdx;
         const qDiv = document.createElement('div');
         qDiv.className = 'question';
+        qDiv.dataset.qidx = idx;
         qDiv.innerHTML = '<div class="question-header"><span class="q-number">Q' + (qIdx + 1) + '</span><span class="points">' + (q.points || 2) + '点</span></div>' +
           '<div class="question-text" id="text-' + idx + '">' + formatNoteHtml(q.question || '') + '</div>' +
           '<div class="answers" id="answers-' + idx + '"></div>' +
@@ -329,6 +369,7 @@ window.MultiQuizScanner = MultiQuizScanner;
       });
       sectionsEl.appendChild(secDiv);
     });
+    updateScoringModeUI();
   }
 
   function renderAnswers(container, q, globalQIdx) {
@@ -391,12 +432,39 @@ window.MultiQuizScanner = MultiQuizScanner;
     } else {
       container.textContent = '（この問題タイプのUIは簡略表示です）';
     }
+
+    // 各問採点用ボタン（mode=per のとき表示）
+    const scoreBtn = document.createElement('button');
+    scoreBtn.type = 'button';
+    scoreBtn.className = 'btn btn-ghost per-score-btn';
+    scoreBtn.dataset.qidx = globalQIdx;
+    scoreBtn.textContent = 'この問題を採点';
+    scoreBtn.style.display = scoringMode === 'per' ? '' : 'none';
+    scoreBtn.addEventListener('click', function () {
+      if (typeof window.__mqScoreOneQuestion === 'function') {
+        window.__mqScoreOneQuestion(globalQIdx);
+      }
+    });
+    container.appendChild(scoreBtn);
   }
 
   const submitBtn = document.getElementById('submitAllBtn');
   if (submitBtn) {
     /* scoring handled by scoring-overlay.js */
   }
+
+  // 採点タイプ切替
+  const modeBatchBtn = document.getElementById('modeBatchBtn');
+  const modePerBtn = document.getElementById('modePerBtn');
+  if (modeBatchBtn) modeBatchBtn.addEventListener('click', () => setScoringMode('batch'));
+  if (modePerBtn) modePerBtn.addEventListener('click', () => setScoringMode('per'));
+  updateScoringModeUI();
+
+  // reset 時に local userAnswers もクリアできるように公開
+  window.__mqClearUserAnswers = function () {
+    userAnswers = {};
+    window.__mqUserAnswers = userAnswers;
+  };
 
   const backBtn = document.getElementById('backToFmBtn');
   if (backBtn) backBtn.addEventListener('click', () => {
