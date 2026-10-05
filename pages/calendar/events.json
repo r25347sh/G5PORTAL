@@ -1,0 +1,97 @@
+{
+  "updatedAt": "2026-10-05T01:23:53Z",
+  "source": "G5PORTAL Google Calendar ICS",
+  "events": [
+    {
+      "id": "364i1bkndug4legepkpols71ug@google.com",
+      "title": "終業式",
+      "start": "2026-12-18",
+      "end": "2026-12-19",
+      "allDay": true,
+      "description": "",
+      "location": "",
+      "extendedProps": {
+        "description": "",
+        "location": ""
+      }
+    },
+    {
+      "id": "2gcmajudqel5gaik92u4rmtiif@google.com",
+      "title": "小金原カラス公園演奏本番",
+      "start": "2026-10-17",
+      "end": "2026-10-18",
+      "allDay": true,
+      "description": "",
+      "location": "",
+      "extendedProps": {
+        "description": "",
+        "location": ""
+      }
+    },
+    {
+      "id": "6tf6j0g4hstlg6v6elgraqacg9@google.com",
+      "title": "九州研修",
+      "start": "2026-10-20",
+      "end": "2026-10-24",
+      "allDay": true,
+      "description": "",
+      "location": "",
+      "extendedProps": {
+        "description": "",
+        "location": ""
+      }
+    },
+    {
+      "id": "5m5627u4m4ofvvle318bucfd35@google.com",
+      "title": "期末テスト",
+      "start": "2026-12-01",
+      "end": "2026-12-05",
+      "allDay": true,
+      "description": "",
+      "location": "",
+      "extendedProps": {
+        "description": "",
+        "location": ""
+      }
+    },
+    {
+      "id": "4gk4n12gnvv8and79do71ts7rq@google.com",
+      "title": "柏 de 吹奏楽 Party",
+      "start": "2026-10-25",
+      "end": "2026-10-26",
+      "allDay": true,
+      "description": "",
+      "location": "",
+      "extendedProps": {
+        "description": "",
+        "location": ""
+      }
+    },
+    {
+      "id": "3lrib00j53fo1b2cthh5ce13po@google.com",
+      "title": "進研模試",
+      "start": "2026-10-27",
+      "end": "2026-10-28",
+      "allDay": true,
+      "description": "",
+      "location": "",
+      "extendedProps": {
+        "description": "",
+        "location": ""
+      }
+    },
+    {
+      "id": "7m1jgkk5lcpaeslp8hic9fqqar@google.com",
+      "title": "オータムブラスフェスタ",
+      "start": "2026-10-11",
+      "end": "2026-10-12",
+      "allDay": true,
+      "description": "柏市民文化会館で行います。",
+      "location": "",
+      "extendedProps": {
+        "description": "柏市民文化会館で行います。",
+        "location": ""
+      }
+    }
+  ]
+}
