@@ -2,8 +2,8 @@ name: Sync Calendar ICS
 
 on:
   schedule:
-    # every 6 hours (UTC)
-    - cron: "0 */6 * * *"
+    # every hour (UTC) — Google Calendar 変更を早く反映
+    - cron: "0 * * * *"
   workflow_dispatch:
 
 permissions:

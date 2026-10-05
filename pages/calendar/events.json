@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-05T05:12:55Z",
+  "updatedAt": "2026-10-05T06:04:10Z",
   "source": "G5PORTAL Google Calendar ICS",
   "events": [
     {
@@ -98,6 +98,19 @@
       "title": "終業式",
       "start": "2026-12-18",
       "end": "2026-12-19",
+      "allDay": true,
+      "description": "",
+      "location": "",
+      "extendedProps": {
+        "description": "",
+        "location": ""
+      }
+    },
+    {
+      "id": "6nksfe8ratnv2nucbdg0sgvq9r@google.com",
+      "title": "元旦",
+      "start": "2027-01-01",
+      "end": "2027-01-02",
       "allDay": true,
       "description": "",
       "location": "",

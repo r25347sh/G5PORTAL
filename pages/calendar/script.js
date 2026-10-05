@@ -1,6 +1,8 @@
 /**
  * G5 Portal · Calendar
- * FullCalendar + same-origin events.json + live ICS on open
+ * Primary: same-origin events.json (GitHub Actions syncs from Google ICS)
+ * Refresh: force-reload events.json (cache-busted)
+ * Optional: try live ICS via CORS proxy in background
  * Event types: ctb / exam / ceremony / default
  */
 (function () {
@@ -16,8 +18,8 @@
   ];
 
   var LOCAL_JSON = "events.json";
-  var CACHE_KEY = "g5_cal_events_v5";
-  var CACHE_TTL_MS = 30 * 60 * 1000;
+  var CACHE_KEY = "g5_cal_events_v6";
+  var CACHE_TTL_MS = 10 * 60 * 1000; /* 10 min — Actions sync ~hourly */
   var FETCH_TIMEOUT_MS = 14000;
 
   var EXAM_RE = /期末試験|期末テスト|中間試験|中間テスト|定期試験|定期テスト|模擬試験|模試/;
@@ -398,6 +400,64 @@
     if (toastMsg) showToast(toastMsg);
   }
 
+  function clearLsCache() {
+    try {
+      localStorage.removeItem(CACHE_KEY);
+    } catch (e) {}
+  }
+
+  /* メイン経路: same-origin events.json（Actions が Google ICS を同期） */
+  function refreshFromSnapshot(showToastOnOk) {
+    if (liveRefreshing) return Promise.resolve();
+    liveRefreshing = true;
+    setStatus("更新中…", null);
+    clearLsCache();
+    return loadLocalJson()
+      .then(function (r) {
+        applyEvents(
+          r,
+          showToastOnOk ? "更新しました（" + r.events.length + "件）" : null
+        );
+      })
+      .catch(function (err) {
+        console.warn("[G5 cal] snapshot failed", err);
+        var cached = readLsCache();
+        if (cached && cached.length) {
+          applyEvents(
+            { events: normalizeEvents(cached), source: "キャッシュ" },
+            showToastOnOk ? "キャッシュ表示" : null
+          );
+        } else if (!calendar) {
+          setStatus("取得失敗", "err");
+          initCalendar([]);
+          if (showToastOnOk) showToast("更新失敗");
+        } else {
+          var n = calendar.getEvents ? calendar.getEvents().length : 0;
+          if (n) setStatus(n + " 件・オフライン表示", "err");
+          if (showToastOnOk) showToast("更新失敗（オフライン）");
+        }
+      })
+      .then(function () {
+        liveRefreshing = false;
+        /* バックグラウンドでライブ ICS も試す（成功したら差し替え） */
+        tryLiveInBackground();
+      });
+  }
+
+  function tryLiveInBackground() {
+    fetchLiveIcs()
+      .then(function (r) {
+        if (!r || !r.events || !r.events.length) return;
+        var current = calendar && calendar.getEvents ? calendar.getEvents().length : 0;
+        if (r.events.length >= current) {
+          applyEvents(r, null);
+        }
+      })
+      .catch(function () {
+        /* プロキシ失敗は無視 — snapshot が正本 */
+      });
+  }
+
   function showStaleFast() {
     var cached = readLsCache();
     if (cached && cached.length) {
@@ -414,62 +474,21 @@
       });
   }
 
-  function clearLsCache() {
-    try {
-      localStorage.removeItem(CACHE_KEY);
-    } catch (e) {}
-  }
-
-  function refreshLive(showToastOnOk) {
-    if (liveRefreshing) return Promise.resolve();
-    liveRefreshing = true;
-    setStatus("更新中…", null);
-    return fetchLiveIcs()
-      .then(function (r) {
-        applyEvents(r, showToastOnOk ? "ライブ更新しました（" + r.events.length + "件）" : null);
-      })
-      .catch(function (err) {
-        console.warn("[G5 cal] live failed", err);
-        /* ライブ失敗時はローカル JSON を強制再取得 */
-        return loadLocalJson()
-          .then(function (r) {
-            applyEvents(
-              r,
-              showToastOnOk
-                ? "スナップショット更新（" + r.events.length + "件）"
-                : null
-            );
-          })
-          .catch(function () {
-            var cached = readLsCache();
-            if (cached && cached.length) {
-              applyEvents(
-                { events: normalizeEvents(cached), source: "キャッシュ" },
-                showToastOnOk ? "オフライン表示" : null
-              );
-            } else if (!calendar) {
-              setStatus("取得失敗", "err");
-              initCalendar([]);
-            } else {
-              var n = calendar.getEvents ? calendar.getEvents().length : 0;
-              if (n) setStatus(n + " 件・オフライン表示", "err");
-              if (showToastOnOk) showToast("更新失敗（オフライン）");
-            }
-          });
-      })
-      .then(function () {
-        liveRefreshing = false;
-      });
-  }
-
   function load(force) {
     if (force) {
-      clearLsCache();
-      return refreshLive(true);
+      return refreshFromSnapshot(true);
     }
     setStatus("読み込み中…", null);
     return showStaleFast().then(function () {
-      return refreshLive(false);
+      /* 初回も snapshot を取り直しつつ、ライブは裏で */
+      return loadLocalJson()
+        .then(function (r) {
+          applyEvents(r);
+        })
+        .catch(function () {})
+        .then(function () {
+          tryLiveInBackground();
+        });
     });
   }
 

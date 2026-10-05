@@ -7,7 +7,7 @@
   <meta name="description" content="G5 Portal calendar">
   <title>カレンダー · G5 Portal</title>
   <link rel="stylesheet" href="../../src/css/style.css">
-  <link rel="stylesheet" href="style.css?v=20261005f">
+  <link rel="stylesheet" href="style.css?v=20261005g">
   <link rel="stylesheet" href="../../MENU/MENU.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
 </head>
@@ -16,7 +16,7 @@
   <header class="tool-header">
     <a href="../../index.html" class="btn btn-ghost tool-back">← G5 Portal</a>
     <h1>カレンダー</h1>
-    <p class="tool-sub">G5PORTAL · Google Calendar 同期</p>
+    <p class="tool-sub">G5PORTAL · Google Calendar 同期（約1時間ごと自動）</p>
   </header>
   <main class="tool-main cal-main">
     <div class="cal-toolbar tool-card">
@@ -35,7 +35,7 @@
         <span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--ceremony"></span>式典</span>
       </div>
       <p class="hint">
-        イベントは Google カレンダー（G5PORTAL）から取得します。クリックで詳細を表示。
+        Google カレンダー（G5PORTAL）の内容を GitHub Actions が約1時間ごとに同期します。「更新」で最新の同期データを再取得します。
       </p>
     </section>
     <p id="toast" class="toast hidden" role="status"></p>
@@ -47,6 +47,6 @@
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/ja.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
-  <script src="script.js?v=20261005f"></script>
+  <script src="script.js?v=20261005g"></script>
 </body>
 </html>
