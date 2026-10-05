@@ -102,9 +102,18 @@
     }
   }
 
+  function loadEasterEggs() {
+    if (window.__G5_EASTER__ || document.querySelector('script[src*="easter-eggs.js"]')) return;
+    var s = document.createElement("script");
+    s.src = asset("src/js/easter-eggs.js");
+    s.async = true;
+    document.head.appendChild(s);
+  }
+
   function boot() {
     loadAtmosphere();
     initAmbient();
+    loadEasterEggs();
   }
 
   if (document.readyState === "loading") {
