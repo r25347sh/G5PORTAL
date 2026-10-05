@@ -1,4 +1,4 @@
-/* G⁵ Portal · Calendar (FullCalendar themed) */
+/* G5 Portal · Calendar (FullCalendar themed) */
 
 .tool-header {
   text-align: center;
@@ -65,22 +65,54 @@
   margin: 0;
 }
 
-/* FullCalendar G5 theme overrides */
+.cal-legend-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  margin-bottom: 0.65rem;
+}
+.cal-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.cal-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.cal-legend-swatch--default {
+  background: linear-gradient(135deg, #ff2d95, #ff6bb5);
+}
+.cal-legend-swatch--ctb {
+  background: linear-gradient(135deg, #00c2d4, #00f5ff);
+}
+.cal-legend-swatch--exam {
+  background: linear-gradient(135deg, #e6a700, #ffd700);
+}
+.cal-legend-swatch--ceremony {
+  background: linear-gradient(135deg, #7b3fd4, #c77dff);
+}
+
+/* FullCalendar G5 theme */
 .fc-g5 {
   --fc-border-color: rgba(255, 255, 255, 0.1);
   --fc-page-bg-color: transparent;
   --fc-neutral-bg-color: rgba(0, 0, 0, 0.25);
   --fc-list-event-hover-bg-color: rgba(255, 45, 149, 0.12);
   --fc-today-bg-color: rgba(0, 245, 255, 0.08);
-  --fc-event-bg-color: var(--pink);
+  --fc-event-bg-color: #ff2d95;
   --fc-event-border-color: transparent;
   --fc-event-text-color: #fff;
   --fc-button-bg-color: transparent;
   --fc-button-border-color: var(--border);
   --fc-button-text-color: var(--text);
   --fc-button-hover-bg-color: rgba(255, 45, 149, 0.2);
-  --fc-button-hover-border-color: var(--pink);
-  --fc-button-active-bg-color: linear-gradient(135deg, var(--pink), #ff6bb5);
+  --fc-button-hover-border-color: #ff2d95;
+  --fc-button-active-bg-color: #ff2d95;
   --fc-button-active-border-color: transparent;
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -94,10 +126,9 @@
   font-family: var(--font-display);
   font-size: 1.25rem !important;
   letter-spacing: 0.04em;
-  background: linear-gradient(105deg, #fff, var(--cyan));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--text) !important;
+  background: none !important;
+  -webkit-text-fill-color: unset !important;
 }
 
 .fc-g5 .fc-button {
@@ -108,6 +139,7 @@
   padding: 0.45rem 0.9rem !important;
   text-transform: none !important;
   box-shadow: none !important;
+  color: var(--text) !important;
   transition: transform 0.2s var(--ease-spring), border-color 0.2s, background 0.2s;
 }
 .fc-g5 .fc-button:hover {
@@ -115,7 +147,7 @@
 }
 .fc-g5 .fc-button-primary:not(:disabled).fc-button-active,
 .fc-g5 .fc-button-primary:not(:disabled):active {
-  background: linear-gradient(135deg, var(--pink), #ff6bb5) !important;
+  background: linear-gradient(135deg, #ff2d95, #ff6bb5) !important;
   border-color: transparent !important;
   color: #fff !important;
   box-shadow: 0 4px 16px rgba(255, 45, 149, 0.35) !important;
@@ -135,11 +167,12 @@
 .fc-g5 .fc-event {
   border-radius: 8px !important;
   border: none !important;
-  background: linear-gradient(135deg, var(--pink), #ff6bb5) !important;
+  background: linear-gradient(135deg, #ff2d95, #ff6bb5) !important;
   box-shadow: 0 2px 10px rgba(255, 45, 149, 0.3);
   font-size: 0.8rem;
   padding: 2px 4px;
   cursor: pointer;
+  color: #fff !important;
   transition: transform 0.15s var(--ease-spring), box-shadow 0.15s;
 }
 .fc-g5 .fc-event:hover {
@@ -148,19 +181,63 @@
 }
 .fc-g5 .fc-event .fc-event-title {
   font-weight: 600;
+  color: #fff !important;
 }
+
+.fc-g5 .fc-event.g5-ev--ctb {
+  background: linear-gradient(135deg, #009eb0, #00e5f0) !important;
+  box-shadow: 0 2px 10px rgba(0, 200, 220, 0.35);
+  color: #062028 !important;
+}
+.fc-g5 .fc-event.g5-ev--ctb .fc-event-title {
+  color: #062028 !important;
+}
+.fc-g5 .fc-event.g5-ev--ctb:hover {
+  box-shadow: 0 4px 16px rgba(0, 200, 220, 0.5);
+}
+
+.fc-g5 .fc-event.g5-ev--exam {
+  background: linear-gradient(135deg, #c48a00, #ffd700) !important;
+  box-shadow: 0 2px 10px rgba(255, 200, 0, 0.35);
+  color: #1a1400 !important;
+}
+.fc-g5 .fc-event.g5-ev--exam .fc-event-title {
+  color: #1a1400 !important;
+}
+.fc-g5 .fc-event.g5-ev--exam:hover {
+  box-shadow: 0 4px 16px rgba(255, 200, 0, 0.5);
+}
+
+.fc-g5 .fc-event.g5-ev--ceremony {
+  background: linear-gradient(135deg, #6b2fc4, #b57dff) !important;
+  box-shadow: 0 2px 10px rgba(155, 93, 229, 0.4);
+  color: #fff !important;
+}
+.fc-g5 .fc-event.g5-ev--ceremony .fc-event-title {
+  color: #fff !important;
+}
+
 .fc-g5 .fc-daygrid-event-dot {
   border-color: var(--cyan) !important;
 }
-
 .fc-g5 .fc-list-day-cushion {
   background: rgba(0, 0, 0, 0.35) !important;
+  color: var(--text) !important;
 }
 .fc-g5 .fc-list-event:hover td {
   background: rgba(255, 45, 149, 0.1) !important;
 }
 .fc-g5 .fc-list-event-dot {
-  border-color: var(--pink) !important;
+  border-color: #ff2d95 !important;
+}
+.fc-g5 .fc-list-event.g5-ev--ctb .fc-list-event-dot {
+  border-color: #00c2d4 !important;
+}
+.fc-g5 .fc-list-event.g5-ev--exam .fc-list-event-dot {
+  border-color: #e6a700 !important;
+}
+.fc-g5 .fc-list-event.g5-ev--ceremony .fc-list-event-dot {
+  border-color: #9b5de5 !important;
 }
 
 .fc-g5 .fc-scrollgrid,
@@ -169,7 +246,6 @@
   border-color: var(--border) !important;
 }
 
-/* Event detail modal */
 .cal-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -189,7 +265,7 @@
 }
 .cal-modal {
   background: var(--bg-card);
-  border: 1px solid rgba(255, 45, 149, 0.35);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.5rem 1.4rem;
   max-width: 420px;
@@ -204,7 +280,7 @@
 .cal-modal h3 {
   font-size: 1.2rem;
   margin-bottom: 0.75rem;
-  color: #fff;
+  color: var(--text);
 }
 .cal-modal .meta {
   color: var(--text-muted);
@@ -229,12 +305,41 @@
   gap: 0.5rem;
 }
 
+.cal-type-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  margin-bottom: 0.55rem;
+  color: #fff;
+  background: #ff2d95;
+}
+.cal-type-badge--ctb {
+  background: linear-gradient(135deg, #009eb0, #00e5f0);
+  color: #062028;
+}
+.cal-type-badge--exam {
+  background: linear-gradient(135deg, #c48a00, #ffd700);
+  color: #1a1400;
+}
+.cal-type-badge--ceremony {
+  background: linear-gradient(135deg, #6b2fc4, #b57dff);
+  color: #fff;
+}
+.cal-type-badge--default {
+  background: linear-gradient(135deg, #ff2d95, #ff6bb5);
+  color: #fff;
+}
+
 .toast {
   position: fixed;
   bottom: max(5.5rem, env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%) translateY(12px);
-  background: rgba(16, 11, 26, 0.95);
+  background: var(--bg-card);
   border: 1px solid rgba(0, 245, 255, 0.35);
   color: var(--cyan);
   padding: 0.65rem 1.25rem;
@@ -251,6 +356,30 @@
 }
 .hidden {
   display: none !important;
+}
+
+html[data-color-scheme="light"] .fc-g5 {
+  --fc-border-color: rgba(0, 0, 0, 0.1);
+  --fc-neutral-bg-color: rgba(0, 0, 0, 0.04);
+  --fc-today-bg-color: rgba(0, 136, 168, 0.08);
+  --fc-list-event-hover-bg-color: rgba(233, 30, 140, 0.08);
+}
+html[data-color-scheme="light"] .fc-g5 .fc-list-day-cushion {
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+html[data-color-scheme="light"] .tool-header h1 {
+  background: linear-gradient(105deg, #2a1a3a 10%, var(--pink) 50%, var(--cyan) 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+html[data-color-scheme="light"] .cal-modal {
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+}
+html[data-color-scheme="light"] .cal-modal-backdrop {
+  background: rgba(30, 20, 40, 0.4);
+}
+html[data-color-scheme="light"] .toast {
+  border-color: rgba(0, 136, 168, 0.35);
 }
 
 @media (max-width: 640px) {
