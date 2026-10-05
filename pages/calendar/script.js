@@ -2,6 +2,7 @@
  * G5 Portal · Calendar
  * FullCalendar + same-origin events.json (primary)
  * Live ICS via CORS proxy (refresh only)
+ * Event types: ctb / exam / ceremony / default
  */
 (function () {
   "use strict";
@@ -15,9 +16,13 @@
   ];
 
   var LOCAL_JSON = "events.json";
-  var CACHE_KEY = "g5_cal_events_v2";
+  var CACHE_KEY = "g5_cal_events_v3";
   var CACHE_TTL_MS = 30 * 60 * 1000;
   var FETCH_TIMEOUT_MS = 12000;
+
+  var EXAM_RE = /期末試験|期末テスト|中間試験|中間テスト|定期試験|定期テスト/;
+  var CEREMONY_RE = /^(終業式|始業式)$/;
+  var CTB_RE = /千葉トレイルブレイザーズ|\bCTB\b/i;
 
   var statusEl = document.getElementById("cal-status");
   var toastEl = document.getElementById("toast");
@@ -26,6 +31,13 @@
   var calendarEl = document.getElementById("calendar");
   var calendar = null;
   var toastTimer = null;
+
+  var TYPE_LABEL = {
+    ctb: "CTB",
+    exam: "試験",
+    ceremony: "式典",
+    default: "一般"
+  };
 
   function showToast(msg) {
     if (!toastEl) return;
@@ -87,21 +99,38 @@
     } catch (e) {}
   }
 
+  function classifyEvent(title, description) {
+    var t = String(title || "").trim();
+    var blob = t + "\n" + String(description || "");
+    if (CTB_RE.test(blob)) return "ctb";
+    if (EXAM_RE.test(t)) return "exam";
+    if (CEREMONY_RE.test(t)) return "ceremony";
+    return "default";
+  }
+
+  function decorateEvent(e) {
+    var title = e.title || "(no title)";
+    var description = (e.extendedProps && e.extendedProps.description) || e.description || "";
+    var location = (e.extendedProps && e.extendedProps.location) || e.location || "";
+    var type = classifyEvent(title, description);
+    return {
+      id: e.id,
+      title: title,
+      start: e.start,
+      end: e.end,
+      allDay: !!e.allDay,
+      classNames: ["g5-ev", "g5-ev--" + type],
+      extendedProps: {
+        description: description,
+        location: location,
+        type: type
+      }
+    };
+  }
+
   function normalizeEvents(list) {
     if (!Array.isArray(list)) return [];
-    return list.map(function (e) {
-      return {
-        id: e.id,
-        title: e.title || "(no title)",
-        start: e.start,
-        end: e.end,
-        allDay: !!e.allDay,
-        extendedProps: {
-          description: (e.extendedProps && e.extendedProps.description) || e.description || "",
-          location: (e.extendedProps && e.extendedProps.location) || e.location || ""
-        }
-      };
-    });
+    return list.map(decorateEvent);
   }
 
   function loadLocalJson() {
@@ -111,7 +140,7 @@
         var events = normalizeEvents(data.events || data);
         if (!events.length) throw new Error("empty local json");
         writeLsCache(events);
-        return { events: events, source: "\u540c\u671f\u30b9\u30ca\u30c3\u30d7" };
+        return { events: events, source: "同期スナップ" };
       });
   }
 
@@ -150,17 +179,17 @@
             : new Date(start.toJSDate().getTime() + 3600000).toISOString();
         }
 
-        events.push({
-          id: ev.uid || undefined,
-          title: ev.summary || "(no title)",
-          start: startIso,
-          end: endIso,
-          allDay: allDay,
-          extendedProps: {
+        events.push(
+          decorateEvent({
+            id: ev.uid || undefined,
+            title: ev.summary || "(no title)",
+            start: startIso,
+            end: endIso,
+            allDay: allDay,
             description: ev.description || "",
             location: ev.location || ""
-          }
-        });
+          })
+        );
       } catch (err) {
         console.warn("[G5 cal] skip event", err);
       }
@@ -197,7 +226,7 @@
     return chain.then(function (events) {
       if (!events.length) throw new Error("no events");
       writeLsCache(events);
-      return { events: events, source: "\u30e9\u30a4\u30d6" };
+      return { events: events, source: "ライブ" };
     });
   }
 
@@ -213,7 +242,7 @@
       if (!e) return sStr;
       var last = new Date(e.getTime() - 86400000);
       if (last.toDateString() === s.toDateString()) return sStr;
-      return sStr + " \u2013 " + last.toLocaleDateString("ja-JP", optsDate);
+      return sStr + " – " + last.toLocaleDateString("ja-JP", optsDate);
     }
 
     var out =
@@ -221,7 +250,7 @@
       " " +
       s.toLocaleTimeString("ja-JP", optsTime);
     if (e) {
-      out += " \u2013 ";
+      out += " – ";
       if (e.toDateString() !== s.toDateString()) {
         out += e.toLocaleDateString("ja-JP", optsDate) + " ";
       }
@@ -240,13 +269,19 @@
 
   function openModal(info) {
     var ev = info.event;
+    var type = (ev.extendedProps && ev.extendedProps.type) || "default";
     var backdrop = document.createElement("div");
     backdrop.className = "cal-modal-backdrop";
     backdrop.setAttribute("role", "dialog");
     backdrop.setAttribute("aria-modal", "true");
 
     var modal = document.createElement("div");
-    modal.className = "cal-modal";
+    modal.className = "cal-modal cal-modal--" + type;
+
+    var badge = document.createElement("span");
+    badge.className = "cal-type-badge cal-type-badge--" + type;
+    badge.textContent = TYPE_LABEL[type] || type;
+    modal.appendChild(badge);
 
     var title = document.createElement("h3");
     title.textContent = ev.title || "";
@@ -255,14 +290,14 @@
     var meta = document.createElement("p");
     meta.className = "meta";
     meta.innerHTML =
-      "<strong>\u65e5\u6642</strong> " + formatRange(ev.start, ev.end, ev.allDay);
+      "<strong>日時</strong> " + formatRange(ev.start, ev.end, ev.allDay);
     modal.appendChild(meta);
 
     var loc = ev.extendedProps && ev.extendedProps.location;
     if (loc) {
       var locEl = document.createElement("p");
       locEl.className = "meta";
-      locEl.innerHTML = "<strong>\u5834\u6240</strong> " + escapeHtml(loc);
+      locEl.innerHTML = "<strong>場所</strong> " + escapeHtml(loc);
       modal.appendChild(locEl);
     }
 
@@ -279,7 +314,7 @@
     var closeBtn = document.createElement("button");
     closeBtn.type = "button";
     closeBtn.className = "btn btn-primary";
-    closeBtn.textContent = "\u9589\u3058\u308b";
+    closeBtn.textContent = "閉じる";
     actions.appendChild(closeBtn);
     modal.appendChild(actions);
 
@@ -306,7 +341,7 @@
 
   function initCalendar(events) {
     if (typeof FullCalendar === "undefined") {
-      setStatus("FullCalendar \u8aad\u307f\u8fbc\u307f\u5931\u6557", "err");
+      setStatus("FullCalendar 読み込み失敗", "err");
       return;
     }
     if (!calendarEl) {
@@ -330,9 +365,9 @@
         right: "dayGridMonth,listMonth"
       },
       buttonText: {
-        today: "\u4eca\u65e5",
-        month: "\u6708",
-        list: "\u30ea\u30b9\u30c8"
+        today: "今日",
+        month: "月",
+        list: "リスト"
       },
       height: "auto",
       navLinks: true,
@@ -345,7 +380,11 @@
       },
       eventDidMount: function (info) {
         var d = info.event.extendedProps && info.event.extendedProps.description;
-        if (d) info.el.title = d;
+        var type = info.event.extendedProps && info.event.extendedProps.type;
+        var tip = info.event.title || "";
+        if (type && TYPE_LABEL[type]) tip = "[" + TYPE_LABEL[type] + "] " + tip;
+        if (d) tip += "\n" + d;
+        info.el.title = tip;
       }
     });
     calendar.render();
@@ -353,12 +392,12 @@
 
   function applyEvents(result, toastMsg) {
     initCalendar(result.events);
-    setStatus(result.events.length + " \u4ef6\u30fb" + result.source, "ok");
+    setStatus(result.events.length + " 件\u30fb" + result.source, "ok");
     if (toastMsg) showToast(toastMsg);
   }
 
   function load(force) {
-    setStatus("\u8aad\u307f\u8fbc\u307f\u4e2d\u2026", null);
+    setStatus("読み込み中\u2026", null);
 
     if (!force) {
       return loadLocalJson()
@@ -366,14 +405,14 @@
         .catch(function () {
           var cached = readLsCache();
           if (cached && cached.length) {
-            applyEvents({ events: cached, source: "\u30ad\u30e3\u30c3\u30b7\u30e5" });
+            applyEvents({ events: normalizeEvents(cached), source: "キャッシュ" });
             return;
           }
           return fetchLiveIcs()
             .then(function (r) { applyEvents(r); })
             .catch(function (err) {
               console.error("[G5 cal]", err);
-              setStatus("\u53d6\u5f97\u5931\u6557", "err");
+              setStatus("取得失敗", "err");
               initCalendar([]);
             });
         });
@@ -381,21 +420,21 @@
 
     return fetchLiveIcs()
       .then(function (r) {
-        applyEvents(r, "\u66f4\u65b0\u3057\u307e\u3057\u305f");
+        applyEvents(r, "更新しました");
       })
       .catch(function (err) {
         console.warn("[G5 cal] live failed", err);
         return loadLocalJson()
           .then(function (r) {
-            applyEvents(r, "\u30e9\u30a4\u30d6\u5931\u6557\u30fb\u30b9\u30ca\u30c3\u30d7");
+            applyEvents(r, "ライブ失敗\u30fbスナップ");
           })
           .catch(function () {
             var cached = readLsCache();
             if (cached && cached.length) {
-              applyEvents({ events: cached, source: "\u30ad\u30e3\u30c3\u30b7\u30e5" }, "offline");
+              applyEvents({ events: normalizeEvents(cached), source: "キャッシュ" }, "offline");
             } else {
-              setStatus("\u66f4\u65b0\u5931\u6557", "err");
-              showToast("\u53d6\u5f97\u5931\u6557");
+              setStatus("更新失敗", "err");
+              showToast("取得失敗");
             }
           });
       });
