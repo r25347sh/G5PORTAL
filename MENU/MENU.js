@@ -33,7 +33,8 @@
           { label: "カラーピッカー", icon: "🎨", url: root + "pages/color-picker/index.html" },
           { label: "画面シェア", icon: "📺", url: root + "pages/screen-share/index.html" },
           { label: "ファイル共有", icon: "📁", url: root + "pages/file-share/index.html" },
-          { label: "デジタル時計", icon: "🕐", url: root + "pages/clock/index.html" }
+          { label: "デジタル時計", icon: "🕐", url: root + "pages/clock/index.html" },
+          { label: "カレンダー", icon: "📅", url: root + "pages/calendar/index.html" }
         ]
       },
       {
