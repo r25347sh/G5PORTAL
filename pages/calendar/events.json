@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-05T06:06:01Z",
+  "updatedAt": "2026-10-05T15:25:57Z",
   "source": "G5PORTAL Google Calendar ICS",
   "events": [
     {
@@ -208,6 +208,19 @@
       "extendedProps": {
         "description": "",
         "location": ""
+      }
+    },
+    {
+      "id": "chj3iphj61gj8bb4cgo38b9k70pm8b9o70o62bb3chhjcp9h6ko6ccb2cg@google.com",
+      "title": "定期演奏会",
+      "start": "2027-03-20",
+      "end": "2027-03-21",
+      "allDay": true,
+      "description": "定期演奏会\n柏市民文化会館で行われます。\nたくさんの方のご来場、心よりお待ちしております。\n\n【CTB】",
+      "location": "柏市民文化会館大ホール",
+      "extendedProps": {
+        "description": "定期演奏会\n柏市民文化会館で行われます。\nたくさんの方のご来場、心よりお待ちしております。\n\n【CTB】",
+        "location": "柏市民文化会館大ホール"
       }
     }
   ]
