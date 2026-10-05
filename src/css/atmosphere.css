@@ -208,7 +208,8 @@ html[data-period="late"] .g5-period-overlay::after {
   to { transform: translateY(220px) translateX(40px); }
 }
 
-/* ========== ガラス面の雨粒（高度） ========== */
+/* ========== 天気パーティクル層（雨・雪・霧・嵐） ========== */
+.g5-wx-particles,
 .g5-rain-glass {
   position: fixed;
   inset: 0;
@@ -381,16 +382,122 @@ html[data-period="dusk"] .hero h1 {
   filter: drop-shadow(0 0 18px rgba(255, 45, 149, 0.35));
 }
 
+/* ========== 雪の結晶 ========== */
+.g5-snowflake {
+  position: absolute;
+  top: -12px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.95) 0%, rgba(220, 235, 255, 0.7) 40%, transparent 70%),
+    linear-gradient(45deg, transparent 40%, rgba(255, 255, 255, 0.6) 50%, transparent 60%),
+    linear-gradient(-45deg, transparent 40%, rgba(200, 220, 255, 0.5) 50%, transparent 60%);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+  animation: g5-snow-fall var(--fall-dur, 10s) linear forwards;
+  pointer-events: none;
+}
+@keyframes g5-snow-fall {
+  0% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  8% { opacity: 0.85; }
+  100% {
+    transform: translateY(105vh) translateX(var(--sway, 0px)) rotate(var(--rot, 180deg));
+    opacity: 0.15;
+  }
+}
+
+/* ========== 霧のウィスプ ========== */
+.g5-fog-wisp {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at 40% 50%,
+    rgba(220, 200, 240, 0.28) 0%,
+    rgba(180, 170, 220, 0.12) 45%,
+    transparent 75%
+  );
+  filter: blur(18px);
+  animation: g5-fog-drift var(--drift-dur, 22s) ease-in-out infinite;
+  opacity: 0;
+  pointer-events: none;
+}
+@keyframes g5-fog-drift {
+  0% {
+    transform: translateX(0) scale(0.9);
+    opacity: 0;
+  }
+  15% { opacity: 0.7; }
+  50% {
+    transform: translateX(var(--drift-x, 40px)) scale(1.05);
+    opacity: 0.55;
+  }
+  85% { opacity: 0.65; }
+  100% {
+    transform: translateX(calc(var(--drift-x, 40px) * -0.6)) scale(0.95);
+    opacity: 0;
+  }
+}
+
+/* ========== 稲妻フラッシュ ========== */
+.g5-lightning {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  background: radial-gradient(
+    ellipse 80% 50% at 60% 10%,
+    rgba(220, 240, 255, 0.55) 0%,
+    rgba(180, 200, 255, 0.18) 30%,
+    transparent 60%
+  );
+  animation: g5-lightning-flash 0.28s ease-out forwards;
+}
+.g5-lightning-soft {
+  background: radial-gradient(
+    ellipse 60% 40% at 40% 20%,
+    rgba(200, 220, 255, 0.28) 0%,
+    transparent 55%
+  );
+  animation: g5-lightning-flash 0.18s ease-out forwards;
+}
+@keyframes g5-lightning-flash {
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  40% { opacity: 0.7; }
+  100% { opacity: 0; }
+}
+
+/* 曇り・部分的晴れの雲ドリフト強化 */
+.g5-atmosphere.wx-cloudy::after,
+.g5-atmosphere.wx-partly::after {
+  opacity: 0.4;
+  background:
+    radial-gradient(ellipse 45% 18% at 20% 18%, rgba(255, 255, 255, 0.12), transparent 70%),
+    radial-gradient(ellipse 55% 20% at 70% 28%, rgba(200, 210, 255, 0.1), transparent 70%),
+    radial-gradient(ellipse 40% 15% at 45% 8%, rgba(255, 255, 255, 0.08), transparent 65%);
+  animation: g5-cloud-drift 48s ease-in-out infinite alternate;
+  filter: blur(2px);
+}
+@keyframes g5-cloud-drift {
+  0% { transform: translateX(-2%) translateY(0); }
+  100% { transform: translateX(4%) translateY(1.5%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .g5-atmosphere::before,
   .g5-atmosphere::after,
   .g5-period-overlay::after,
   .g5-drop,
   .g5-shooting-star,
-  .g5-bubble {
+  .g5-bubble,
+  .g5-snowflake,
+  .g5-fog-wisp,
+  .g5-lightning {
     animation: none !important;
   }
   .g5-drop { opacity: 0.7; transform: none; }
+  .g5-snowflake { opacity: 0.5; }
 }
 
 /* ============================================================

@@ -1,6 +1,6 @@
 /**
  * G⁵ Portal — time-theme.js
- * 時間帯・天気連動 + ガラス雨粒 + 希少流れ星
+ * 時間帯・天気連動 + 各天気別アニメーション（雨粒・雪・霧・稲妻・流れ星）
  * data-atmosphere="off" のときは演出・取得を抑制
  */
 (function () {
@@ -13,7 +13,9 @@
   var lastWeather = null;
   var geoReady = false;
   var reducedMotion = false;
-  var rainTimer = null;
+  var rainTimer = null; /* legacy alias target */
+  var particleTimer = null;
+  var currentParticleMode = null;
   var starLoopActive = true;
 
   try {
@@ -176,31 +178,35 @@
     updateBadge(p);
   }
 
-  function ensureRainGlass() {
-    var el = document.getElementById('g5-rain-glass');
+  function ensureParticleLayer() {
+    var el = document.getElementById('g5-wx-particles');
     if (el) return el;
     el = document.createElement('div');
-    el.id = 'g5-rain-glass';
-    el.className = 'g5-rain-glass';
+    el.id = 'g5-wx-particles';
+    el.className = 'g5-wx-particles';
     el.setAttribute('aria-hidden', 'true');
     document.body.appendChild(el);
     return el;
   }
 
-  function clearRainGlass() {
-    var el = document.getElementById('g5-rain-glass');
+  function clearParticles() {
+    var el = document.getElementById('g5-wx-particles');
     if (el) el.innerHTML = '';
   }
 
-  function stopRain() {
-    if (rainTimer) {
-      clearInterval(rainTimer);
-      rainTimer = null;
+  function stopParticles() {
+    if (particleTimer) {
+      clearInterval(particleTimer);
+      particleTimer = null;
     }
-    clearRainGlass();
+    currentParticleMode = null;
+    clearParticles();
   }
 
-  function spawnDrop(container, heavy) {
+  /* backward compat alias */
+  function stopRain() { stopParticles(); }
+
+  function spawnRainDrop(container, heavy) {
     if (reducedMotion || !atmosphereOn()) return;
     var drop = document.createElement('div');
     var size = heavy ? 8 + Math.random() * 16 : 5 + Math.random() * 12;
@@ -241,30 +247,120 @@
     }, life);
   }
 
-  function syncRainGlass(p) {
+  function spawnSnowflake(container) {
+    if (reducedMotion || !atmosphereOn()) return;
+    var flake = document.createElement('div');
+    var size = 3 + Math.random() * 9;
+    flake.className = 'g5-snowflake';
+    flake.style.width = size + 'px';
+    flake.style.height = size + 'px';
+    flake.style.left = Math.random() * 100 + '%';
+    flake.style.setProperty('--fall-dur', 6 + Math.random() * 10 + 's');
+    flake.style.setProperty('--sway', (Math.random() * 40 - 20) + 'px');
+    flake.style.setProperty('--rot', (Math.random() * 360) + 'deg');
+    flake.style.opacity = 0.55 + Math.random() * 0.4;
+    container.appendChild(flake);
+    setTimeout(function () {
+      if (flake.parentNode) flake.remove();
+    }, 16000);
+  }
+
+  function spawnFogWisp(container) {
+    if (reducedMotion || !atmosphereOn()) return;
+    var wisp = document.createElement('div');
+    var w = 80 + Math.random() * 180;
+    var h = 30 + Math.random() * 60;
+    wisp.className = 'g5-fog-wisp';
+    wisp.style.width = w + 'px';
+    wisp.style.height = h + 'px';
+    wisp.style.left = Math.random() * 100 + '%';
+    wisp.style.top = 10 + Math.random() * 70 + '%';
+    wisp.style.setProperty('--drift-dur', 18 + Math.random() * 22 + 's');
+    wisp.style.setProperty('--drift-x', (Math.random() * 120 - 60) + 'px');
+    container.appendChild(wisp);
+    setTimeout(function () {
+      if (wisp.parentNode) wisp.remove();
+    }, 40000);
+  }
+
+  function spawnLightning() {
+    if (reducedMotion || document.hidden || !atmosphereOn()) return;
+    var flash = document.createElement('div');
+    flash.className = 'g5-lightning';
+    document.body.appendChild(flash);
+    setTimeout(function () {
+      if (flash.parentNode) flash.remove();
+    }, 280);
+    if (Math.random() < 0.45) {
+      setTimeout(function () {
+        if (!atmosphereOn()) return;
+        var flash2 = document.createElement('div');
+        flash2.className = 'g5-lightning g5-lightning-soft';
+        document.body.appendChild(flash2);
+        setTimeout(function () {
+          if (flash2.parentNode) flash2.remove();
+        }, 180);
+      }, 80 + Math.random() * 120);
+    }
+  }
+
+  function syncWeatherParticles(p) {
     if (!atmosphereOn()) {
-      stopRain();
+      stopParticles();
       return;
     }
-    var raining = p.weather === 'rain' || p.weather === 'rain-heavy' || p.weather === 'storm';
-    if (!raining) {
-      stopRain();
+
+    var mode = p.weather;
+    if (mode === 'rain-heavy' || mode === 'storm') mode = mode;
+    else if (mode === 'rain') mode = 'rain';
+    else if (mode === 'snow') mode = 'snow';
+    else if (mode === 'fog') mode = 'fog';
+    else {
+      stopParticles();
       return;
     }
-    var box = ensureRainGlass();
-    var heavy = p.weather === 'rain-heavy' || p.weather === 'storm';
-    if (!rainTimer) {
+
+    if (currentParticleMode === mode && particleTimer) return;
+
+    stopParticles();
+    currentParticleMode = mode;
+    var box = ensureParticleLayer();
+    box.className = 'g5-wx-particles mode-' + mode;
+
+    if (mode === 'rain' || mode === 'rain-heavy' || mode === 'storm') {
+      var heavy = mode === 'rain-heavy' || mode === 'storm';
       var n = heavy ? 28 : 16;
-      for (var i = 0; i < n; i++) spawnDrop(box, heavy);
-      rainTimer = setInterval(function () {
+      for (var i = 0; i < n; i++) spawnRainDrop(box, heavy);
+      particleTimer = setInterval(function () {
         if (document.hidden || !atmosphereOn()) return;
         var c = heavy ? 3 : 2;
-        for (var j = 0; j < c; j++) spawnDrop(box, heavy);
+        for (var j = 0; j < c; j++) spawnRainDrop(box, heavy);
         while (box.children.length > (heavy ? 55 : 36)) {
           if (box.firstChild) box.removeChild(box.firstChild);
         }
+        if (mode === 'storm' && Math.random() < 0.08) spawnLightning();
       }, heavy ? 420 : 700);
+    } else if (mode === 'snow') {
+      for (var s = 0; s < 22; s++) spawnSnowflake(box);
+      particleTimer = setInterval(function () {
+        if (document.hidden || !atmosphereOn()) return;
+        for (var k = 0; k < 3; k++) spawnSnowflake(box);
+        while (box.children.length > 48) {
+          if (box.firstChild) box.removeChild(box.firstChild);
+        }
+      }, 900);
+    } else if (mode === 'fog') {
+      for (var f = 0; f < 8; f++) spawnFogWisp(box);
+      particleTimer = setInterval(function () {
+        if (document.hidden || !atmosphereOn()) return;
+        if (box.children.length < 12) spawnFogWisp(box);
+      }, 3500);
     }
+  }
+
+  /* backward compat */
+  function syncRainGlass(p) {
+    syncWeatherParticles(p);
   }
 
   function spawnShootingStar() {
