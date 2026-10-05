@@ -1,6 +1,8 @@
 /**
  * G⁵ Portal · Calendar
- * FullCalendar + ical.js · Google Calendar ICS feed
+ * FullCalendar + ical.js
+ * Primary: same-origin events.json (reliable)
+ * Live: Google ICS via CORS proxy (on refresh)
  */
 (function () {
   "use strict";
@@ -8,14 +10,16 @@
   var ICS_URL =
     "https://calendar.google.com/calendar/ical/c_92306547d832f212203b39db04331ef15584f3b370d8d0d50317376f7723c116%40group.calendar.google.com/private-7b8b57d1a2538032e32bb0d9b5219155/basic.ics";
 
-  /* CORS proxy fallback (Google ICS has no ACAO header) */
-  var PROXY_PREFIXES = [
-    "https://corsproxy.io/?",
-    "https://api.allorigins.win/raw?url="
+  /* Working CORS proxies (legacy corsproxy.io / allorigins often fail) */
+  var PROXY_URLS = [
+    function (u) { return "https://cors.eu.org/" + u; },
+    function (u) { return "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u); }
   ];
 
-  var CACHE_KEY = "g5_cal_ics_v1";
-  var CACHE_TTL_MS = 15 * 60 * 1000; /* 15 min */
+  var LOCAL_JSON = "events.json";
+  var CACHE_KEY = "g5_cal_events_v2";
+  var CACHE_TTL_MS = 30 * 60 * 1000;
+  var FETCH_TIMEOUT_MS = 12000;
 
   var statusEl = document.getElementById("cal-status");
   var toastEl = document.getElementById("toast");
@@ -43,57 +47,73 @@
     if (kind) statusEl.classList.add(kind);
   }
 
-  function readCache() {
+  function fetchWithTimeout(url, ms) {
+    var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timer = setTimeout(function () {
+      if (ctrl) ctrl.abort();
+    }, ms || FETCH_TIMEOUT_MS);
+    return fetch(url, {
+      cache: "no-store",
+      signal: ctrl ? ctrl.signal : undefined
+    })
+      .then(function (res) {
+        clearTimeout(timer);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res;
+      })
+      .catch(function (err) {
+        clearTimeout(timer);
+        throw err;
+      });
+  }
+
+  function readLsCache() {
     try {
       var raw = localStorage.getItem(CACHE_KEY);
       if (!raw) return null;
       var obj = JSON.parse(raw);
-      if (!obj || !obj.ts || !obj.data) return null;
+      if (!obj || !obj.ts || !Array.isArray(obj.events)) return null;
       if (Date.now() - obj.ts > CACHE_TTL_MS) return null;
-      return obj.data;
+      return obj.events;
     } catch (e) {
       return null;
     }
   }
 
-  function writeCache(data) {
+  function writeLsCache(events) {
     try {
       localStorage.setItem(
         CACHE_KEY,
-        JSON.stringify({ ts: Date.now(), data: data })
+        JSON.stringify({ ts: Date.now(), events: events })
       );
-    } catch (e) {
-      /* quota / private mode */
-    }
+    } catch (e) {}
   }
 
-  function fetchIcsText(force) {
-    if (!force) {
-      var cached = readCache();
-      if (cached) return Promise.resolve({ text: cached, fromCache: true });
-    }
-
-    function tryFetch(url) {
-      return fetch(url, { cache: "no-store" }).then(function (res) {
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return res.text();
-      });
-    }
-
-    /* 1) direct, 2) proxies */
-    return tryFetch(ICS_URL)
-      .catch(function () {
-        return tryFetch(PROXY_PREFIXES[0] + encodeURIComponent(ICS_URL));
-      })
-      .catch(function () {
-        return tryFetch(PROXY_PREFIXES[1] + encodeURIComponent(ICS_URL));
-      })
-      .then(function (text) {
-        if (!text || text.indexOf("BEGIN:VCALENDAR") < 0) {
-          throw new Error("Invalid ICS");
+  function normalizeEvents(list) {
+    if (!Array.isArray(list)) return [];
+    return list.map(function (e) {
+      return {
+        id: e.id,
+        title: e.title || "(no title)",
+        start: e.start,
+        end: e.end,
+        allDay: !!e.allDay,
+        extendedProps: {
+          description: (e.extendedProps && e.extendedProps.description) || e.description || "",
+          location: (e.extendedProps && e.extendedProps.location) || e.location || ""
         }
-        writeCache(text);
-        return { text: text, fromCache: false };
+      };
+    });
+  }
+
+  function loadLocalJson() {
+    return fetchWithTimeout(LOCAL_JSON, 8000)
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        var events = normalizeEvents(data.events || data);
+        if (!events.length) throw new Error("empty local json");
+        writeLsCache(events);
+        return { events: events, source: "同期スナップ" };
       });
   }
 
@@ -117,8 +137,7 @@
         var startIso, endIso;
 
         if (allDay) {
-          /* FullCalendar all-day: exclusive end */
-          startIso = start.toString(); /* YYYY-MM-DD */
+          startIso = start.toString();
           if (end) {
             endIso = end.toString();
           } else {
@@ -139,8 +158,6 @@
           start: startIso,
           end: endIso,
           allDay: allDay,
-          description: ev.description || "",
-          location: ev.location || "",
           extendedProps: {
             description: ev.description || "",
             location: ev.location || ""
@@ -154,6 +171,37 @@
     return events;
   }
 
+  function fetchLiveIcs() {
+    function tryOne(buildUrl) {
+      var url = buildUrl(ICS_URL);
+      return fetchWithTimeout(url, FETCH_TIMEOUT_MS).then(function (res) {
+        return res.text();
+      }).then(function (text) {
+        if (!text || text.indexOf("BEGIN:VCALENDAR") < 0) {
+          throw new Error("Invalid ICS");
+        }
+        return icsToEvents(text);
+      });
+    }
+
+    var chain = Promise.reject(new Error("start"));
+    /* direct first (usually CORS-fails in browser) */
+    chain = chain.catch(function () {
+      return fetchWithTimeout(ICS_URL, 5000).then(function (r) { return r.text(); }).then(function (t) {
+        if (!t || t.indexOf("BEGIN:VCALENDAR") < 0) throw new Error("bad");
+        return icsToEvents(t);
+      });
+    });
+    PROXY_URLS.forEach(function (builder) {
+      chain = chain.catch(function () { return tryOne(builder); });
+    });
+    return chain.then(function (events) {
+      if (!events.length) throw new Error("no events");
+      writeLsCache(events);
+      return { events: events, source: "ライブ" };
+    });
+  }
+
   function formatRange(start, end, allDay) {
     if (!start) return "";
     var optsDate = { year: "numeric", month: "long", day: "numeric", weekday: "short" };
@@ -164,7 +212,6 @@
     if (allDay) {
       var sStr = s.toLocaleDateString("ja-JP", optsDate);
       if (!e) return sStr;
-      /* exclusive end → display last inclusive day */
       var last = new Date(e.getTime() - 86400000);
       if (last.toDateString() === s.toDateString()) return sStr;
       return sStr + " – " + last.toLocaleDateString("ja-JP", optsDate);
@@ -184,6 +231,14 @@
     return out;
   }
 
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&")
+      .replace(/</g, "<")
+      .replace(/>/g, ">")
+      .replace(/"/g, """);
+  }
+
   function openModal(info) {
     var ev = info.event;
     var backdrop = document.createElement("div");
@@ -201,8 +256,7 @@
     var meta = document.createElement("p");
     meta.className = "meta";
     meta.innerHTML =
-      "<strong>日時</strong> " +
-      formatRange(ev.start, ev.end, ev.allDay);
+      "<strong>日時</strong> " + formatRange(ev.start, ev.end, ev.allDay);
     modal.appendChild(meta);
 
     var loc = ev.extendedProps && ev.extendedProps.location;
@@ -232,10 +286,7 @@
 
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
-
-    requestAnimationFrame(function () {
-      backdrop.classList.add("open");
-    });
+    requestAnimationFrame(function () { backdrop.classList.add("open"); });
 
     function close() {
       backdrop.classList.remove("open");
@@ -244,11 +295,9 @@
       }, 280);
       document.removeEventListener("keydown", onKey);
     }
-
     function onKey(e) {
       if (e.key === "Escape") close();
     }
-
     closeBtn.addEventListener("click", close);
     backdrop.addEventListener("click", function (e) {
       if (e.target === backdrop) close();
@@ -256,17 +305,13 @@
     document.addEventListener("keydown", onKey);
   }
 
-  function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, "&")
-      .replace(/</g, "<")
-      .replace(/>/g, ">")
-      .replace(/"/g, """);
-  }
-
   function initCalendar(events) {
     if (typeof FullCalendar === "undefined") {
       setStatus("FullCalendar 読み込み失敗", "err");
+      return;
+    }
+    if (!calendarEl) {
+      setStatus("#calendar が見つかりません", "err");
       return;
     }
 
@@ -300,44 +345,66 @@
         openModal(info);
       },
       eventDidMount: function (info) {
-        if (info.event.extendedProps.description) {
-          info.el.title = info.event.extendedProps.description;
-        }
+        var d = info.event.extendedProps && info.event.extendedProps.description;
+        if (d) info.el.title = d;
       }
     });
-
     calendar.render();
   }
 
+  function applyEvents(result, toastMsg) {
+    initCalendar(result.events);
+    setStatus(result.events.length + " 件・" + result.source, "ok");
+    if (toastMsg) showToast(toastMsg);
+  }
+
+  /**
+   * force=false: local JSON → LS cache (never hang on live ICS)
+   * force=true: live ICS first, then local JSON fallback
+   */
   function load(force) {
     setStatus("読み込み中…", null);
-    return fetchIcsText(!!force)
-      .then(function (result) {
-        var events = icsToEvents(result.text);
-        initCalendar(events);
-        var label =
-          events.length +
-          " 件・" +
-          (result.fromCache ? "キャッシュ" : "最新");
-        setStatus(label, "ok");
-        if (force && !result.fromCache) showToast("更新しました");
+
+    if (!force) {
+      return loadLocalJson()
+        .then(function (r) { applyEvents(r); })
+        .catch(function () {
+          var cached = readLsCache();
+          if (cached && cached.length) {
+            applyEvents({ events: cached, source: "キャッシュ" });
+            return;
+          }
+          /* last resort: try live once */
+          return fetchLiveIcs()
+            .then(function (r) { applyEvents(r); })
+            .catch(function (err) {
+              console.error("[G5 cal]", err);
+              setStatus("取得失敗（events.json / プロキシ）", "err");
+              initCalendar([]);
+            });
+        });
+    }
+
+    /* manual refresh: prefer live */
+    return fetchLiveIcs()
+      .then(function (r) {
+        applyEvents(r, "更新しました");
       })
       .catch(function (err) {
-        console.error("[G5 cal]", err);
-        setStatus("取得失敗・キャッシュまたはプロキシを確認", "err");
-        /* try stale cache as last resort */
-        try {
-          var raw = localStorage.getItem(CACHE_KEY);
-          if (raw) {
-            var obj = JSON.parse(raw);
-            if (obj && obj.data) {
-              var events = icsToEvents(obj.data);
-              initCalendar(events);
-              setStatus(events.length + " 件・古いキャッシュ", "err");
-              showToast("オフラインキャッシュを表示");
+        console.warn("[G5 cal] live failed", err);
+        return loadLocalJson()
+          .then(function (r) {
+            applyEvents(r, "ライブ失敗・スナップを表示");
+          })
+          .catch(function () {
+            var cached = readLsCache();
+            if (cached && cached.length) {
+              applyEvents({ events: cached, source: "キャッシュ" }, "オフラインキャッシュ");
+            } else {
+              setStatus("更新失敗", "err");
+              showToast("取得できませんでした");
             }
-          }
-        } catch (e2) {}
+          });
       });
   }
 
@@ -352,11 +419,17 @@
     });
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", function () {
-      load(false);
-    });
-  } else {
+  function boot() {
+    if (typeof FullCalendar === "undefined") {
+      setStatus("FullCalendar CDN 読み込み失敗", "err");
+      return;
+    }
     load(false);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
   }
 })();
