@@ -100,11 +100,11 @@ jobs:
               key, val = line.split(":", 1)
               key_base = key.split(";")[0].upper()
               if key_base == "SUMMARY":
-                  cur["summary"] = val
+                  cur["summary"] = val.replace("\\n", "\n").replace("\\,", ",")
               elif key_base == "DESCRIPTION":
                   cur["description"] = val.replace("\\n", "\n").replace("\\,", ",")
               elif key_base == "LOCATION":
-                  cur["location"] = val.replace("\\,", ",")
+                  cur["location"] = val.replace("\\n", "\n").replace("\\,", ",")
               elif key_base == "UID":
                   cur["uid"] = val
               elif key_base == "DTSTART":
@@ -112,6 +112,7 @@ jobs:
               elif key_base == "DTEND":
                   cur["dtend"] = val
 
+          events.sort(key=lambda e: e.get("start") or "")
           out = {
               "updatedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
               "source": "G5PORTAL Google Calendar ICS",

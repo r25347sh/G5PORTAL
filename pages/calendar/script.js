@@ -10,14 +10,15 @@
     "https://calendar.google.com/calendar/ical/c_92306547d832f212203b39db04331ef15584f3b370d8d0d50317376f7723c116%40group.calendar.google.com/private-7b8b57d1a2538032e32bb0d9b5219155/basic.ics";
 
   var PROXY_URLS = [
-    function (u) { return "https://cors.eu.org/" + u; },
+    function (u) { return "https://api.allorigins.win/raw?url=" + encodeURIComponent(u); },
+    function (u) { return "https://corsproxy.io/?" + encodeURIComponent(u); },
     function (u) { return "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u); }
   ];
 
   var LOCAL_JSON = "events.json";
-  var CACHE_KEY = "g5_cal_events_v4";
+  var CACHE_KEY = "g5_cal_events_v5";
   var CACHE_TTL_MS = 30 * 60 * 1000;
-  var FETCH_TIMEOUT_MS = 12000;
+  var FETCH_TIMEOUT_MS = 14000;
 
   var EXAM_RE = /期末試験|期末テスト|中間試験|中間テスト|定期試験|定期テスト|模擬試験|模試/;
   var CEREMONY_RE = /^(終業式|始業式)$/;
@@ -134,7 +135,8 @@
   }
 
   function loadLocalJson() {
-    return fetchWithTimeout(LOCAL_JSON, 8000)
+    var url = LOCAL_JSON + (LOCAL_JSON.indexOf("?") >= 0 ? "&" : "?") + "t=" + Date.now();
+    return fetchWithTimeout(url, 8000)
       .then(function (res) { return res.json(); })
       .then(function (data) {
         var events = normalizeEvents(data.events || data);
@@ -412,34 +414,48 @@
       });
   }
 
+  function clearLsCache() {
+    try {
+      localStorage.removeItem(CACHE_KEY);
+    } catch (e) {}
+  }
+
   function refreshLive(showToastOnOk) {
     if (liveRefreshing) return Promise.resolve();
     liveRefreshing = true;
     setStatus("更新中…", null);
     return fetchLiveIcs()
       .then(function (r) {
-        applyEvents(r, showToastOnOk ? "更新しました" : null);
+        applyEvents(r, showToastOnOk ? "ライブ更新しました（" + r.events.length + "件）" : null);
       })
       .catch(function (err) {
         console.warn("[G5 cal] live failed", err);
-        if (!calendar) {
-          return loadLocalJson()
-            .then(function (r) {
-              applyEvents(r, "ライブ失敗・スナップ");
-            })
-            .catch(function () {
-              var cached = readLsCache();
-              if (cached && cached.length) {
-                applyEvents({ events: normalizeEvents(cached), source: "キャッシュ" }, "offline");
-              } else {
-                setStatus("取得失敗", "err");
-                initCalendar([]);
-              }
-            });
-        } else {
-          var n = calendar.getEvents ? calendar.getEvents().length : 0;
-          if (n) setStatus(n + " 件・オフライン表示", "err");
-        }
+        /* ライブ失敗時はローカル JSON を強制再取得 */
+        return loadLocalJson()
+          .then(function (r) {
+            applyEvents(
+              r,
+              showToastOnOk
+                ? "スナップショット更新（" + r.events.length + "件）"
+                : null
+            );
+          })
+          .catch(function () {
+            var cached = readLsCache();
+            if (cached && cached.length) {
+              applyEvents(
+                { events: normalizeEvents(cached), source: "キャッシュ" },
+                showToastOnOk ? "オフライン表示" : null
+              );
+            } else if (!calendar) {
+              setStatus("取得失敗", "err");
+              initCalendar([]);
+            } else {
+              var n = calendar.getEvents ? calendar.getEvents().length : 0;
+              if (n) setStatus(n + " 件・オフライン表示", "err");
+              if (showToastOnOk) showToast("更新失敗（オフライン）");
+            }
+          });
       })
       .then(function () {
         liveRefreshing = false;
@@ -448,6 +464,7 @@
 
   function load(force) {
     if (force) {
+      clearLsCache();
       return refreshLive(true);
     }
     setStatus("読み込み中…", null);
