@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="description" content="G⁵ Portal - 無料自作ツール・勉強副教材配信ポータル">
+  <meta name="description" content="G⁵ Portal - 麗澤高等学校 5年G組の無料自作ツール・勉強副教材配信ポータル。カレンダー・PDFビューアー・MultiQuizなど。">
   <meta name="theme-color" content="#07050f">
-  <title>G⁵ Portal</title>
+  <meta name="keywords" content="G5 Portal, 麗澤, 5G, 無料ツール, 副教材, PDF, カレンダー, MultiQuiz">
+  <title>G⁵ Portal · FREE TOOLS & MATERIALS</title>
   <link rel="stylesheet" href="src/css/style.css">
   <link rel="stylesheet" href="src/css/atmosphere.css">
   <link rel="stylesheet" href="src/css/theme-selector.css">
@@ -17,94 +18,147 @@
 </head>
 <body>
   <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
+
+  <!-- Hero -->
   <header class="hero">
     <div class="hero-badge">Reitaku High School · 5G</div>
     <h1><span>FREE TOOLS & MATERIALS</span> G⁵ Portal</h1>
-    <p class="hero-sub">さまざまな無料自作ツールと勉強副教材を配信するポータルです。</p>
+    <p class="hero-sub">さまざまな無料自作ツールと勉強副教材を配信するポータルです。カレンダー・高性能PDFビューアー・MultiQuizをすぐに使えます。</p>
     <div class="hero-cta">
-      <a href="pages/multiquiz/index.html" class="btn btn-primary">MultiQuiz を開く</a>
+      <a href="pages/calendar/index.html" class="btn btn-primary">📅 カレンダー</a>
+      <a href="pages/pdf-viewer/index.html" class="btn btn-primary">📄 PDFビューアー</a>
+      <a href="pages/multiquiz/index.html" class="btn btn-ghost">MultiQuiz</a>
+      <a href="pages/materials/index.html" class="btn btn-ghost">副教材</a>
     </div>
   </header>
+
+  <!-- Independent Calendar Section -->
+  <section id="calendar" class="main_section featured-section">
+    <div class="section-header">
+      <h2>カレンダー</h2>
+      <p>G5PORTAL 事務・イベントを月表示・リスト表示。Google Calendar 同期（約1時間ごと）</p>
+    </div>
+    <div class="featured-card-wrap">
+      <article class="card featured-card">
+        <div class="card-icon">📅</div>
+        <h3>G5PORTAL カレンダー</h3>
+        <p>試験・式典・CTB・一般イベントを色分け表示。月表示とリスト表示を切り替え可能。GitHub Actions で自動同期。</p>
+        <div class="featured-actions">
+          <a href="pages/calendar/index.html" class="btn btn-primary">カレンダーを開く</a>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- Tools -->
   <section id="tools" class="main_section">
     <div class="section-header">
       <h2>ツール</h2>
       <p>無料で使える自作ツール</p>
     </div>
-    <div class="cards-grid">
-      <article class="card">
-        <div class="card-icon">文字</div>
-        <h3>文字数カウント</h3>
-        <p>文字・単語・行・バイト・段落をリアルタイム集計。</p>
-        <a href="pages/char-count/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
-      </article>
-      <article class="card">
-        <div class="card-icon">🔍</div>
-        <h3>文字拡大鏡</h3>
-        <p>複数文字対応。サイズ・表示モード・コントラスト調整。</p>
-        <a href="pages/char-magnifier/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
-      </article>
-      <article class="card">
-        <div class="card-icon">鍵</div>
-        <h3>パスワード生成</h3>
-        <p>暗号論的乱数・強度メーター・履歴（端末内）。</p>
-        <a href="pages/password-gen/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
-      </article>
-      <article class="card">
-        <div class="card-icon">🔐</div>
-        <h3>暗号化・復号</h3>
-        <p>AES 等の暗号化・復号。テキストの安全なやり取り用。</p>
-        <a href="pages/crypto/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
-      </article>
-      <article class="card">
-        <div class="card-icon">QR</div>
-        <h3>QRコード</h3>
-        <p>作成・読み取り・PNGエクスポート。カメラ読取対応。</p>
-        <a href="pages/qr-code/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
-      </article>
-      <article class="card">
-        <div class="card-icon">⏱</div>
-        <h3>タイマー / SW</h3>
-        <p>連続タイマー・ラップ・カスタム終了音。</p>
-        <a href="pages/timer/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
-      </article>
-      <article class="card">
-        <div class="card-icon">🎲</div>
-        <h3>コイン / サイコロ / 抽選</h3>
-        <p>コイントス・多面体サイコロ・リスト抽選。</p>
-        <a href="pages/random/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
-      </article>
-      <article class="card">
-        <div class="card-icon">🎨</div>
-        <h3>カラーピッカー</h3>
-        <p>スポイト・画像クリック・HEX/RGB/HSL。</p>
-        <a href="pages/color-picker/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
-      </article>
-      <article class="card">
-        <div class="card-icon">📺</div>
-        <h3>画面シェア</h3>
-        <p>WebRTC。共有ボタンで URL / QR 発行。共有側の画面を配信。</p>
-        <a href="pages/screen-share/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
-      </article>
-      <article class="card">
-        <div class="card-icon">📁</div>
-        <h3>ファイル共有</h3>
-        <p>WebRTC DataChannel。ファイル選択後に共有 URL / QR を発行。</p>
-        <a href="pages/file-share/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
-      </article>
-      <article class="card">
-        <div class="card-icon">🕐</div>
-        <h3>デジタル時計</h3>
-        <p>高分解能表示。performance.now 同期・μs/ns 表示。</p>
-        <a href="pages/clock/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
-      </article>
-      <article class="card">
-        <div class="card-icon">📅</div>
-        <h3>カレンダー</h3>
-        <p>Google Calendar 連携。G5PORTAL 事務・イベントを月表示・リスト表示。</p>
-        <a href="pages/calendar/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
-      </article>
+
+    <!-- Category: Document -->
+    <div class="tool-category">
+      <h3 class="cat-title">ドキュメント</h3>
+      <div class="cards-grid">
+        <article class="card card-highlight">
+          <div class="card-icon">📄</div>
+          <h3>PDFビューアー</h3>
+          <p>高性能・多機能。ズーム・検索・サムネイル・書き込みモード。電子ペン検知時はペン＝描画／指＝移動。</p>
+          <a href="pages/pdf-viewer/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
+        </article>
+      </div>
+    </div>
+
+    <!-- Category: Text -->
+    <div class="tool-category">
+      <h3 class="cat-title">文字</h3>
+      <div class="cards-grid">
+        <article class="card">
+          <div class="card-icon">文字</div>
+          <h3>文字数カウント</h3>
+          <p>文字・単語・行・バイト・段落をリアルタイム集計。</p>
+          <a href="pages/char-count/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
+        </article>
+        <article class="card">
+          <div class="card-icon">🔍</div>
+          <h3>文字拡大鏡</h3>
+          <p>複数文字対応。サイズ・表示モード・コントラスト調整。</p>
+          <a href="pages/char-magnifier/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
+        </article>
+        <article class="card">
+          <div class="card-icon">鍵</div>
+          <h3>パスワード生成</h3>
+          <p>暗号論的乱数・強度メーター・履歴（端末内）。</p>
+          <a href="pages/password-gen/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
+        </article>
+        <article class="card">
+          <div class="card-icon">🔐</div>
+          <h3>暗号化・復号</h3>
+          <p>AES 等の暗号化・復号。テキストの安全なやり取り用。</p>
+          <a href="pages/crypto/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
+        </article>
+        <article class="card">
+          <div class="card-icon">QR</div>
+          <h3>QRコード</h3>
+          <p>作成・読み取り・PNGエクスポート。カメラ読取対応。</p>
+          <a href="pages/qr-code/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
+        </article>
+      </div>
+    </div>
+
+    <!-- Category: Time / Random / Color -->
+    <div class="tool-category">
+      <h3 class="cat-title">時間・乱数・色</h3>
+      <div class="cards-grid">
+        <article class="card">
+          <div class="card-icon">⏱</div>
+          <h3>タイマー / SW</h3>
+          <p>連続タイマー・ラップ・カスタム終了音。</p>
+          <a href="pages/timer/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
+        </article>
+        <article class="card">
+          <div class="card-icon">🎲</div>
+          <h3>コイン / サイコロ / 抽選</h3>
+          <p>コイントス・多面体サイコロ・リスト抽選。</p>
+          <a href="pages/random/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
+        </article>
+        <article class="card">
+          <div class="card-icon">🎨</div>
+          <h3>カラーピッカー</h3>
+          <p>スポイト・画像クリック・HEX/RGB/HSL。</p>
+          <a href="pages/color-picker/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
+        </article>
+        <article class="card">
+          <div class="card-icon">🕐</div>
+          <h3>デジタル時計</h3>
+          <p>高分解能表示。performance.now 同期・μs/ns 表示。</p>
+          <a href="pages/clock/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
+        </article>
+      </div>
+    </div>
+
+    <!-- Category: Share -->
+    <div class="tool-category">
+      <h3 class="cat-title">共有</h3>
+      <div class="cards-grid">
+        <article class="card">
+          <div class="card-icon">📺</div>
+          <h3>画面シェア</h3>
+          <p>WebRTC。共有ボタンで URL / QR 発行。共有側の画面を配信。</p>
+          <a href="pages/screen-share/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
+        </article>
+        <article class="card">
+          <div class="card-icon">📁</div>
+          <h3>ファイル共有</h3>
+          <p>WebRTC DataChannel。ファイル選択後に共有 URL / QR を発行。</p>
+          <a href="pages/file-share/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
+        </article>
+      </div>
     </div>
   </section>
+
+  <!-- Materials -->
   <section id="materials" class="main_section">
     <div class="section-header">
       <h2>副教材</h2>
@@ -119,15 +173,48 @@
       </article>
       <article class="card">
         <div class="card-icon">◇</div>
-        <h3>副教材 (PDF)</h3>
-        <p>勉強用の PDF 等を配置するスペースです。</p>
+        <h3>副教材 (PDF・メディア)</h3>
+        <p>勉強用の PDF 等を配置するスペースです。PDFは高性能ビューアーで開けます。</p>
         <a href="pages/materials/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
       </article>
     </div>
   </section>
+
   <footer class="site-footer">
     <p><strong>G⁵ Portal</strong> · 無料ツール・副教材ポータル</p>
     <p>© 2026 Reitaku H.S. 5G</p>
   </footer>
+
+  <style>
+    /* Index-specific enhancements (keep global style.css lean) */
+    .featured-section { padding-top: 2.5rem; }
+    .featured-card-wrap { max-width: 520px; margin: 0 auto; }
+    .featured-card {
+      text-align: center;
+      padding: 2rem 1.75rem;
+      border-color: rgba(255, 45, 149, 0.28);
+      background: linear-gradient(160deg, rgba(255,45,149,0.08), rgba(16,11,26,0.92) 55%);
+    }
+    .featured-card .card-icon { font-size: 2.2rem; }
+    .featured-actions { margin-top: 1.35rem; }
+    .tool-category { margin-bottom: 2.5rem; }
+    .cat-title {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      letter-spacing: 0.12em;
+      color: var(--gold);
+      margin: 0 0 1rem 0.15rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .card-highlight {
+      border-color: rgba(0, 245, 255, 0.28);
+      background: linear-gradient(160deg, rgba(0,245,255,0.07), rgba(16,11,26,0.92) 60%);
+    }
+    .hero-cta { gap: 0.7rem; }
+    @media (max-width: 480px) {
+      .hero-cta .btn { width: 100%; max-width: 280px; }
+    }
+  </style>
 </body>
 </html>
