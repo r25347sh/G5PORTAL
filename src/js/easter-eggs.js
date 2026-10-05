@@ -198,21 +198,73 @@
   var consoleHistory = [];
   var consoleHistIdx = -1;
 
+  function loadDemoModule() {
+    return new Promise(function (resolve, reject) {
+      if (window.G5Demo && window.G5Demo._ready) {
+        resolve(window.G5Demo);
+        return;
+      }
+      var existing = document.querySelector('script[src*="easter-demo.js"]');
+      if (existing) {
+        existing.addEventListener("load", function () {
+          resolve(window.G5Demo);
+        });
+        return;
+      }
+      var s = document.createElement("script");
+      s.src = asset("src/js/easter-demo.js");
+      s.async = true;
+      s.onload = function () {
+        resolve(window.G5Demo);
+      };
+      s.onerror = function () {
+        reject(new Error("demo module failed"));
+      };
+      document.head.appendChild(s);
+    });
+  }
+
   var COMMANDS = {
     help: function () {
       return [
         "G⁵ Portal Console — commands:",
         "  help / about / theme / time / ls / whoami",
+        "  demo · sandbox · gravity   ★ デモシーン",
         "  games · snake · breakout",
         "  matrix · portal · roll",
         "  clear · exit · konami"
       ].join("\n");
     },
     about: function () {
-      return "G⁵ Portal · Reitaku HS 5G\nEaster v2 · Web Audio + Canvas\n" + location.pathname;
+      return "G⁵ Portal · Reitaku HS 5G\nEaster v3 · Demo scene + Web Audio\n" + location.pathname;
     },
     games: function () {
-      return "snake · breakout — type name to launch";
+      return "demo · sandbox · snake · breakout";
+    },
+    demo: function () {
+      closeConsole();
+      loadDemoModule()
+        .then(function (D) {
+          D.start();
+        })
+        .catch(function () {
+          toast("Demo load failed");
+        });
+      return "Loading demoscene…";
+    },
+    sandbox: function () {
+      closeConsole();
+      loadDemoModule()
+        .then(function (D) {
+          D.sandbox();
+        })
+        .catch(function () {
+          toast("Sandbox load failed");
+        });
+      return "Opening gravity sandbox…";
+    },
+    gravity: function () {
+      return COMMANDS.sandbox();
     },
     snake: function () {
       closeConsole();
@@ -881,6 +933,16 @@
       } else if (typeBuf.indexOf("matrix") >= 0) {
         typeBuf = "";
         Matrix.toggle();
+      } else if (typeBuf.indexOf("demo") >= 0) {
+        typeBuf = "";
+        loadDemoModule().then(function (D) {
+          D.start();
+        });
+      } else if (typeBuf.indexOf("sandbox") >= 0 || typeBuf.indexOf("gravity") >= 0) {
+        typeBuf = "";
+        loadDemoModule().then(function (D) {
+          D.sandbox();
+        });
       } else if (typeBuf.indexOf("snake") >= 0) {
         typeBuf = "";
         GameSnake.start();
@@ -971,6 +1033,16 @@
     },
     matrix: function () {
       Matrix.toggle();
+    },
+    demo: function () {
+      loadDemoModule().then(function (D) {
+        D.start();
+      });
+    },
+    sandbox: function () {
+      loadDemoModule().then(function (D) {
+        D.sandbox();
+      });
     },
     roll: barrelRoll,
     portal: portalAwaken

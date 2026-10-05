@@ -244,3 +244,90 @@ html.g5-askew {
   }
   html.g5-askew { transform: none !important; }
 }
+
+/* ========== Demoscene / Gravity sandbox ========== */
+.g5-demo-root {
+  position: fixed;
+  inset: 0;
+  z-index: 100080;
+  background: #05040c;
+  animation: g5-game-in 0.35s ease-out;
+}
+.g5-demo-root.closing {
+  animation: g5-game-out 0.3s ease-in forwards;
+}
+.g5-demo-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.g5-demo-hud {
+  position: absolute;
+  top: max(1rem, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  z-index: 2;
+  pointer-events: none;
+  width: min(90vw, 480px);
+}
+.g5-demo-logo {
+  font-size: clamp(1.1rem, 3vw, 1.5rem);
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  color: #00f5ff;
+  text-shadow: 0 0 24px rgba(0, 245, 255, 0.55), 0 0 48px rgba(255, 45, 149, 0.35);
+}
+.g5-demo-logo sup {
+  font-size: 0.55em;
+  color: #ff2d95;
+}
+.g5-demo-sub {
+  margin-top: 0.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  font-family: ui-monospace, monospace;
+}
+.g5-demo-bar {
+  margin: 0.75rem auto 0;
+  height: 3px;
+  width: 100%;
+  max-width: 220px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.g5-demo-bar i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ff2d95, #00f5ff);
+  border-radius: inherit;
+  transition: width 0.1s linear;
+}
+.g5-demo-skip {
+  position: absolute;
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.65);
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+}
+.g5-demo-skip:hover {
+  border-color: rgba(0, 245, 255, 0.4);
+  color: #00f5ff;
+}
+.g5-sandbox-hud .g5-demo-logo {
+  letter-spacing: 0.2em;
+}
