@@ -1,7 +1,6 @@
 /**
  * G5 Portal · Calendar
- * FullCalendar + same-origin events.json (primary)
- * Live ICS via CORS proxy (refresh only)
+ * FullCalendar + same-origin events.json + live ICS on open
  * Event types: ctb / exam / ceremony / default
  */
 (function () {
@@ -16,11 +15,11 @@
   ];
 
   var LOCAL_JSON = "events.json";
-  var CACHE_KEY = "g5_cal_events_v3";
+  var CACHE_KEY = "g5_cal_events_v4";
   var CACHE_TTL_MS = 30 * 60 * 1000;
   var FETCH_TIMEOUT_MS = 12000;
 
-  var EXAM_RE = /期末試験|期末テスト|中間試験|中間テスト|定期試験|定期テスト/;
+  var EXAM_RE = /期末試験|期末テスト|中間試験|中間テスト|定期試験|定期テスト|模擬試験|模試/;
   var CEREMONY_RE = /^(終業式|始業式)$/;
   var CTB_RE = /千葉トレイルブレイザーズ|\bCTB\b/i;
 
@@ -31,6 +30,7 @@
   var calendarEl = document.getElementById("calendar");
   var calendar = null;
   var toastTimer = null;
+  var liveRefreshing = false;
 
   var TYPE_LABEL = {
     ctb: "CTB",
@@ -392,52 +392,68 @@
 
   function applyEvents(result, toastMsg) {
     initCalendar(result.events);
-    setStatus(result.events.length + " 件\u30fb" + result.source, "ok");
+    setStatus(result.events.length + " 件・" + result.source, "ok");
     if (toastMsg) showToast(toastMsg);
   }
 
-  function load(force) {
-    setStatus("読み込み中\u2026", null);
-
-    if (!force) {
-      return loadLocalJson()
-        .then(function (r) { applyEvents(r); })
-        .catch(function () {
-          var cached = readLsCache();
-          if (cached && cached.length) {
-            applyEvents({ events: normalizeEvents(cached), source: "キャッシュ" });
-            return;
-          }
-          return fetchLiveIcs()
-            .then(function (r) { applyEvents(r); })
-            .catch(function (err) {
-              console.error("[G5 cal]", err);
-              setStatus("取得失敗", "err");
-              initCalendar([]);
-            });
-        });
+  function showStaleFast() {
+    var cached = readLsCache();
+    if (cached && cached.length) {
+      applyEvents({ events: normalizeEvents(cached), source: "キャッシュ" });
+      return Promise.resolve(true);
     }
+    return loadLocalJson()
+      .then(function (r) {
+        applyEvents(r);
+        return true;
+      })
+      .catch(function () {
+        return false;
+      });
+  }
 
+  function refreshLive(showToastOnOk) {
+    if (liveRefreshing) return Promise.resolve();
+    liveRefreshing = true;
+    setStatus("更新中…", null);
     return fetchLiveIcs()
       .then(function (r) {
-        applyEvents(r, "更新しました");
+        applyEvents(r, showToastOnOk ? "更新しました" : null);
       })
       .catch(function (err) {
         console.warn("[G5 cal] live failed", err);
-        return loadLocalJson()
-          .then(function (r) {
-            applyEvents(r, "ライブ失敗\u30fbスナップ");
-          })
-          .catch(function () {
-            var cached = readLsCache();
-            if (cached && cached.length) {
-              applyEvents({ events: normalizeEvents(cached), source: "キャッシュ" }, "offline");
-            } else {
-              setStatus("更新失敗", "err");
-              showToast("取得失敗");
-            }
-          });
+        if (!calendar) {
+          return loadLocalJson()
+            .then(function (r) {
+              applyEvents(r, "ライブ失敗・スナップ");
+            })
+            .catch(function () {
+              var cached = readLsCache();
+              if (cached && cached.length) {
+                applyEvents({ events: normalizeEvents(cached), source: "キャッシュ" }, "offline");
+              } else {
+                setStatus("取得失敗", "err");
+                initCalendar([]);
+              }
+            });
+        } else {
+          var n = calendar.getEvents ? calendar.getEvents().length : 0;
+          if (n) setStatus(n + " 件・オフライン表示", "err");
+        }
+      })
+      .then(function () {
+        liveRefreshing = false;
       });
+  }
+
+  function load(force) {
+    if (force) {
+      return refreshLive(true);
+    }
+    setStatus("読み込み中…", null);
+    return showStaleFast().then(function () {
+      return refreshLive(false);
+    });
   }
 
   if (btnRefresh) {
