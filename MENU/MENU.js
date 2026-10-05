@@ -1,5 +1,6 @@
 /**
  * G⁵ Portal Radial Menu + Hamburger FAB
+ * Calendar is independent (top-level). PDF Viewer added under tools.
  */
 (function () {
   "use strict";
@@ -19,10 +20,12 @@
   function buildMenuData() {
     return [
       { label: "ホーム", icon: "⌂", url: root + "index.html" },
+      { label: "カレンダー", icon: "📅", url: root + "pages/calendar/index.html" },
       {
         label: "ツール",
         icon: "◈",
         items: [
+          { label: "PDFビューアー", icon: "📄", url: root + "pages/pdf-viewer/index.html" },
           { label: "文字数カウント", icon: "文字", url: root + "pages/char-count/index.html" },
           { label: "文字拡大鏡", icon: "🔍", url: root + "pages/char-magnifier/index.html" },
           { label: "パスワード生成", icon: "鍵", url: root + "pages/password-gen/index.html" },
@@ -33,8 +36,7 @@
           { label: "カラーピッカー", icon: "🎨", url: root + "pages/color-picker/index.html" },
           { label: "画面シェア", icon: "📺", url: root + "pages/screen-share/index.html" },
           { label: "ファイル共有", icon: "📁", url: root + "pages/file-share/index.html" },
-          { label: "デジタル時計", icon: "🕐", url: root + "pages/clock/index.html" },
-          { label: "カレンダー", icon: "📅", url: root + "pages/calendar/index.html" }
+          { label: "デジタル時計", icon: "🕐", url: root + "pages/clock/index.html" }
         ]
       },
       {
@@ -281,7 +283,10 @@
         (e.target.closest(".menu-fab") ||
           e.target.closest(".radial-menu-wrapper") ||
           e.target.closest("#ham-panel") ||
-          e.target.closest("#ham-overlay"))
+          e.target.closest("#ham-overlay") ||
+          e.target.closest(".pdf-toolbar") ||
+          e.target.closest(".pdf-sidebar") ||
+          e.target.closest(".pdf-annot-layer"))
       ) return;
       if (isOpen && menuEl && !menuEl.contains(e.target)) {
         closeMenu();
