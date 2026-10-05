@@ -7,7 +7,7 @@
   <meta name="description" content="G5 Portal calendar">
   <title>カレンダー · G5 Portal</title>
   <link rel="stylesheet" href="../../src/css/style.css">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20261005d">
   <link rel="stylesheet" href="../../MENU/MENU.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
 </head>
@@ -28,9 +28,14 @@
     </div>
     <div id="calendar" class="fc-g5"></div>
     <section class="tool-card cal-legend">
+      <div class="cal-legend-row">
+        <span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--default"></span>一般</span>
+        <span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--ctb"></span>CTB</span>
+        <span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--exam"></span>試験</span>
+        <span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--ceremony"></span>式典</span>
+      </div>
       <p class="hint">
-        イベントは Google カレンダー（G5PORTAL）から取得します。
-        クリックで詳細を表示。更新は自動キャッシュ + 手動リフレッシュ対応。
+        イベントは Google カレンダー（G5PORTAL）から取得します。クリックで詳細を表示。
       </p>
     </section>
     <p id="toast" class="toast hidden" role="status"></p>
@@ -42,6 +47,6 @@
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/ja.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
-  <script src="script.js?v=20261005c"></script>
+  <script src="script.js?v=20261005d"></script>
 </body>
 </html>
