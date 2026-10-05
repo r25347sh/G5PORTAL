@@ -445,53 +445,102 @@
     if (typeof this.onClose === "function") this.onClose();
   };
 
-  /* ── Gravity particle sandbox ── */
-  function GravitySandbox() {
-    this.root = null;
-    this.canvas = null;
-    this.running = false;
-    this.particles = [];
-    this.mouse = { x: 0, y: 0, down: false };
-  }
+  var PAL = ["#ff2d95", "#00f5ff", "#ffd700", "#9b5de5", "#2ecc71", "#ff6b35"];
 
-  GravitySandbox.prototype.start = function () {
-    if (this.running) return;
+  function makeShell(title, sub) {
     var root = document.createElement("div");
     root.className = "g5-demo-root g5-sandbox-root";
     root.innerHTML =
       '<canvas class="g5-demo-canvas"></canvas>' +
       '<div class="g5-demo-hud g5-sandbox-hud">' +
-      "<div class=\"g5-demo-logo\">GRAVITY</div>" +
-      '<div class="g5-demo-sub">ドラッグで引力 · クリックで粒子追加 · ESC 終了</div>' +
+      '<div class="g5-demo-logo">' +
+      title +
       "</div>" +
-      '<button type="button" class="g5-demo-skip">閉じる</button>';
+      '<div class="g5-demo-sub">' +
+      sub +
+      "</div></div>" +
+      '<button type="button" class="g5-demo-skip">閉じる · ESC</button>';
     document.body.appendChild(root);
+    return root;
+  }
+
+  /* ── Gravity sandbox (orbit + emitters + no clump) ── */
+  function GravitySandbox() {
+    this.running = false;
+    this.particles = [];
+    this.mouse = { x: 0, y: 0, down: false };
+    this.mode = 0; /* 0 orbit, 1 attract, 2 repel */
+    this.emitAcc = 0;
+    this.t0 = 0;
+  }
+
+  GravitySandbox.prototype.spawn = function (x, y, burst) {
+    var speed = burst ? 4 + Math.random() * 5 : 0.5 + Math.random() * 2;
+    var ang = Math.random() * Math.PI * 2;
+    this.particles.push({
+      x: x,
+      y: y,
+      vx: Math.cos(ang) * speed,
+      vy: Math.sin(ang) * speed,
+      r: 1.1 + Math.random() * 2.4,
+      life: 1,
+      age: 0,
+      hue: (Math.random() * PAL.length) | 0
+    });
+  };
+
+  GravitySandbox.prototype.spawnEdge = function () {
+    var side = (Math.random() * 4) | 0;
+    var x, y;
+    if (side === 0) {
+      x = Math.random() * this.w;
+      y = -4;
+    } else if (side === 1) {
+      x = Math.random() * this.w;
+      y = this.h + 4;
+    } else if (side === 2) {
+      x = -4;
+      y = Math.random() * this.h;
+    } else {
+      x = this.w + 4;
+      y = Math.random() * this.h;
+    }
+    this.spawn(x, y, false);
+    /* bias toward center slightly */
+    var p = this.particles[this.particles.length - 1];
+    p.vx += (this.w / 2 - x) * 0.002;
+    p.vy += (this.h / 2 - y) * 0.002;
+  };
+
+  GravitySandbox.prototype.start = function () {
+    if (this.running) return;
+    var root = makeShell(
+      "GRAVITY",
+      "マウス=軌道引力 · クリック=バースト · 1/2/3=モード · 端から粒子が湧く"
+    );
     this.root = root;
     this.canvas = root.querySelector("canvas");
     this.ctx = this.canvas.getContext("2d");
     this.running = true;
+    this.mode = 0;
+    this.t0 = performance.now();
     var self = this;
     function resize() {
       self.w = innerWidth;
       self.h = innerHeight;
       self.canvas.width = self.w;
       self.canvas.height = self.h;
+      self.ctx.fillStyle = "#05040c";
+      self.ctx.fillRect(0, 0, self.w, self.h);
     }
     resize();
     this._onResize = resize;
     window.addEventListener("resize", resize);
 
-    var n = reduced ? 80 : 220;
     this.particles = [];
+    var n = reduced ? 100 : 280;
     for (var i = 0; i < n; i++) {
-      this.particles.push({
-        x: Math.random() * this.w,
-        y: Math.random() * this.h,
-        vx: 0,
-        vy: 0,
-        r: 1.2 + Math.random() * 2.2,
-        c: ["#ff2d95", "#00f5ff", "#ffd700", "#9b5de5"][i % 4]
-      });
+      this.spawn(Math.random() * this.w, Math.random() * this.h, false);
     }
 
     function pos(e) {
@@ -506,76 +555,160 @@
     this._onDown = function (e) {
       self.mouse.down = true;
       self._onMove(e);
-      /* burst add */
-      for (var k = 0; k < 12; k++) {
-        self.particles.push({
-          x: self.mouse.x,
-          y: self.mouse.y,
-          vx: (Math.random() - 0.5) * 6,
-          vy: (Math.random() - 0.5) * 6,
-          r: 1.5 + Math.random() * 2,
-          c: "#fff"
-        });
-      }
-      if (self.particles.length > 500) self.particles.splice(0, self.particles.length - 500);
+      for (var k = 0; k < 18; k++) self.spawn(self.mouse.x, self.mouse.y, true);
+      self.trim();
     };
     this._onUp = function () {
       self.mouse.down = false;
     };
     this._onKey = function (e) {
       if (e.key === "Escape") self.stop();
+      if (e.key === "1") self.mode = 0;
+      if (e.key === "2") self.mode = 1;
+      if (e.key === "3") self.mode = 2;
+      if (e.key === " ") {
+        for (var k = 0; k < 30; k++) self.spawnEdge();
+        e.preventDefault();
+      }
+      var sub = root.querySelector(".g5-demo-sub");
+      if (sub) {
+        var labels = ["軌道 (orbit)", "引力 (attract)", "斥力 (repel)"];
+        sub.textContent =
+          "モード: " + labels[self.mode] + " · 1/2/3切替 · Space=噴出 · ESC終了";
+      }
     };
     root.addEventListener("mousemove", this._onMove);
     root.addEventListener("touchmove", this._onMove, { passive: true });
     root.addEventListener("mousedown", this._onDown);
     root.addEventListener("touchstart", this._onDown, { passive: true });
-    root.addEventListener("mouseup", this._onUp);
-    root.addEventListener("touchend", this._onUp);
+    window.addEventListener("mouseup", this._onUp);
+    window.addEventListener("touchend", this._onUp);
     document.addEventListener("keydown", this._onKey, true);
     root.querySelector(".g5-demo-skip").addEventListener("click", function () {
       self.stop();
     });
-
     this.mouse.x = this.w / 2;
     this.mouse.y = this.h / 2;
     this._bound = this.frame.bind(this);
     requestAnimationFrame(this._bound);
   };
 
-  GravitySandbox.prototype.frame = function () {
+  GravitySandbox.prototype.trim = function () {
+    var max = reduced ? 280 : 520;
+    if (this.particles.length > max) {
+      this.particles.splice(0, this.particles.length - max);
+    }
+  };
+
+  GravitySandbox.prototype.frame = function (now) {
     if (!this.running) return;
     var ctx = this.ctx;
     var ps = this.particles;
     var mx = this.mouse.x;
     var my = this.mouse.y;
-    var g = this.mouse.down ? 0.45 : 0.18;
-    ctx.fillStyle = "rgba(5,4,12,0.22)";
+    var dt = 1;
+    /* soft trail */
+    ctx.fillStyle = "rgba(5,4,12,0.18)";
     ctx.fillRect(0, 0, this.w, this.h);
-    for (var i = 0; i < ps.length; i++) {
+
+    /* periodic edge emitters — keeps field alive */
+    this.emitAcc += dt;
+    if (this.emitAcc > (reduced ? 4 : 2)) {
+      this.emitAcc = 0;
+      var batch = reduced ? 2 : 5;
+      for (var e = 0; e < batch; e++) this.spawnEdge();
+      this.trim();
+    }
+
+    /* soft cull old / out-of-bounds slowly */
+    for (var i = ps.length - 1; i >= 0; i--) {
       var p = ps[i];
+      p.age++;
       var dx = mx - p.x;
       var dy = my - p.y;
-      var d = Math.sqrt(dx * dx + dy * dy) + 20;
-      var f = g / d;
-      p.vx += dx * f;
-      p.vy += dy * f;
-      p.vx *= 0.96;
-      p.vy *= 0.96;
+      var d2 = dx * dx + dy * dy;
+      var d = Math.sqrt(d2) + 1;
+      var nx = dx / d;
+      var ny = dy / d;
+
+      /* force by mode — never pure 1/r collapse */
+      var strength = this.mouse.down ? 0.55 : 0.22;
+      var minD = 48;
+      if (this.mode === 0) {
+        /* orbital: tangential + mild radial */
+        var radial = strength * 0.15 * (d > minD ? 1 : -1.2);
+        var tang = strength * 1.1;
+        p.vx += nx * radial + -ny * tang * (0.4 + Math.min(1, 120 / d));
+        p.vy += ny * radial + nx * tang * (0.4 + Math.min(1, 120 / d));
+      } else if (this.mode === 1) {
+        var f = strength * (d > minD ? 80 / d : -1.5);
+        p.vx += nx * f;
+        p.vy += ny * f;
+      } else {
+        var fr = strength * (90 / Math.max(d, 30));
+        p.vx -= nx * fr;
+        p.vy -= ny * fr;
+      }
+
+      /* separation from a few neighbors (cheap) */
+      if (i % 3 === 0 && i > 0) {
+        var q = ps[i - 1];
+        var sdx = p.x - q.x;
+        var sdy = p.y - q.y;
+        var sd = Math.sqrt(sdx * sdx + sdy * sdy) + 0.1;
+        if (sd < 14) {
+          p.vx += (sdx / sd) * 0.4;
+          p.vy += (sdy / sd) * 0.4;
+        }
+      }
+
+      p.vx *= 0.985;
+      p.vy *= 0.985;
+      /* speed limit */
+      var sp = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+      if (sp > 9) {
+        p.vx = (p.vx / sp) * 9;
+        p.vy = (p.vy / sp) * 9;
+      }
       p.x += p.vx;
       p.y += p.vy;
+
+      /* recycle far particles */
+      if (p.x < -40 || p.x > this.w + 40 || p.y < -40 || p.y > this.h + 40 || p.age > 900) {
+        ps.splice(i, 1);
+        continue;
+      }
+
+      var spd = Math.min(1, sp / 7);
+      var col = PAL[p.hue % PAL.length];
       ctx.beginPath();
-      ctx.fillStyle = p.c;
-      ctx.globalAlpha = 0.85;
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = col;
+      ctx.globalAlpha = 0.35 + spd * 0.65;
+      ctx.arc(p.x, p.y, p.r * (0.8 + spd * 0.6), 0, Math.PI * 2);
       ctx.fill();
+      if (spd > 0.35) {
+        ctx.beginPath();
+        ctx.strokeStyle = col;
+        ctx.globalAlpha = 0.35;
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - p.vx * 2.2, p.y - p.vy * 2.2);
+        ctx.stroke();
+      }
     }
     ctx.globalAlpha = 1;
-    /* attractor ring */
+
+    /* cursor ring */
     ctx.beginPath();
-    ctx.strokeStyle = this.mouse.down ? "rgba(255,45,149,0.7)" : "rgba(0,245,255,0.4)";
+    ctx.strokeStyle =
+      this.mode === 2
+        ? "rgba(255,107,53,0.7)"
+        : this.mode === 1
+          ? "rgba(255,45,149,0.7)"
+          : "rgba(0,245,255,0.55)";
     ctx.lineWidth = 2;
-    ctx.arc(mx, my, this.mouse.down ? 28 : 18, 0, Math.PI * 2);
+    ctx.arc(mx, my, this.mouse.down ? 32 : 20, 0, Math.PI * 2);
     ctx.stroke();
+
     requestAnimationFrame(this._bound);
   };
 
@@ -583,6 +716,313 @@
     this.running = false;
     document.removeEventListener("keydown", this._onKey, true);
     window.removeEventListener("resize", this._onResize);
+    window.removeEventListener("mouseup", this._onUp);
+    window.removeEventListener("touchend", this._onUp);
+    if (this.root && this.root.parentNode) this.root.remove();
+    this.root = null;
+  };
+
+  /* ── Flow field (Perlin-ish vector field) ── */
+  function FlowField() {
+    this.running = false;
+  }
+
+  /* compact value noise */
+  function hash2(x, y) {
+    var s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+    return s - Math.floor(s);
+  }
+  function smoothNoise(x, y) {
+    var x0 = Math.floor(x),
+      y0 = Math.floor(y);
+    var fx = x - x0,
+      fy = y - y0;
+    fx = fx * fx * (3 - 2 * fx);
+    fy = fy * fy * (3 - 2 * fy);
+    var a = hash2(x0, y0);
+    var b = hash2(x0 + 1, y0);
+    var c = hash2(x0, y0 + 1);
+    var d = hash2(x0 + 1, y0 + 1);
+    return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
+  }
+
+  FlowField.prototype.start = function () {
+    if (this.running) return;
+    var root = makeShell("FLOW FIELD", "カーソルで渦 · 自動で流れる粒子 · ESC終了");
+    this.root = root;
+    this.canvas = root.querySelector("canvas");
+    this.ctx = this.canvas.getContext("2d");
+    this.running = true;
+    var self = this;
+    function resize() {
+      self.w = innerWidth;
+      self.h = innerHeight;
+      self.canvas.width = self.w;
+      self.canvas.height = self.h;
+    }
+    resize();
+    this._onResize = resize;
+    window.addEventListener("resize", resize);
+    this.mouse = { x: this.w / 2, y: this.h / 2 };
+    this.particles = [];
+    var n = reduced ? 400 : 900;
+    for (var i = 0; i < n; i++) {
+      this.particles.push({
+        x: Math.random() * this.w,
+        y: Math.random() * this.h,
+        life: Math.random()
+      });
+    }
+    this.z = 0;
+    this._onMove = function (e) {
+      var t = e.touches ? e.touches[0] : e;
+      if (t) {
+        self.mouse.x = t.clientX;
+        self.mouse.y = t.clientY;
+      }
+    };
+    this._onKey = function (e) {
+      if (e.key === "Escape") self.stop();
+    };
+    root.addEventListener("mousemove", this._onMove);
+    root.addEventListener("touchmove", this._onMove, { passive: true });
+    document.addEventListener("keydown", this._onKey, true);
+    root.querySelector(".g5-demo-skip").addEventListener("click", function () {
+      self.stop();
+    });
+    this.ctx.fillStyle = "#05040c";
+    this.ctx.fillRect(0, 0, this.w, this.h);
+    this._bound = this.frame.bind(this);
+    requestAnimationFrame(this._bound);
+  };
+
+  FlowField.prototype.frame = function () {
+    if (!this.running) return;
+    var ctx = this.ctx;
+    var w = this.w,
+      h = this.h;
+    ctx.fillStyle = "rgba(5,4,12,0.08)";
+    ctx.fillRect(0, 0, w, h);
+    this.z += 0.003;
+    var scale = 0.0045;
+    var mx = this.mouse.x,
+      my = this.mouse.y;
+    for (var i = 0; i < this.particles.length; i++) {
+      var p = this.particles[i];
+      var n1 = smoothNoise(p.x * scale, p.y * scale + this.z);
+      var n2 = smoothNoise(p.x * scale + 40, p.y * scale + this.z);
+      var angle = n1 * Math.PI * 4;
+      /* swirl near cursor */
+      var dx = p.x - mx,
+        dy = p.y - my;
+      var dist = Math.sqrt(dx * dx + dy * dy) + 1;
+      if (dist < 180) {
+        angle += ((180 - dist) / 180) * 1.8;
+      }
+      var sp = 1.2 + n2 * 1.8;
+      p.x += Math.cos(angle) * sp;
+      p.y += Math.sin(angle) * sp;
+      p.life -= 0.002;
+      if (p.x < 0 || p.x > w || p.y < 0 || p.y > h || p.life <= 0) {
+        p.x = Math.random() * w;
+        p.y = Math.random() * h;
+        p.life = 0.5 + Math.random() * 0.5;
+      }
+      var c = PAL[(n1 * PAL.length) | 0];
+      ctx.beginPath();
+      ctx.strokeStyle = c;
+      ctx.globalAlpha = 0.25 + p.life * 0.5;
+      ctx.lineWidth = 1;
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x - Math.cos(angle) * 4, p.y - Math.sin(angle) * 4);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(this._bound);
+  };
+
+  FlowField.prototype.stop = function () {
+    this.running = false;
+    document.removeEventListener("keydown", this._onKey, true);
+    window.removeEventListener("resize", this._onResize);
+    if (this.root && this.root.parentNode) this.root.remove();
+    this.root = null;
+  };
+
+  /* ── Julia / Mandelbrot explorer ── */
+  function FractalExplorer() {
+    this.running = false;
+  }
+
+  FractalExplorer.prototype.start = function () {
+    if (this.running) return;
+    var root = makeShell(
+      "FRACTAL",
+      "ドラッグでパン · ホイールでズーム · J/M 切替 · ESC終了"
+    );
+    this.root = root;
+    this.canvas = root.querySelector("canvas");
+    this.ctx = this.canvas.getContext("2d");
+    this.running = true;
+    this.mode = "julia"; /* julia | mandel */
+    this.cx = 0;
+    this.cy = 0;
+    this.scale = 2.8;
+    this.jx = -0.4;
+    this.jy = 0.6;
+    this.dirty = true;
+    this.drag = null;
+    var self = this;
+    function resize() {
+      self.w = Math.min(innerWidth, 900);
+      self.h = Math.min(innerHeight - 80, 700);
+      self.canvas.width = self.w;
+      self.canvas.height = self.h;
+      self.canvas.style.width = self.w + "px";
+      self.canvas.style.height = self.h + "px";
+      self.canvas.style.position = "relative";
+      self.canvas.style.margin = "auto";
+      self.canvas.style.top = "50%";
+      self.canvas.style.transform = "translateY(-50%)";
+      self.dirty = true;
+    }
+    resize();
+    this._onResize = resize;
+    window.addEventListener("resize", resize);
+
+    this._onWheel = function (e) {
+      e.preventDefault();
+      var factor = e.deltaY > 0 ? 1.12 : 0.89;
+      self.scale *= factor;
+      self.dirty = true;
+    };
+    this._onDown = function (e) {
+      self.drag = { x: e.clientX, y: e.clientY, cx: self.cx, cy: self.cy };
+    };
+    this._onMove = function (e) {
+      if (!self.drag) return;
+      var dx = e.clientX - self.drag.x;
+      var dy = e.clientY - self.drag.y;
+      self.cx = self.drag.cx - (dx / self.w) * self.scale * 2;
+      self.cy = self.drag.cy - (dy / self.h) * self.scale * 2;
+      self.dirty = true;
+    };
+    this._onUp = function () {
+      self.drag = null;
+    };
+    this._onKey = function (e) {
+      if (e.key === "Escape") self.stop();
+      if (e.key === "j" || e.key === "J") {
+        self.mode = "julia";
+        self.dirty = true;
+      }
+      if (e.key === "m" || e.key === "M") {
+        self.mode = "mandel";
+        self.dirty = true;
+      }
+      if (e.key === "r" || e.key === "R") {
+        self.cx = 0;
+        self.cy = 0;
+        self.scale = 2.8;
+        self.dirty = true;
+      }
+    };
+    /* animate julia seed slowly */
+    this.t0 = performance.now();
+    this.canvas.addEventListener("wheel", this._onWheel, { passive: false });
+    this.canvas.addEventListener("mousedown", this._onDown);
+    window.addEventListener("mousemove", this._onMove);
+    window.addEventListener("mouseup", this._onUp);
+    document.addEventListener("keydown", this._onKey, true);
+    root.querySelector(".g5-demo-skip").addEventListener("click", function () {
+      self.stop();
+    });
+    this._bound = this.frame.bind(this);
+    requestAnimationFrame(this._bound);
+  };
+
+  FractalExplorer.prototype.render = function () {
+    var w = this.w,
+      h = this.h;
+    var img = this.ctx.createImageData(w, h);
+    var data = img.data;
+    var maxIter = reduced ? 40 : 64;
+    var scale = this.scale;
+    var cx = this.cx,
+      cy = this.cy;
+    var isJulia = this.mode === "julia";
+    var jx = this.jx,
+      jy = this.jy;
+    for (var py = 0; py < h; py++) {
+      for (var px = 0; px < w; px++) {
+        var x0 = ((px / w) * 2 - 1) * scale + cx;
+        var y0 = ((py / h) * 2 - 1) * scale * (h / w) + cy;
+        var x, y, zx, zy;
+        if (isJulia) {
+          zx = x0;
+          zy = y0;
+          x = jx;
+          y = jy;
+        } else {
+          zx = 0;
+          zy = 0;
+          x = x0;
+          y = y0;
+        }
+        var iter = 0;
+        while (zx * zx + zy * zy < 4 && iter < maxIter) {
+          var nz = zx * zx - zy * zy + x;
+          zy = 2 * zx * zy + y;
+          zx = nz;
+          iter++;
+        }
+        var i = (py * w + px) * 4;
+        if (iter >= maxIter) {
+          data[i] = 8;
+          data[i + 1] = 6;
+          data[i + 2] = 18;
+          data[i + 3] = 255;
+        } else {
+          var t = iter / maxIter;
+          data[i] = (20 + t * 255) | 0;
+          data[i + 1] = (10 + t * 120) | 0;
+          data[i + 2] = (80 + (1 - t) * 175) | 0;
+          data[i + 3] = 255;
+        }
+      }
+    }
+    this.ctx.putImageData(img, 0, 0);
+    this.ctx.fillStyle = "rgba(255,255,255,0.55)";
+    this.ctx.font = "12px ui-monospace,monospace";
+    this.ctx.fillText(
+      (isJulia ? "Julia" : "Mandelbrot") + "  scale=" + scale.toFixed(4),
+      12,
+      20
+    );
+  };
+
+  FractalExplorer.prototype.frame = function (now) {
+    if (!this.running) return;
+    if (this.mode === "julia") {
+      var t = (now - this.t0) * 0.00025;
+      this.jx = -0.4 + Math.sin(t) * 0.35;
+      this.jy = 0.6 + Math.cos(t * 0.8) * 0.25;
+      this.dirty = true;
+    }
+    if (this.dirty) {
+      this.render();
+      this.dirty = false;
+    }
+    requestAnimationFrame(this._bound);
+  };
+
+  FractalExplorer.prototype.stop = function () {
+    this.running = false;
+    document.removeEventListener("keydown", this._onKey, true);
+    window.removeEventListener("resize", this._onResize);
+    window.removeEventListener("mousemove", this._onMove);
+    window.removeEventListener("mouseup", this._onUp);
+    if (this.canvas) this.canvas.removeEventListener("wheel", this._onWheel);
     if (this.root && this.root.parentNode) this.root.remove();
     this.root = null;
   };
@@ -590,6 +1030,8 @@
   /* Public API */
   var demoInstance = null;
   var sandboxInstance = null;
+  var flowInstance = null;
+  var fractalInstance = null;
 
   window.G5Demo = {
     _ready: true,
@@ -600,11 +1042,24 @@
     },
     stop: function () {
       if (demoInstance) demoInstance.stop();
+      if (sandboxInstance) sandboxInstance.stop();
+      if (flowInstance) flowInstance.stop();
+      if (fractalInstance) fractalInstance.stop();
     },
     sandbox: function () {
       if (sandboxInstance && sandboxInstance.running) return;
       sandboxInstance = new GravitySandbox();
       sandboxInstance.start();
+    },
+    flow: function () {
+      if (flowInstance && flowInstance.running) return;
+      flowInstance = new FlowField();
+      flowInstance.start();
+    },
+    fractal: function () {
+      if (fractalInstance && fractalInstance.running) return;
+      fractalInstance = new FractalExplorer();
+      fractalInstance.start();
     }
   };
 })();

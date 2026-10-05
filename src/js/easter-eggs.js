@@ -229,17 +229,17 @@
       return [
         "G⁵ Portal Console — commands:",
         "  help / about / theme / time / ls / whoami",
-        "  demo · sandbox · gravity   ★ デモシーン",
+        "  demo · sandbox · flow · fractal  ★",
         "  games · snake · breakout",
         "  matrix · portal · roll",
         "  clear · exit · konami"
       ].join("\n");
     },
     about: function () {
-      return "G⁵ Portal · Reitaku HS 5G\nEaster v3 · Demo scene + Web Audio\n" + location.pathname;
+      return "G⁵ Portal · Reitaku HS 5G\nEaster v4 · Demo/Flow/Fractal\n" + location.pathname;
     },
     games: function () {
-      return "demo · sandbox · snake · breakout";
+      return "demo · sandbox · flow · fractal · snake · breakout";
     },
     demo: function () {
       closeConsole();
@@ -265,6 +265,28 @@
     },
     gravity: function () {
       return COMMANDS.sandbox();
+    },
+    flow: function () {
+      closeConsole();
+      loadDemoModule()
+        .then(function (D) {
+          D.flow();
+        })
+        .catch(function () {
+          toast("Flow load failed");
+        });
+      return "Opening flow field…";
+    },
+    fractal: function () {
+      closeConsole();
+      loadDemoModule()
+        .then(function (D) {
+          D.fractal();
+        })
+        .catch(function () {
+          toast("Fractal load failed");
+        });
+      return "Opening fractal explorer…";
     },
     snake: function () {
       closeConsole();
@@ -943,6 +965,16 @@
         loadDemoModule().then(function (D) {
           D.sandbox();
         });
+      } else if (typeBuf.indexOf("flow") >= 0) {
+        typeBuf = "";
+        loadDemoModule().then(function (D) {
+          D.flow();
+        });
+      } else if (typeBuf.indexOf("fractal") >= 0) {
+        typeBuf = "";
+        loadDemoModule().then(function (D) {
+          D.fractal();
+        });
       } else if (typeBuf.indexOf("snake") >= 0) {
         typeBuf = "";
         GameSnake.start();
@@ -1042,6 +1074,16 @@
     sandbox: function () {
       loadDemoModule().then(function (D) {
         D.sandbox();
+      });
+    },
+    flow: function () {
+      loadDemoModule().then(function (D) {
+        D.flow();
+      });
+    },
+    fractal: function () {
+      loadDemoModule().then(function (D) {
+        D.fractal();
       });
     },
     roll: barrelRoll,
