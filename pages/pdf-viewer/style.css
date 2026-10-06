@@ -379,6 +379,24 @@
 
 .hidden { display: none !important; }
 
+/* File input must not use [hidden]/display:none — blocks .click() on some browsers */
+.file-input-hidden {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+  pointer-events: none;
+}
+.file-label {
+  margin-top: 0.5rem;
+  display: inline-block;
+  cursor: pointer;
+}
+
 @media (max-width: 820px) {
   .pdf-title { display: none; }
   .pdf-sidebar {
