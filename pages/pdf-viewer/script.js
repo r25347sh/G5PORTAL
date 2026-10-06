@@ -1,6 +1,6 @@
 /**
  * G5 Portal · PDF Viewer
- * Undo + pen/finger + text + PDF export of annotations
+ * Undo + pen/finger + text + vector PDF export (original content preserved)
  * Annotations are session-only (cleared on reload)
  */
 (function () {
@@ -44,7 +44,6 @@
     if (sm === "pen" || sm === "finger") inputMode = sm;
   } catch (e) {}
 
-  // Clear old annotation cache keys from previous versions
   try {
     var keys = [];
     for (var i = 0; i < localStorage.length; i++) {
@@ -114,15 +113,12 @@
     el.penStatus.textContent = parts.join(" · ");
   }
 
-  // Session-only annotations: cleared on every page reload (no localStorage)
   function loadAnnotations() {
     annotations = {};
     undoStack = [];
   }
 
-  function saveAnnotations() {
-    // intentionally no persistent storage
-  }
+  function saveAnnotations() {}
 
   function snapshotAnnot() {
     return JSON.parse(JSON.stringify(annotations));
@@ -140,7 +136,6 @@
     }
     annotations = undoStack.pop();
     Object.keys(pageRenders).forEach(function (k) { redrawAnnotations(Number(k)); });
-    saveAnnotations();
     setStatus("元に戻しました");
   }
 
@@ -341,7 +336,7 @@
     if (!pr || !pr.htmlLayer) return;
     pr.htmlLayer.innerHTML = "";
     var items = annotations[num] || [];
-    items.forEach(function (item, idx) {
+    items.forEach(function (item) {
       if (item.type !== "text") return;
       var div = document.createElement("div");
       div.className = "text-annot";
@@ -357,7 +352,6 @@
         div.addEventListener("blur", function () {
           pushUndo();
           item.text = div.textContent || "";
-          saveAnnotations();
         });
         div.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
       }
@@ -510,7 +504,6 @@
       if (activePointers[e.pointerId] === "draw") {
         isDrawing = false;
         currentStroke = null;
-        saveAnnotations();
         try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
       }
       delete activePointers[e.pointerId];
@@ -542,7 +535,6 @@
       color: strokeColor || "#ff2d95",
       fontSize: fontSize
     });
-    saveAnnotations();
     redrawAnnotations(page);
     pendingTextPlace = null;
     setStatus("文字を配置しました");
@@ -715,98 +707,103 @@
     setStatus("PDF書き出し中…");
     var title = (el.title && el.title.textContent) || "annotated";
     var baseName = String(title).replace(/\.pdf$/i, "").replace(/[^\w\u3040-\u30ff\u4e00-\u9fff\-]+/g, "_") || "annotated";
-    var outScale = Math.max(scale, 1.5);
-    var pages = [];
-    var chain = Promise.resolve();
 
-    function renderOne(num) {
-      return pdfDoc.getPage(num).then(function (page) {
-        var viewport = page.getViewport({ scale: outScale });
-        var canvas = document.createElement("canvas");
-        canvas.width = Math.floor(viewport.width);
-        canvas.height = Math.floor(viewport.height);
-        var ctx = canvas.getContext("2d", { alpha: false });
-        return page.render({ canvasContext: ctx, viewport: viewport }).promise.then(function () {
-          var items = annotations[num] || [];
-          var ratio = outScale / scale;
-          items.forEach(function (item) {
-            if (item.type === "text") {
-              ctx.save();
-              ctx.fillStyle = item.color || "#ff2d95";
-              ctx.font = "bold " + ((item.fontSize || 16) * ratio) + "px sans-serif";
-              ctx.textBaseline = "top";
-              var tx = (item.x || 0) * ratio;
-              var ty = (item.y || 0) * ratio;
-              String(item.text || "").split("\n").forEach(function (line, li) {
-                ctx.fillText(line, tx, ty + li * (item.fontSize || 16) * 1.35 * ratio);
-              });
-              ctx.restore();
-              return;
-            }
-            if (!item.points || !item.points.length) return;
-            var pts = item.points;
-            ctx.save();
-            ctx.lineCap = "round";
-            ctx.lineJoin = "round";
-            if (item.tool === "highlighter") {
-              ctx.globalCompositeOperation = "multiply";
-              ctx.strokeStyle = item.color || "#ffeb3b";
-              ctx.lineWidth = (item.size || 12) * ratio;
-              ctx.globalAlpha = 0.45;
-            } else if (item.tool === "eraser") {
-              ctx.globalCompositeOperation = "destination-out";
-              ctx.lineWidth = (item.size || 16) * ratio;
-              ctx.globalAlpha = 1;
-            } else {
-              ctx.globalCompositeOperation = "source-over";
-              ctx.strokeStyle = item.color || "#ff2d95";
-              ctx.lineWidth = (item.size || 3) * ratio;
-              ctx.globalAlpha = 1;
-            }
-            ctx.beginPath();
-            ctx.moveTo(pts[0].x * ratio, pts[0].y * ratio);
-            for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x * ratio, pts[i].y * ratio);
-            if (pts.length === 1) ctx.lineTo(pts[0].x * ratio + 0.5, pts[0].y * ratio);
-            ctx.stroke();
-            ctx.restore();
+    var bytesForLib = rawPdfBytes.buffer.slice(
+      rawPdfBytes.byteOffset,
+      rawPdfBytes.byteOffset + rawPdfBytes.byteLength
+    );
+
+    function withDocAndFont() {
+      return PDFLib.PDFDocument.load(bytesForLib, { ignoreEncryption: true }).then(function (outDoc) {
+        return fetch("https://cdn.jsdelivr.net/gh/AquaCamel/cdn-fonts@main/ipaexg.ttf")
+          .then(function (res) {
+            if (!res.ok) throw new Error("no jp font");
+            return res.arrayBuffer();
+          })
+          .then(function (fontBuf) { return outDoc.embedFont(fontBuf); })
+          .catch(function () {
+            return outDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+          })
+          .then(function (font) {
+            return { outDoc: outDoc, font: font };
           });
-          return new Promise(function (resolve) {
-            canvas.toBlob(function (blob) {
-              if (!blob) { resolve(null); return; }
-              var fr = new FileReader();
-              fr.onload = function () {
-                resolve({ bytes: new Uint8Array(fr.result), width: canvas.width, height: canvas.height });
-              };
-              fr.readAsArrayBuffer(blob);
-            }, "image/png");
-          });
-        });
       });
     }
 
-    for (var p = 1; p <= totalPages; p++) {
-      (function (num) {
-        chain = chain.then(function () {
-          setStatus("書き出し中… " + num + "/" + totalPages);
-          return renderOne(num).then(function (pageData) { pages.push(pageData); });
-        });
-      })(p);
-    }
+    withDocAndFont().then(function (pack) {
+      var outDoc = pack.outDoc;
+      var font = pack.font;
+      var pageCount = outDoc.getPageCount();
 
-    chain.then(function () {
-      return PDFLib.PDFDocument.create().then(function (outDoc) {
-        var embedChain = Promise.resolve();
-        pages.forEach(function (pd) {
-          if (!pd) return;
-          embedChain = embedChain.then(function () {
-            return outDoc.embedPng(pd.bytes).then(function (img) {
-              var page = outDoc.addPage([pd.width, pd.height]);
-              page.drawImage(img, { x: 0, y: 0, width: pd.width, height: pd.height });
+      for (var pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+        var page = outDoc.getPage(pageIndex);
+        var size = page.getSize();
+        var pageH = size.height;
+        var items = annotations[pageIndex + 1] || [];
+        var ratio = 1 / (scale || 1);
+
+        items.forEach(function (item) {
+          if (item.type === "text") {
+            var tx = (item.x || 0) * ratio;
+            var fontSizePdf = Math.max(6, (item.fontSize || 16) * ratio);
+            var lines = String(item.text || "").split("\n");
+            lines.forEach(function (line, li) {
+              var tyFromTop = (item.y || 0) * ratio + li * fontSizePdf * 1.35;
+              var ty = pageH - tyFromTop - fontSizePdf;
+              try {
+                page.drawText(line, {
+                  x: Math.max(0, tx),
+                  y: Math.max(0, ty),
+                  size: fontSizePdf,
+                  font: font,
+                  color: hexToPdfColor(item.color || "#ff2d95"),
+                  opacity: 1
+                });
+              } catch (e) {}
             });
-          });
+            return;
+          }
+
+          if (!item.points || !item.points.length) return;
+          if (item.tool === "eraser") return;
+
+          var pts = item.points;
+          var thickness = (item.size || 3) * ratio;
+          if (item.tool === "highlighter") thickness = Math.max(thickness, 8 * ratio);
+          var color = hexToPdfColor(item.color || (item.tool === "highlighter" ? "#ffeb3b" : "#ff2d95"));
+          var opacity = item.tool === "highlighter" ? 0.4 : 1;
+          var lineCap = (PDFLib.LineCapStyle && PDFLib.LineCapStyle.Round) || undefined;
+
+          for (var i = 0; i < pts.length - 1; i++) {
+            try {
+              page.drawLine({
+                start: { x: pts[i].x * ratio, y: pageH - pts[i].y * ratio },
+                end: { x: pts[i + 1].x * ratio, y: pageH - pts[i + 1].y * ratio },
+                thickness: Math.max(0.5, thickness),
+                color: color,
+                opacity: opacity,
+                lineCap: lineCap
+              });
+            } catch (e) {}
+          }
+          if (pts.length === 1) {
+            try {
+              var x = pts[0].x * ratio;
+              var y = pageH - pts[0].y * ratio;
+              page.drawLine({
+                start: { x: x, y: y },
+                end: { x: x + 0.5, y: y },
+                thickness: Math.max(0.5, thickness),
+                color: color,
+                opacity: opacity,
+                lineCap: lineCap
+              });
+            } catch (e) {}
+          }
         });
-        return embedChain.then(function () { return outDoc.save(); });
-      });
+      }
+
+      return outDoc.save();
     }).then(function (pdfBytes) {
       var blob = new Blob([pdfBytes], { type: "application/pdf" });
       var a = document.createElement("a");
@@ -814,11 +811,23 @@
       a.download = baseName + "_edited.pdf";
       a.click();
       URL.revokeObjectURL(a.href);
-      setStatus("PDFを書き出しました: " + baseName + "_edited.pdf");
+      setStatus("PDFを書き出しました（元の文字・図は保持）: " + baseName + "_edited.pdf");
     }).catch(function (err) {
       console.error(err);
       setStatus("書き出し失敗: " + (err && err.message ? err.message : "エラー"));
     });
+  }
+
+  function hexToPdfColor(hex) {
+    var h = String(hex || "#ff2d95").replace("#", "");
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    var r = parseInt(h.slice(0, 2), 16) / 255;
+    var g = parseInt(h.slice(2, 4), 16) / 255;
+    var b = parseInt(h.slice(4, 6), 16) / 255;
+    if (!isFinite(r) || !isFinite(g) || !isFinite(b)) {
+      return PDFLib.rgb(1, 0.18, 0.58);
+    }
+    return PDFLib.rgb(r, g, b);
   }
 
   function bindUI() {
@@ -912,7 +921,6 @@
       pushUndo();
       annotations[currentPage] = [];
       redrawAnnotations(currentPage);
-      saveAnnotations();
       setStatus("ページ " + currentPage + " の書き込みを消去");
     });
     el.annotExport.addEventListener("click", function () {
