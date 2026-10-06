@@ -1,4 +1,4 @@
-/* G5 Portal · PDF Viewer (simple restore) */
+/* G5 Portal · PDF Viewer */
 
 .pdf-body {
   overflow: hidden;
@@ -335,7 +335,6 @@
 
 .hidden { display: none !important; }
 
-/* Input mode toggle */
 .input-mode-toggle {
   display: inline-flex;
   border: 1px solid var(--border);
@@ -375,15 +374,20 @@
   font-family: var(--font-body);
 }
 
+/* CRITICAL: layer must not steal pointer events from annot canvas */
 .page-wrap .html-annot-layer {
   position: absolute;
   inset: 0;
   z-index: 3;
-  pointer-events: none;
+  pointer-events: none !important;
 }
 .write-mode .page-wrap .html-annot-layer {
+  pointer-events: none !important;
+}
+.write-mode .page-wrap .html-annot-layer .text-annot {
   pointer-events: auto;
 }
+
 .text-annot {
   position: absolute;
   min-width: 2rem;
