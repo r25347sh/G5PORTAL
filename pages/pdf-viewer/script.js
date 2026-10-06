@@ -5,13 +5,27 @@
 (function () {
   "use strict";
 
-  if (typeof pdfjsLib === "undefined") {
-    var st = document.getElementById("status-text");
-    if (st) st.textContent = "PDF.js 読込失敗";
-    return;
+  var pdfjsReady = typeof pdfjsLib !== "undefined";
+  if (pdfjsReady) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  } else {
+    var st0 = document.getElementById("status-text");
+    if (st0) st0.textContent = "PDF.js 読込失敗 — 再読み込みしてください";
   }
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+  function ensurePdfjs() {
+    if (typeof pdfjsLib !== "undefined") {
+      pdfjsReady = true;
+      try {
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      } catch (e) {}
+      return true;
+    }
+    setStatus("PDF.js が未読込です。ページを再読み込みしてください");
+    return false;
+  }
 
   var pdfDoc = null;
   var currentPage = 1;
@@ -92,6 +106,7 @@
   }
 
   function loadPdfFromData(data, title) {
+    if (!ensurePdfjs()) return;
     setStatus("読み込み中…");
     setControlsEnabled(false);
     if (pdfDoc) { try { pdfDoc.destroy(); } catch (e) {} pdfDoc = null; }
@@ -534,14 +549,46 @@
     };
   }
 
-  function bindUI() {
-    el.btnOpen.addEventListener("click", function () { el.fileInput.click(); });
-    el.btnOpenMain.addEventListener("click", function () { el.fileInput.click(); });
-    el.fileInput.addEventListener("change", function () {
-      var f = el.fileInput.files && el.fileInput.files[0];
-      if (f) loadPdfFromFile(f);
+  function openFilePicker() {
+    if (!el.fileInput) {
+      setStatus("ファイル選択UIが見つかりません");
+      return;
+    }
+    try {
       el.fileInput.value = "";
+      el.fileInput.click();
+    } catch (err) {
+      console.error(err);
+      setStatus("ファイル選択を開けませんでした");
+    }
+  }
+
+  function bindUI() {
+    if (el.btnOpen) el.btnOpen.addEventListener("click", function (e) {
+      e.preventDefault();
+      openFilePicker();
     });
+    if (el.btnOpenMain) el.btnOpenMain.addEventListener("click", function (e) {
+      e.preventDefault();
+      openFilePicker();
+    });
+    if (el.fileInput) {
+      el.fileInput.addEventListener("change", function () {
+        var f = el.fileInput.files && el.fileInput.files[0];
+        if (!f) {
+          setStatus("ファイルが選ばれていません");
+          return;
+        }
+        if (f.type && f.type !== "application/pdf" && !/\.pdf$/i.test(f.name)) {
+          setStatus("PDFファイルを選んでください");
+          return;
+        }
+        if (!ensurePdfjs()) return;
+        setStatus("読込中: " + f.name);
+        loadPdfFromFile(f);
+        try { el.fileInput.value = ""; } catch (e) {}
+      });
+    }
 
     ["dragenter", "dragover"].forEach(function (ev) {
       el.viewer.addEventListener(ev, function (e) {
