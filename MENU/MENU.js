@@ -1,6 +1,6 @@
 /**
  * G⁵ Portal Radial Menu + Hamburger FAB
- * Calendar is independent (top-level). PDF Viewer added under tools.
+ * Calendar is independent (top-level). PDF tools under tools.
  */
 (function () {
   "use strict";
@@ -26,10 +26,12 @@
         icon: "◈",
         items: [
           { label: "PDFビューアー", icon: "📄", url: root + "pages/pdf-viewer/index.html" },
+          { label: "PDFパスワード", icon: "🔒", url: root + "pages/pdf-password/index.html" },
+          { label: "PDF結合", icon: "📎", url: root + "pages/pdf-merge/index.html" },
           { label: "文字数カウント", icon: "文字", url: root + "pages/char-count/index.html" },
           { label: "文字拡大鏡", icon: "🔍", url: root + "pages/char-magnifier/index.html" },
           { label: "パスワード生成", icon: "鍵", url: root + "pages/password-gen/index.html" },
-          { label: "暗号化・復号", icon: "🔒", url: root + "pages/crypto/index.html" },
+          { label: "暗号化・復号", icon: "🔐", url: root + "pages/crypto/index.html" },
           { label: "QRコード", icon: "QR", url: root + "pages/qr-code/index.html" },
           { label: "タイマー", icon: "⏱", url: root + "pages/timer/index.html" },
           { label: "コイン・サイコロ", icon: "🎲", url: root + "pages/random/index.html" },
