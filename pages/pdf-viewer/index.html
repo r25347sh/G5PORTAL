@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#07050f">
-  <meta name="description" content="G⁵ Portal 高性能PDFビューアー。ズーム・検索・書き込み・電子ペン対応。">
   <title>PDFビューアー · G⁵ Portal</title>
   <link rel="stylesheet" href="../../src/css/style.css">
   <link rel="stylesheet" href="style.css">
@@ -16,41 +15,46 @@
   <header class="pdf-toolbar" id="pdf-toolbar">
     <div class="tb-left">
       <a href="../../index.html" class="btn btn-ghost btn-sm" title="ホーム">←</a>
-      <button type="button" id="btn-open" class="btn btn-ghost btn-sm" title="ファイルを開く">📂 開く</button>
+      <button type="button" id="btn-open" class="btn btn-ghost btn-sm" title="開く">📂</button>
       <input type="file" id="file-input" accept="application/pdf,.pdf" hidden>
+      <button type="button" id="btn-download" class="btn btn-ghost btn-sm" title="ダウンロード" disabled>⬇</button>
       <span class="pdf-title" id="pdf-title">PDFビューアー</span>
     </div>
     <div class="tb-center">
-      <button type="button" id="btn-prev" class="btn btn-ghost btn-sm" title="前のページ" disabled>◀</button>
+      <button type="button" id="btn-prev" class="btn btn-ghost btn-sm" title="前へ" disabled>◀</button>
       <span class="page-info">
         <input type="number" id="page-num" min="1" value="1" class="page-input" disabled>
         <span>/</span>
         <span id="page-count">–</span>
       </span>
-      <button type="button" id="btn-next" class="btn btn-ghost btn-sm" title="次のページ" disabled>▶</button>
+      <button type="button" id="btn-next" class="btn btn-ghost btn-sm" title="次へ" disabled>▶</button>
     </div>
     <div class="tb-right">
       <button type="button" id="btn-zoom-out" class="btn btn-ghost btn-sm" title="縮小" disabled>−</button>
       <select id="zoom-select" class="zoom-select" disabled>
         <option value="auto">自動</option>
-        <option value="page-width">幅に合わせる</option>
-        <option value="page-fit">ページ全体</option>
+        <option value="page-width">幅合わせ</option>
+        <option value="page-fit">全体</option>
+        <option value="0.5">50%</option>
         <option value="0.75">75%</option>
         <option value="1">100%</option>
         <option value="1.25">125%</option>
         <option value="1.5">150%</option>
         <option value="2">200%</option>
+        <option value="3">300%</option>
       </select>
       <button type="button" id="btn-zoom-in" class="btn btn-ghost btn-sm" title="拡大" disabled>＋</button>
+      <button type="button" id="btn-rotate" class="btn btn-ghost btn-sm" title="回転" disabled>↻</button>
+      <button type="button" id="btn-invert" class="btn btn-ghost btn-sm" title="色反転" disabled>◑</button>
       <button type="button" id="btn-search" class="btn btn-ghost btn-sm" title="検索" disabled>🔍</button>
       <button type="button" id="btn-sidebar" class="btn btn-ghost btn-sm" title="サイドバー" disabled>☰</button>
-      <button type="button" id="btn-write" class="btn btn-ghost btn-sm" title="書き込みモード" disabled>✎</button>
+      <button type="button" id="btn-write" class="btn btn-ghost btn-sm" title="書き込み" disabled>✎</button>
       <button type="button" id="btn-fullscreen" class="btn btn-ghost btn-sm" title="全画面">⛶</button>
     </div>
   </header>
 
   <div class="search-bar hidden" id="search-bar">
-    <input type="search" id="search-input" placeholder="テキストを検索…" autocomplete="off">
+    <input type="search" id="search-input" placeholder="テキスト検索…" autocomplete="off">
     <span class="search-count" id="search-count"></span>
     <button type="button" id="search-prev" class="btn btn-ghost btn-sm">↑</button>
     <button type="button" id="search-next" class="btn btn-ghost btn-sm">↓</button>
@@ -59,14 +63,18 @@
 
   <div class="annot-toolbar hidden" id="annot-toolbar">
     <button type="button" class="annot-tool active" data-tool="pen" title="ペン">🖊</button>
-    <button type="button" class="annot-tool" data-tool="highlighter" title="ハイライター">🖍</button>
+    <button type="button" class="annot-tool" data-tool="highlighter" title="マーカー">🖍</button>
     <button type="button" class="annot-tool" data-tool="eraser" title="消しゴム">⌫</button>
     <input type="color" id="annot-color" value="#ff2d95" title="色">
-    <input type="range" id="annot-size" min="1" max="24" value="3" title="太さ">
-    <button type="button" id="annot-clear-page" class="btn btn-ghost btn-sm">ページ消去</button>
-    <button type="button" id="annot-export" class="btn btn-ghost btn-sm">書出</button>
-    <span class="pen-hint" id="pen-hint">ペン＝描画 / 指＝移動</span>
+    <input type="range" id="annot-size" min="1" max="28" value="3" title="太さ">
+    <button type="button" id="annot-undo" class="btn btn-ghost btn-sm" title="元に戻す">↩</button>
+    <button type="button" id="annot-redo" class="btn btn-ghost btn-sm" title="やり直し">↪</button>
+    <button type="button" id="annot-clear-page" class="btn btn-ghost btn-sm" title="このページ消去">消去</button>
+    <button type="button" id="annot-export" class="btn btn-ghost btn-sm" title="書き出し">書出</button>
+    <span class="pen-hint" id="pen-hint">ペン＝描画 · 指＝移動 · マウス＝描画</span>
   </div>
+
+  <div class="progress-bar hidden" id="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
 
   <div class="pdf-layout">
     <aside class="pdf-sidebar hidden" id="pdf-sidebar">
@@ -77,13 +85,12 @@
       <div class="sidebar-panel" id="thumbs-panel"></div>
       <div class="sidebar-panel hidden" id="outline-panel"></div>
     </aside>
-
     <main class="pdf-viewer" id="pdf-viewer">
       <div class="drop-zone" id="drop-zone">
         <div class="drop-inner">
           <div class="drop-icon">📄</div>
           <h2>PDFを開く</h2>
-          <p>ファイルをドロップ、または「開く」ボタン<br>副教材のPDFからも直接開けます</p>
+          <p>ドロップ / 選択 / 副教材リンク<br>ピンチズーム · 書き込み · 検索対応</p>
           <button type="button" class="btn btn-primary" id="btn-open-main">ファイルを選択</button>
         </div>
       </div>
