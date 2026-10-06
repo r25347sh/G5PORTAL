@@ -1,26 +1,31 @@
 /**
- * G5 Portal - High-performance PDF Viewer
- * PDF.js 3.x UMD - stylus-aware annotations
+ * G5 Portal · Advanced PDF Viewer
+ * - Pen = draw / Finger = pan / Mouse = draw (write mode)
+ * - Pinch zoom, undo/redo, invert, rotate, search, outline
  */
 (function () {
   "use strict";
 
   if (typeof pdfjsLib === "undefined") {
-    console.error("[pdf] pdfjsLib not loaded");
-    var st = document.getElementById("status-text");
-    if (st) st.textContent = "PDF.js 読込失敗";
+    var st0 = document.getElementById("status-text");
+    if (st0) st0.textContent = "PDF.js 読込失敗";
     return;
   }
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
   var pdfDoc = null;
+  var pdfBytes = null;
   var currentPage = 1;
   var totalPages = 0;
   var scale = 1.2;
   var zoomMode = "auto";
+  var rotation = 0;
+  var invertColors = false;
   var pageRenders = {};
   var annotations = {};
+  var undoStack = [];
+  var redoStack = [];
   var pdfFingerprint = "";
   var isWriteMode = false;
   var currentTool = "pen";
@@ -32,72 +37,63 @@
   var isDrawing = false;
   var currentStroke = null;
   var activePointers = {};
+  var panState = null;
+  var pinchState = null;
+  var fileName = "document.pdf";
 
   var $ = function (id) { return document.getElementById(id); };
   var el = {
-    title: $("pdf-title"),
-    fileInput: $("file-input"),
-    btnOpen: $("btn-open"),
-    btnOpenMain: $("btn-open-main"),
-    btnPrev: $("btn-prev"),
-    btnNext: $("btn-next"),
-    pageNum: $("page-num"),
-    pageCount: $("page-count"),
-    btnZoomIn: $("btn-zoom-in"),
-    btnZoomOut: $("btn-zoom-out"),
-    zoomSelect: $("zoom-select"),
-    btnSearch: $("btn-search"),
-    btnSidebar: $("btn-sidebar"),
-    btnWrite: $("btn-write"),
+    title: $("pdf-title"), fileInput: $("file-input"),
+    btnOpen: $("btn-open"), btnOpenMain: $("btn-open-main"), btnDownload: $("btn-download"),
+    btnPrev: $("btn-prev"), btnNext: $("btn-next"),
+    pageNum: $("page-num"), pageCount: $("page-count"),
+    btnZoomIn: $("btn-zoom-in"), btnZoomOut: $("btn-zoom-out"), zoomSelect: $("zoom-select"),
+    btnRotate: $("btn-rotate"), btnInvert: $("btn-invert"),
+    btnSearch: $("btn-search"), btnSidebar: $("btn-sidebar"), btnWrite: $("btn-write"),
     btnFullscreen: $("btn-fullscreen"),
-    searchBar: $("search-bar"),
-    searchInput: $("search-input"),
-    searchCount: $("search-count"),
-    searchPrev: $("search-prev"),
-    searchNext: $("search-next"),
-    searchClose: $("search-close"),
-    annotToolbar: $("annot-toolbar"),
-    annotColor: $("annot-color"),
-    annotSize: $("annot-size"),
-    annotClearPage: $("annot-clear-page"),
-    annotExport: $("annot-export"),
-    penHint: $("pen-hint"),
-    sidebar: $("pdf-sidebar"),
-    thumbsPanel: $("thumbs-panel"),
-    outlinePanel: $("outline-panel"),
-    viewer: $("pdf-viewer"),
-    pagesContainer: $("pages-container"),
-    dropZone: $("drop-zone"),
-    statusText: $("status-text"),
-    penStatus: $("pen-status")
+    searchBar: $("search-bar"), searchInput: $("search-input"), searchCount: $("search-count"),
+    searchPrev: $("search-prev"), searchNext: $("search-next"), searchClose: $("search-close"),
+    annotToolbar: $("annot-toolbar"), annotColor: $("annot-color"), annotSize: $("annot-size"),
+    annotUndo: $("annot-undo"), annotRedo: $("annot-redo"),
+    annotClearPage: $("annot-clear-page"), annotExport: $("annot-export"), penHint: $("pen-hint"),
+    sidebar: $("pdf-sidebar"), thumbsPanel: $("thumbs-panel"), outlinePanel: $("outline-panel"),
+    viewer: $("pdf-viewer"), pagesContainer: $("pages-container"), dropZone: $("drop-zone"),
+    statusText: $("status-text"), penStatus: $("pen-status"),
+    progressBar: $("progress-bar"), progressFill: $("progress-fill")
   };
 
-  function setStatus(msg) {
-    if (el.statusText) el.statusText.textContent = msg || "";
-  }
+  function setStatus(msg) { if (el.statusText) el.statusText.textContent = msg || ""; }
 
   function setControlsEnabled(on) {
-    [el.btnPrev, el.btnNext, el.pageNum, el.btnZoomIn, el.btnZoomOut,
-     el.zoomSelect, el.btnSearch, el.btnSidebar, el.btnWrite].forEach(function (b) {
-      if (b) b.disabled = !on;
-    });
+    [el.btnPrev, el.btnNext, el.pageNum, el.btnZoomIn, el.btnZoomOut, el.zoomSelect,
+     el.btnRotate, el.btnInvert, el.btnSearch, el.btnSidebar, el.btnWrite, el.btnDownload
+    ].forEach(function (b) { if (b) b.disabled = !on; });
+  }
+
+  function setProgress(pct) {
+    if (!el.progressBar || !el.progressFill) return;
+    if (pct == null || pct >= 100) {
+      el.progressBar.classList.add("hidden");
+      el.progressFill.style.width = "0%";
+      return;
+    }
+    el.progressBar.classList.remove("hidden");
+    el.progressFill.style.width = Math.max(0, Math.min(100, pct)) + "%";
   }
 
   function updatePenStatus() {
     if (!el.penStatus) return;
     if (hasPenCapability) {
-      el.penStatus.textContent = "電子ペン検知";
+      el.penStatus.textContent = "電子ペン検知 · 指は移動";
       el.penStatus.classList.add("has-pen");
-      if (el.penHint) el.penHint.style.display = "";
     } else {
-      el.penStatus.textContent = "";
-      el.penStatus.classList.remove("has-pen");
-      if (el.penHint) el.penHint.style.display = "none";
+      el.penStatus.textContent = isWriteMode ? "指＝移動 / マウス＝描画" : "";
+      el.penStatus.classList.toggle("has-pen", false);
     }
   }
 
   function storageKey() {
-    return "g5_pdf_annot_" + (pdfFingerprint || "unknown").slice(0, 40);
+    return "g5_pdf_annot_v2_" + (pdfFingerprint || "unknown").slice(0, 40);
   }
 
   function loadAnnotations() {
@@ -108,16 +104,26 @@
         if (obj && typeof obj === "object") annotations = obj;
       }
     } catch (e) { annotations = {}; }
+    undoStack = [];
+    redoStack = [];
   }
 
   function saveAnnotations() {
-    try { localStorage.setItem(storageKey(), JSON.stringify(annotations)); }
-    catch (e) {}
+    try { localStorage.setItem(storageKey(), JSON.stringify(annotations)); } catch (e) {}
+  }
+
+  function pushUndo(snapshot) {
+    undoStack.push(snapshot);
+    if (undoStack.length > 40) undoStack.shift();
+    redoStack = [];
+  }
+
+  function snapshotAnnot() {
+    return JSON.parse(JSON.stringify(annotations));
   }
 
   function getQueryParam(name) {
-    try { return new URL(location.href).searchParams.get(name); }
-    catch (e) { return null; }
+    try { return new URL(location.href).searchParams.get(name); } catch (e) { return null; }
   }
 
   function simpleHash(uint8) {
@@ -131,9 +137,8 @@
   }
 
   function computeScale(baseW, baseH) {
-    var availW = el.viewer.clientWidth - 32;
-    var availH = el.viewer.clientHeight - 32;
-    if (availW < 80) availW = 320;
+    var availW = Math.max(280, el.viewer.clientWidth - 32);
+    var availH = Math.max(200, el.viewer.clientHeight - 32);
     if (zoomMode === "page-width") return availW / baseW;
     if (zoomMode === "page-fit") return Math.min(availW / baseW, availH / baseH);
     if (zoomMode === "auto") return Math.min(1.35, availW / baseW);
@@ -144,35 +149,39 @@
   function loadPdfFromData(data, title) {
     setStatus("読み込み中…");
     setControlsEnabled(false);
-    if (pdfDoc) {
-      try { pdfDoc.destroy(); } catch (e) {}
-      pdfDoc = null;
-    }
+    setProgress(5);
+    if (pdfDoc) { try { pdfDoc.destroy(); } catch (e) {} pdfDoc = null; }
     pageRenders = {};
     el.pagesContainer.innerHTML = "";
     annotations = {};
+    pdfBytes = data;
+    fileName = title || "document.pdf";
 
     pdfjsLib.getDocument({ data: data }).promise.then(function (doc) {
       pdfDoc = doc;
       totalPages = doc.numPages;
       currentPage = 1;
+      rotation = 0;
       pdfFingerprint = simpleHash(data instanceof Uint8Array ? data : new Uint8Array(data));
       loadAnnotations();
       el.pageCount.textContent = String(totalPages);
       el.pageNum.value = "1";
       el.pageNum.max = totalPages;
-      if (el.title) el.title.textContent = title || "PDF";
+      if (el.title) el.title.textContent = fileName;
       el.dropZone.classList.add("hidden");
       setControlsEnabled(true);
       setStatus(totalPages + " ページ");
+      setProgress(15);
       return renderAllPages();
     }).then(function () {
+      setProgress(null);
       buildThumbnails();
       loadOutline();
       el.viewer.scrollTop = 0;
     }).catch(function (err) {
       console.error(err);
       setStatus("読み込み失敗");
+      setProgress(null);
       setControlsEnabled(false);
       el.dropZone.classList.remove("hidden");
     });
@@ -180,6 +189,7 @@
 
   function loadPdfFromUrl(url, title) {
     setStatus("取得中…");
+    setProgress(3);
     fetch(url, { cache: "force-cache" }).then(function (res) {
       if (!res.ok) throw new Error("HTTP " + res.status);
       return res.arrayBuffer();
@@ -188,6 +198,7 @@
     }).catch(function (err) {
       console.error(err);
       setStatus("URL読み込み失敗");
+      setProgress(null);
       el.dropZone.classList.remove("hidden");
     });
   }
@@ -205,9 +216,10 @@
     if (!pdfDoc) return Promise.resolve();
     el.pagesContainer.innerHTML = "";
     pageRenders = {};
+    el.pagesContainer.classList.toggle("invert", invertColors);
 
     return pdfDoc.getPage(1).then(function (page1) {
-      var baseVp = page1.getViewport({ scale: 1 });
+      var baseVp = page1.getViewport({ scale: 1, rotation: rotation });
       scale = computeScale(baseVp.width, baseVp.height);
 
       var frag = document.createDocumentFragment();
@@ -227,10 +239,16 @@
       }
       el.pagesContainer.appendChild(frag);
 
+      var done = 0;
       var chain = Promise.resolve();
       for (var p = 1; p <= totalPages; p++) {
         (function (num) {
-          chain = chain.then(function () { return renderPage(num); });
+          chain = chain.then(function () {
+            return renderPage(num).then(function () {
+              done++;
+              setProgress(15 + (done / totalPages) * 80);
+            });
+          });
         })(p);
       }
       return chain;
@@ -241,7 +259,7 @@
     var pr = pageRenders[num];
     if (!pdfDoc || !pr) return Promise.resolve();
     return pdfDoc.getPage(num).then(function (page) {
-      var viewport = page.getViewport({ scale: scale });
+      var viewport = page.getViewport({ scale: scale, rotation: rotation });
       var dpr = window.devicePixelRatio || 1;
       var canvas = pr.canvas;
       var ctx = canvas.getContext("2d", { alpha: false });
@@ -255,16 +273,16 @@
       pr.annotCanvas.style.height = canvas.style.height;
       pr.outputScale = dpr;
       pr.annotCtx = pr.annotCanvas.getContext("2d");
+      pr.viewport = viewport;
 
       var transform = dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null;
       return page.render({ canvasContext: ctx, viewport: viewport, transform: transform }).promise.then(function () {
         pr.rendered = true;
         redrawAnnotations(num);
         bindAnnotEvents(num);
+        syncAnnotPointerEvents();
       });
-    }).catch(function (err) {
-      console.warn("[pdf] page " + num, err);
-    });
+    }).catch(function (err) { console.warn("[pdf] page " + num, err); });
   }
 
   function redrawAnnotations(num) {
@@ -287,7 +305,7 @@
       ctx.globalCompositeOperation = "multiply";
       ctx.strokeStyle = stroke.color || "#ffeb3b";
       ctx.lineWidth = (stroke.size || 12) * dpr;
-      ctx.globalAlpha = 0.45;
+      ctx.globalAlpha = 0.4;
     } else if (stroke.tool === "eraser") {
       ctx.globalCompositeOperation = "destination-out";
       ctx.lineWidth = (stroke.size || 16) * dpr;
@@ -295,7 +313,7 @@
     } else {
       ctx.globalCompositeOperation = "source-over";
       ctx.strokeStyle = stroke.color || "#ff2d95";
-      ctx.lineWidth = (stroke.size || 3) * dpr;
+      ctx.lineWidth = (stroke.size || 3) * dpr * (stroke.pressure || 1);
       ctx.globalAlpha = 1;
     }
     ctx.beginPath();
@@ -308,12 +326,13 @@
 
   function pointerToLocal(e, canvas, dpr) {
     var rect = canvas.getBoundingClientRect();
-    var cssX = (e.clientX - rect.left) * (canvas.width / rect.width) / dpr;
-    var cssY = (e.clientY - rect.top) * (canvas.height / rect.height) / dpr;
-    return { x: cssX, y: cssY };
+    return {
+      x: (e.clientX - rect.left) * (canvas.width / rect.width) / dpr,
+      y: (e.clientY - rect.top) * (canvas.height / rect.height) / dpr
+    };
   }
 
-  function shouldDraw(e) {
+  function isDrawPointer(e) {
     if (!isWriteMode) return false;
     if (e.pointerType === "pen") {
       hasPenCapability = true;
@@ -324,45 +343,88 @@
     return true;
   }
 
+  function syncAnnotPointerEvents() {
+    Object.keys(pageRenders).forEach(function (k) {
+      var pr = pageRenders[k];
+      if (pr && pr.annotCanvas) {
+        pr.annotCanvas.style.pointerEvents = isWriteMode ? "auto" : "none";
+      }
+    });
+  }
+
   function bindAnnotEvents(num) {
     var pr = pageRenders[num];
     if (!pr || pr._bound) return;
     pr._bound = true;
     var canvas = pr.annotCanvas;
-    canvas.style.pointerEvents = isWriteMode ? "auto" : "none";
 
     canvas.addEventListener("pointerdown", function (e) {
-      if (e.pointerType === "pen") { hasPenCapability = true; updatePenStatus(); }
-      if (!isWriteMode || !shouldDraw(e)) return;
+      if (e.pointerType === "pen") {
+        hasPenCapability = true;
+        updatePenStatus();
+      }
+      if (!isWriteMode) return;
+
+      if (e.pointerType === "touch") {
+        e.preventDefault();
+        activePointers[e.pointerId] = "pan";
+        panState = {
+          id: e.pointerId,
+          x: e.clientX,
+          y: e.clientY,
+          scrollLeft: el.viewer.scrollLeft,
+          scrollTop: el.viewer.scrollTop
+        };
+        try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+        return;
+      }
+
+      if (!isDrawPointer(e)) return;
       e.preventDefault();
       e.stopPropagation();
       try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
       isDrawing = true;
       activePointers[e.pointerId] = "draw";
+      pushUndo(snapshotAnnot());
       var dpr = pr.outputScale || 1;
       var pt = pointerToLocal(e, canvas, dpr);
+      var pressure = (typeof e.pressure === "number" && e.pressure > 0) ? (0.4 + e.pressure * 0.9) : 1;
       currentStroke = {
         tool: currentTool,
         color: currentTool === "highlighter" ? (strokeColor || "#ffeb3b") : strokeColor,
         size: currentTool === "highlighter" ? Math.max(strokeSize * 3, 10)
-          : (currentTool === "eraser" ? Math.max(strokeSize * 4, 12) : strokeSize),
+          : (currentTool === "eraser" ? Math.max(strokeSize * 4, 14) : strokeSize),
+        pressure: pressure,
         points: [pt]
       };
       if (!annotations[num]) annotations[num] = [];
       annotations[num].push(currentStroke);
       redrawAnnotations(num);
-    });
+    }, { passive: false });
 
     canvas.addEventListener("pointermove", function (e) {
+      if (activePointers[e.pointerId] === "pan" && panState && panState.id === e.pointerId) {
+        e.preventDefault();
+        el.viewer.scrollLeft = panState.scrollLeft - (e.clientX - panState.x);
+        el.viewer.scrollTop = panState.scrollTop - (e.clientY - panState.y);
+        return;
+      }
       if (!isWriteMode || !isDrawing || activePointers[e.pointerId] !== "draw") return;
       e.preventDefault();
       if (!currentStroke) return;
       var dpr = pr.outputScale || 1;
       currentStroke.points.push(pointerToLocal(e, canvas, dpr));
+      if (typeof e.pressure === "number" && e.pressure > 0) {
+        currentStroke.pressure = 0.4 + e.pressure * 0.9;
+      }
       redrawAnnotations(num);
-    });
+    }, { passive: false });
 
-    function endStroke(e) {
+    function endPointer(e) {
+      if (activePointers[e.pointerId] === "pan") {
+        panState = null;
+        try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+      }
       if (activePointers[e.pointerId] === "draw") {
         isDrawing = false;
         currentStroke = null;
@@ -371,14 +433,46 @@
       }
       delete activePointers[e.pointerId];
     }
-    canvas.addEventListener("pointerup", endStroke);
-    canvas.addEventListener("pointercancel", endStroke);
+    canvas.addEventListener("pointerup", endPointer);
+    canvas.addEventListener("pointercancel", endPointer);
+  }
+
+  function bindPinchZoom() {
+    el.viewer.addEventListener("touchstart", function (e) {
+      if (e.touches.length === 2) {
+        var dx = e.touches[0].clientX - e.touches[1].clientX;
+        var dy = e.touches[0].clientY - e.touches[1].clientY;
+        pinchState = {
+          dist: Math.hypot(dx, dy),
+          scale: scale,
+          mode: zoomMode
+        };
+      }
+    }, { passive: true });
+
+    el.viewer.addEventListener("touchmove", function (e) {
+      if (!pinchState || e.touches.length !== 2 || !pdfDoc) return;
+      e.preventDefault();
+      var dx = e.touches[0].clientX - e.touches[1].clientX;
+      var dy = e.touches[0].clientY - e.touches[1].clientY;
+      var dist = Math.hypot(dx, dy);
+      var ratio = dist / (pinchState.dist || 1);
+      var next = Math.max(0.35, Math.min(4, pinchState.scale * ratio));
+      pinchState._pending = next;
+    }, { passive: false });
+
+    el.viewer.addEventListener("touchend", function () {
+      if (pinchState && pinchState._pending && pdfDoc) {
+        applyZoom(pinchState._pending);
+      }
+      pinchState = null;
+    });
   }
 
   function buildThumbnails() {
     if (!pdfDoc || !el.thumbsPanel) return;
     el.thumbsPanel.innerHTML = "";
-    var max = Math.min(totalPages, 40);
+    var max = Math.min(totalPages, 50);
     for (var i = 1; i <= max; i++) {
       (function (pageNum) {
         var item = document.createElement("button");
@@ -394,7 +488,7 @@
         item.addEventListener("click", function () { goToPage(pageNum); });
         el.thumbsPanel.appendChild(item);
         pdfDoc.getPage(pageNum).then(function (page) {
-          var vp = page.getViewport({ scale: 0.18 });
+          var vp = page.getViewport({ scale: 0.16, rotation: rotation });
           c.width = vp.width;
           c.height = vp.height;
           return page.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
@@ -467,12 +561,14 @@
     zoomMode = String(mode);
     if (el.zoomSelect) {
       var opts = ["auto", "page-width", "page-fit"];
-      el.zoomSelect.value = opts.indexOf(zoomMode) >= 0 ? zoomMode : (parseFloat(zoomMode) || 1);
+      el.zoomSelect.value = opts.indexOf(zoomMode) >= 0 ? zoomMode : String(parseFloat(zoomMode) || 1);
     }
     if (!pdfDoc) return;
     setStatus("再描画中…");
+    setProgress(20);
     renderAllPages().then(function () {
-      setStatus(totalPages + " ページ");
+      setProgress(null);
+      setStatus(totalPages + " ページ · " + Math.round(scale * 100) + "%");
       goToPage(currentPage);
     });
   }
@@ -517,11 +613,29 @@
     el.viewer.classList.toggle("write-mode", isWriteMode);
     el.btnWrite.classList.toggle("active", isWriteMode);
     el.annotToolbar.classList.toggle("hidden", !isWriteMode);
-    Object.keys(pageRenders).forEach(function (k) {
-      var pr = pageRenders[k];
-      if (pr && pr.annotCanvas) pr.annotCanvas.style.pointerEvents = isWriteMode ? "auto" : "none";
-    });
-    setStatus(isWriteMode ? "書き込みモード（ペン＝描画 / 指＝移動）" : "閲覧モード");
+    syncAnnotPointerEvents();
+    updatePenStatus();
+    setStatus(isWriteMode
+      ? "書き込み: ペン＝描画 / 指＝移動 / マウス＝描画"
+      : "閲覧モード");
+  }
+
+  function undo() {
+    if (!undoStack.length) return;
+    redoStack.push(snapshotAnnot());
+    annotations = undoStack.pop();
+    Object.keys(pageRenders).forEach(function (k) { redrawAnnotations(Number(k)); });
+    saveAnnotations();
+    setStatus("元に戻しました");
+  }
+
+  function redo() {
+    if (!redoStack.length) return;
+    undoStack.push(snapshotAnnot());
+    annotations = redoStack.pop();
+    Object.keys(pageRenders).forEach(function (k) { redrawAnnotations(Number(k)); });
+    saveAnnotations();
+    setStatus("やり直しました");
   }
 
   function bindUI() {
@@ -531,6 +645,16 @@
       var f = el.fileInput.files && el.fileInput.files[0];
       if (f) loadPdfFromFile(f);
       el.fileInput.value = "";
+    });
+
+    el.btnDownload.addEventListener("click", function () {
+      if (!pdfBytes) return;
+      var blob = new Blob([pdfBytes], { type: "application/pdf" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = fileName || "document.pdf";
+      a.click();
+      URL.revokeObjectURL(a.href);
     });
 
     ["dragenter", "dragover"].forEach(function (ev) {
@@ -557,13 +681,25 @@
     });
 
     el.btnZoomIn.addEventListener("click", function () {
-      applyZoom(Math.min(4, (parseFloat(scale) || 1) * 1.25));
+      applyZoom(Math.min(4, (scale || 1) * 1.25));
     });
     el.btnZoomOut.addEventListener("click", function () {
-      applyZoom(Math.max(0.25, (parseFloat(scale) || 1) / 1.25));
+      applyZoom(Math.max(0.3, (scale || 1) / 1.25));
     });
     el.zoomSelect.addEventListener("change", function () {
       applyZoom(el.zoomSelect.value);
+    });
+
+    el.btnRotate.addEventListener("click", function () {
+      rotation = (rotation + 90) % 360;
+      applyZoom(zoomMode);
+    });
+
+    el.btnInvert.addEventListener("click", function () {
+      invertColors = !invertColors;
+      el.btnInvert.classList.toggle("active", invertColors);
+      el.pagesContainer.classList.toggle("invert", invertColors);
+      setStatus(invertColors ? "色反転 ON" : "色反転 OFF");
     });
 
     el.btnSearch.addEventListener("click", function () {
@@ -601,8 +737,11 @@
     });
     el.annotColor.addEventListener("input", function () { strokeColor = el.annotColor.value; });
     el.annotSize.addEventListener("input", function () { strokeSize = parseInt(el.annotSize.value, 10) || 3; });
+    el.annotUndo.addEventListener("click", undo);
+    el.annotRedo.addEventListener("click", redo);
     el.annotClearPage.addEventListener("click", function () {
       if (!currentPage) return;
+      pushUndo(snapshotAnnot());
       annotations[currentPage] = [];
       redrawAnnotations(currentPage);
       saveAnnotations();
@@ -626,6 +765,7 @@
     });
 
     el.viewer.addEventListener("scroll", onViewerScroll, { passive: true });
+    bindPinchZoom();
 
     document.addEventListener("keydown", function (e) {
       if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT")) return;
@@ -634,7 +774,11 @@
       else if (e.key === "+" || e.key === "=") el.btnZoomIn.click();
       else if (e.key === "-") el.btnZoomOut.click();
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") { e.preventDefault(); el.btnSearch.click(); }
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); undo(); }
+      else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "y" || (e.shiftKey && e.key.toLowerCase() === "z"))) { e.preventDefault(); redo(); }
       else if (e.key.toLowerCase() === "w" && pdfDoc) setWriteMode(!isWriteMode);
+      else if (e.key.toLowerCase() === "r" && pdfDoc) el.btnRotate.click();
+      else if (e.key.toLowerCase() === "i" && pdfDoc) el.btnInvert.click();
     });
 
     window.addEventListener("pointerdown", function (e) {
@@ -649,8 +793,7 @@
     var src = getQueryParam("src") || getQueryParam("url") || getQueryParam("file");
     if (src) {
       try {
-        var abs = new URL(src, location.href).href;
-        loadPdfFromUrl(abs, src.split("/").pop());
+        loadPdfFromUrl(new URL(src, location.href).href, src.split("/").pop());
       } catch (e) {
         setStatus("URL不正");
       }
