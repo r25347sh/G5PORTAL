@@ -1,6 +1,6 @@
 /**
  * G5 Portal - Materials
- * PDF opens in high-performance PDF viewer
+ * PDF opens in browser native viewer (iframe / new tab)
  */
 (function () {
   "use strict";
@@ -52,10 +52,6 @@
 
   function fileUrl(relPath) {
     return FILES_BASE + encodePath(relPath);
-  }
-
-  function pdfViewerUrl(relPath) {
-    return "../pdf-viewer/index.html?src=" + encodeURIComponent("../materials/files/" + encodePath(relPath));
   }
 
   function formatSize(bytes) {
@@ -138,14 +134,8 @@
 
   function actionButtons(m, compact) {
     var url = fileUrl(m.relPath);
-    var previewBtn;
-    if (m.kind === "pdf") {
-      var viewer = pdfViewerUrl(m.relPath);
-      previewBtn = '<a class="btn btn-primary btn-sm" href="' + escapeHtml(viewer) + '">ビューアーで開く</a>';
-    } else {
-      previewBtn = '<button type="button" class="btn btn-primary btn-sm" data-preview="' +
-        escapeHtml(m.id) + '">プレビュー</button>';
-    }
+    var previewBtn = '<button type="button" class="btn btn-primary btn-sm" data-preview="' +
+      escapeHtml(m.id) + '">プレビュー</button>';
     var dlLabel = compact ? "DL" : "ダウンロード";
     return previewBtn +
       '<a class="btn btn-ghost btn-sm" href="' + url + '" download="' +
@@ -213,10 +203,6 @@
       if (materials[i].id === id) { m = materials[i]; break; }
     }
     if (!m || !modal) return;
-    if (m.kind === "pdf") {
-      location.href = pdfViewerUrl(m.relPath);
-      return;
-    }
     var url = fileUrl(m.relPath);
     if (previewTitle) previewTitle.textContent = m.title;
     if (previewDownload) {
