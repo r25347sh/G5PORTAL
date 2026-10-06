@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="../../MENU/MENU.css">
 </head>
-<body class="pdf-body">
+<body class="pdf-body mode-view">
   <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
 
   <header class="pdf-toolbar" id="pdf-toolbar">
@@ -30,6 +30,11 @@
       <button type="button" id="btn-next" class="btn btn-ghost btn-sm" title="次へ" disabled>▶</button>
     </div>
     <div class="tb-right">
+      <div class="viewer-mode-toggle" role="group" aria-label="表示モード">
+        <button type="button" id="vm-view" class="vm-btn active" data-vmode="view" title="閲覧のみ">👁 閲覧</button>
+        <button type="button" id="vm-write" class="vm-btn" data-vmode="write" title="編集・書き込み" disabled>✎ 編集</button>
+        <button type="button" id="vm-pres" class="vm-btn" data-vmode="pres" title="プレゼンテーション" disabled>▶ プレゼン</button>
+      </div>
       <button type="button" id="btn-zoom-out" class="btn btn-ghost btn-sm" title="縮小" disabled>−</button>
       <select id="zoom-select" class="zoom-select" disabled>
         <option value="auto">自動</option>
@@ -48,7 +53,6 @@
       <button type="button" id="btn-invert" class="btn btn-ghost btn-sm" title="色反転" disabled>◑</button>
       <button type="button" id="btn-search" class="btn btn-ghost btn-sm" title="検索" disabled>🔍</button>
       <button type="button" id="btn-sidebar" class="btn btn-ghost btn-sm" title="サイドバー" disabled>☰</button>
-      <button type="button" id="btn-write" class="btn btn-ghost btn-sm" title="書き込み" disabled>✎</button>
       <button type="button" id="btn-fullscreen" class="btn btn-ghost btn-sm" title="全画面">⛶</button>
     </div>
   </header>
@@ -58,22 +62,33 @@
     <span class="search-count" id="search-count"></span>
     <button type="button" id="search-prev" class="btn btn-ghost btn-sm">↑</button>
     <button type="button" id="search-next" class="btn btn-ghost btn-sm">↓</button>
+    <button type="button" id="btn-copy-sel" class="btn btn-ghost btn-sm" title="選択テキストをコピー">📋</button>
     <button type="button" id="search-close" class="btn btn-ghost btn-sm">×</button>
   </div>
 
   <div class="annot-toolbar hidden" id="annot-toolbar">
     <div class="input-mode-toggle" role="group" aria-label="入力モード">
-      <button type="button" id="mode-pen" class="mode-btn active" data-mode="pen" title="電子ペンモード：ペン＝描画 / 指＝移動">🖊 ペン</button>
-      <button type="button" id="mode-finger" class="mode-btn" data-mode="finger" title="指モード：指＝描画 / 2本指＝移動">👆 指</button>
+      <button type="button" id="mode-pen" class="mode-btn active" data-mode="pen" title="電子ペンモード">🖊 ペン</button>
+      <button type="button" id="mode-finger" class="mode-btn" data-mode="finger" title="指モード">👆 指</button>
     </div>
     <span class="annot-sep"></span>
-    <button type="button" class="annot-tool active" data-tool="pen" title="ペン">🖊</button>
+    <button type="button" class="annot-tool active" data-tool="pen" title="フリーハンド">🖊</button>
     <button type="button" class="annot-tool" data-tool="highlighter" title="マーカー">🖍</button>
     <button type="button" class="annot-tool" data-tool="eraser" title="消しゴム">⌫</button>
     <button type="button" class="annot-tool" data-tool="line" title="直線">／</button>
     <button type="button" class="annot-tool" data-tool="rect" title="四角">□</button>
+    <button type="button" class="annot-tool" data-tool="text" title="テキスト注釈">T</button>
+    <button type="button" class="annot-tool" data-tool="note" title="付箋メモ">💬</button>
     <input type="color" id="annot-color" value="#ff2d95" title="色">
     <input type="range" id="annot-size" min="1" max="28" value="3" title="太さ">
+    <select id="annot-font-size" class="font-size-select" title="文字サイズ">
+      <option value="12">12</option>
+      <option value="14">14</option>
+      <option value="16" selected>16</option>
+      <option value="20">20</option>
+      <option value="24">24</option>
+      <option value="32">32</option>
+    </select>
     <button type="button" id="annot-undo" class="btn btn-ghost btn-sm" title="元に戻す">↩</button>
     <button type="button" id="annot-redo" class="btn btn-ghost btn-sm" title="やり直し">↪</button>
     <button type="button" id="annot-clear-page" class="btn btn-ghost btn-sm" title="このページ消去">消去</button>
@@ -97,7 +112,7 @@
         <div class="drop-inner">
           <div class="drop-icon">📄</div>
           <h2>PDFを開く</h2>
-          <p>ドロップ / 選択 / 副教材リンク<br>ペン・指切替 · 図形 · 検索対応</p>
+          <p>ドロップ / 選択 / 副教材リンク<br>テキスト選択 · 注釈 · プレゼン対応</p>
           <button type="button" class="btn btn-primary" id="btn-open-main">ファイルを選択</button>
         </div>
       </div>
@@ -105,8 +120,22 @@
     </main>
   </div>
 
+  <div class="pres-overlay hidden" id="pres-overlay">
+    <div class="pres-page-badge" id="pres-page-badge">1 / 1</div>
+    <div class="pres-hint">← → でページ · Esc で終了 · F 全画面</div>
+  </div>
+
+  <div class="text-editor-popup hidden" id="text-editor-popup">
+    <textarea id="text-editor-input" rows="3" placeholder="テキストを入力…"></textarea>
+    <div class="text-editor-actions">
+      <button type="button" id="text-editor-ok" class="btn btn-primary btn-sm">配置</button>
+      <button type="button" id="text-editor-cancel" class="btn btn-ghost btn-sm">取消</button>
+    </div>
+  </div>
+
   <div class="status-bar" id="status-bar">
     <span id="status-text">準備完了</span>
+    <span id="sel-text-preview" class="sel-text-preview"></span>
     <span id="pen-status" class="pen-status"></span>
   </div>
 
