@@ -26,8 +26,6 @@
         icon: "◈",
         items: [
           { label: "PDFビューアー", icon: "📄", url: root + "pages/pdf-viewer/index.html" },
-          { label: "PDFパスワード", icon: "🔒", url: root + "pages/pdf-password/index.html" },
-          { label: "PDF結合", icon: "📎", url: root + "pages/pdf-merge/index.html" },
           { label: "文字数カウント", icon: "文字", url: root + "pages/char-count/index.html" },
           { label: "文字拡大鏡", icon: "🔍", url: root + "pages/char-magnifier/index.html" },
           { label: "パスワード生成", icon: "鍵", url: root + "pages/password-gen/index.html" },
