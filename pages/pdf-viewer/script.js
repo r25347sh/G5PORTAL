@@ -1,7 +1,6 @@
 /**
- * G5 Portal · PDF Viewer
- * Undo + pen/finger + text + fast vector PDF export (original content preserved)
- * Annotations are session-only (cleared on reload)
+ * G5 Portal · PDF Viewer (view-only, advanced)
+ * Continuous scroll · search · outline · facing · invert · present · text select
  */
 (function () {
   "use strict";
@@ -19,39 +18,16 @@
   var totalPages = 0;
   var scale = 1.2;
   var zoomMode = "auto";
+  var rotation = 0;
   var pageRenders = {};
-  var annotations = {};
-  var undoStack = [];
-  var pdfFingerprint = "";
-  var rawPdfBytes = null;
-  var isWriteMode = false;
-  var inputMode = "pen";
-  var currentTool = "pen";
-  var strokeColor = "#ff2d95";
-  var strokeSize = 3;
-  var fontSize = 16;
+  var facing = false;
+  var inverted = false;
+  var presenting = false;
   var searchMatches = [];
   var searchIndex = -1;
-  var hasPenCapability = false;
-  var isDrawing = false;
-  var currentStroke = null;
-  var activePointers = {};
-  var panState = null;
-  var pendingTextPlace = null;
-
-  try {
-    var sm = localStorage.getItem("g5_pdf_input_mode");
-    if (sm === "pen" || sm === "finger") inputMode = sm;
-  } catch (e) {}
-
-  try {
-    var keys = [];
-    for (var i = 0; i < localStorage.length; i++) {
-      var k = localStorage.key(i);
-      if (k && k.indexOf("g5_pdf_annot_") === 0) keys.push(k);
-    }
-    keys.forEach(function (k) { localStorage.removeItem(k); });
-  } catch (e) {}
+  var pdfMeta = null;
+  var downloadUrl = null;
+  var renderToken = 0;
 
   var $ = function (id) { return document.getElementById(id); };
   var el = {
@@ -60,107 +36,57 @@
     btnPrev: $("btn-prev"), btnNext: $("btn-next"),
     pageNum: $("page-num"), pageCount: $("page-count"),
     btnZoomIn: $("btn-zoom-in"), btnZoomOut: $("btn-zoom-out"), zoomSelect: $("zoom-select"),
-    btnSearch: $("btn-search"), btnSidebar: $("btn-sidebar"),
-    btnWrite: $("btn-write"), btnFullscreen: $("btn-fullscreen"),
+    btnRotate: $("btn-rotate"), btnSearch: $("btn-search"), btnSidebar: $("btn-sidebar"),
+    btnLayout: $("btn-layout"), btnInvert: $("btn-invert"),
+    btnPresent: $("btn-present"), btnFullscreen: $("btn-fullscreen"),
+    btnDownload: $("btn-download"), btnPrint: $("btn-print"),
     searchBar: $("search-bar"), searchInput: $("search-input"), searchCount: $("search-count"),
     searchPrev: $("search-prev"), searchNext: $("search-next"), searchClose: $("search-close"),
-    annotToolbar: $("annot-toolbar"), annotColor: $("annot-color"), annotSize: $("annot-size"),
-    annotFontSize: $("annot-font-size"), annotUndo: $("annot-undo"),
-    annotClearPage: $("annot-clear-page"), annotExport: $("annot-export"), penHint: $("pen-hint"),
-    modePen: $("mode-pen"), modeFinger: $("mode-finger"),
-    sidebar: $("pdf-sidebar"), thumbsPanel: $("thumbs-panel"), outlinePanel: $("outline-panel"),
+    sidebar: $("pdf-sidebar"), thumbsPanel: $("thumbs-panel"),
+    outlinePanel: $("outline-panel"), infoPanel: $("info-panel"),
     viewer: $("pdf-viewer"), pagesContainer: $("pages-container"), dropZone: $("drop-zone"),
-    statusText: $("status-text"), penStatus: $("pen-status"),
-    textPopup: $("text-editor-popup"), textInput: $("text-editor-input"),
-    textOk: $("text-editor-ok"), textCancel: $("text-editor-cancel")
+    statusText: $("status-text"), viewStatus: $("view-status"),
+    progressFill: $("progress-fill"),
+    presentOverlay: $("present-overlay"), presentStage: $("present-stage"),
+    presentPageLabel: $("present-page-label"), presentExit: $("present-exit")
   };
 
   function setStatus(msg) {
     if (el.statusText) el.statusText.textContent = msg || "";
   }
-
+  function setViewStatus(msg) {
+    if (el.viewStatus) el.viewStatus.textContent = msg || "";
+  }
   function setControlsEnabled(on) {
     [el.btnPrev, el.btnNext, el.pageNum, el.btnZoomIn, el.btnZoomOut,
-     el.zoomSelect, el.btnSearch, el.btnSidebar, el.btnWrite].forEach(function (b) {
+     el.zoomSelect, el.btnRotate, el.btnSearch, el.btnSidebar, el.btnLayout,
+     el.btnInvert, el.btnPresent, el.btnPrint].forEach(function (b) {
       if (b) b.disabled = !on;
     });
   }
-
-  function updateInputModeUI() {
-    if (el.modePen) el.modePen.classList.toggle("active", inputMode === "pen");
-    if (el.modeFinger) el.modeFinger.classList.toggle("active", inputMode === "finger");
-    if (el.penHint) {
-      el.penHint.textContent = inputMode === "pen"
-        ? "ペンモード: ペン＝描画 · 指＝移動"
-        : "指モード: 指＝描画 · 2本指＝移動";
-    }
-    updatePenStatus();
-  }
-
-  function setInputMode(mode) {
-    if (mode !== "pen" && mode !== "finger") return;
-    inputMode = mode;
-    try { localStorage.setItem("g5_pdf_input_mode", mode); } catch (e) {}
-    updateInputModeUI();
-    setStatus(inputMode === "pen" ? "入力: ペンモード" : "入力: 指モード");
-  }
-
-  function updatePenStatus() {
-    if (!el.penStatus) return;
-    var parts = [];
-    if (hasPenCapability) parts.push("電子ペン検知");
-    if (isWriteMode) parts.push(inputMode === "pen" ? "ペン入力" : "指入力");
-    el.penStatus.textContent = parts.join(" · ");
-  }
-
-  function loadAnnotations() {
-    annotations = {};
-    undoStack = [];
-  }
-
-  function saveAnnotations() {}
-
-  function snapshotAnnot() {
-    return JSON.parse(JSON.stringify(annotations));
-  }
-
-  function pushUndo() {
-    undoStack.push(snapshotAnnot());
-    if (undoStack.length > 40) undoStack.shift();
-  }
-
-  function undo() {
-    if (!undoStack.length) {
-      setStatus("これ以上戻せません");
+  function updateProgress() {
+    if (!el.progressFill || !totalPages) {
+      if (el.progressFill) el.progressFill.style.width = "0%";
       return;
     }
-    annotations = undoStack.pop();
-    Object.keys(pageRenders).forEach(function (k) { redrawAnnotations(Number(k)); });
-    setStatus("元に戻しました");
+    el.progressFill.style.width = ((currentPage / totalPages) * 100) + "%";
   }
-
   function getQueryParam(name) {
     try { return new URL(location.href).searchParams.get(name); }
     catch (e) { return null; }
   }
-
-  function simpleHash(uint8) {
-    var h = 2166136261 >>> 0;
-    var step = Math.max(1, Math.floor(uint8.length / 4096));
-    for (var i = 0; i < uint8.length; i += step) {
-      h ^= uint8[i];
-      h = Math.imul(h, 16777619) >>> 0;
-    }
-    return h.toString(16) + "_" + uint8.length;
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, "&").replace(/</g, "<")
+      .replace(/>/g, ">").replace(/"/g, """);
   }
-
   function computeScale(baseW, baseH) {
     var availW = el.viewer.clientWidth - 32;
     var availH = el.viewer.clientHeight - 32;
     if (availW < 80) availW = 320;
+    if (facing) availW = Math.max(120, (availW - 24) / 2);
     if (zoomMode === "page-width") return availW / baseW;
     if (zoomMode === "page-fit") return Math.min(availW / baseW, availH / baseH);
-    if (zoomMode === "auto") return Math.min(1.35, availW / baseW);
+    if (zoomMode === "auto") return Math.min(1.4, availW / baseW);
     var n = parseFloat(zoomMode);
     return isFinite(n) && n > 0 ? n : 1;
   }
@@ -168,34 +94,46 @@
   function loadPdfFromData(data, title) {
     setStatus("読み込み中…");
     setControlsEnabled(false);
-    if (pdfDoc) {
-      try { pdfDoc.destroy(); } catch (e) {}
-      pdfDoc = null;
-    }
+    if (pdfDoc) { try { pdfDoc.destroy(); } catch (e) {} pdfDoc = null; }
     pageRenders = {};
     el.pagesContainer.innerHTML = "";
-    annotations = {};
-    undoStack = [];
-    rawPdfBytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+    searchMatches = [];
+    searchIndex = -1;
+    rotation = 0;
+    if (downloadUrl) { try { URL.revokeObjectURL(downloadUrl); } catch (e) {} downloadUrl = null; }
 
-    pdfjsLib.getDocument({ data: data }).promise.then(function (doc) {
+    var u8 = data instanceof Uint8Array ? data : new Uint8Array(data);
+    try {
+      downloadUrl = URL.createObjectURL(new Blob([u8], { type: "application/pdf" }));
+      if (el.btnDownload) {
+        el.btnDownload.href = downloadUrl;
+        el.btnDownload.download = (title || "document") + (/\.pdf$/i.test(title || "") ? "" : ".pdf");
+        el.btnDownload.classList.remove("hidden");
+      }
+    } catch (e) {}
+
+    pdfjsLib.getDocument({ data: u8 }).promise.then(function (doc) {
       pdfDoc = doc;
       totalPages = doc.numPages;
       currentPage = 1;
-      pdfFingerprint = simpleHash(rawPdfBytes);
-      loadAnnotations();
       el.pageCount.textContent = String(totalPages);
       el.pageNum.value = "1";
       el.pageNum.max = totalPages;
       if (el.title) el.title.textContent = title || "PDF";
       el.dropZone.classList.add("hidden");
       setControlsEnabled(true);
-      setStatus(totalPages + " ページ");
+      setStatus(totalPages + " ページ · 閲覧専用");
+      return doc.getMetadata().catch(function () { return null; });
+    }).then(function (meta) {
+      pdfMeta = meta;
+      fillInfoPanel();
       return renderAllPages();
     }).then(function () {
       buildThumbnails();
       loadOutline();
       el.viewer.scrollTop = 0;
+      updateProgress();
+      updateViewStatus();
     }).catch(function (err) {
       console.error(err);
       setStatus("読み込み失敗");
@@ -227,15 +165,35 @@
     reader.readAsArrayBuffer(file);
   }
 
+  function fillInfoPanel() {
+    if (!el.infoPanel) return;
+    el.infoPanel.innerHTML = "";
+    var info = (pdfMeta && pdfMeta.info) || {};
+    [
+      ["タイトル", info.Title || (el.title && el.title.textContent) || "—"],
+      ["作成者", info.Author || "—"],
+      ["作成日", info.CreationDate || "—"],
+      ["更新日", info.ModDate || "—"],
+      ["作成アプリ", info.Creator || "—"],
+      ["ページ数", String(totalPages)]
+    ].forEach(function (r) {
+      var div = document.createElement("div");
+      div.className = "info-row";
+      div.innerHTML = "<strong>" + r[0] + "</strong><span>" + escapeHtml(String(r[1])) + "</span>";
+      el.infoPanel.appendChild(div);
+    });
+  }
+
   function renderAllPages() {
     if (!pdfDoc) return Promise.resolve();
+    var token = ++renderToken;
     el.pagesContainer.innerHTML = "";
     pageRenders = {};
 
     return pdfDoc.getPage(1).then(function (page1) {
-      var baseVp = page1.getViewport({ scale: 1 });
+      if (token !== renderToken) return;
+      var baseVp = page1.getViewport({ scale: 1, rotation: rotation });
       scale = computeScale(baseVp.width, baseVp.height);
-
       var frag = document.createDocumentFragment();
       for (var i = 1; i <= totalPages; i++) {
         var wrap = document.createElement("div");
@@ -244,311 +202,79 @@
         wrap.dataset.page = String(i);
         var canvas = document.createElement("canvas");
         canvas.className = "pdf-canvas";
-        var annotCanvas = document.createElement("canvas");
-        annotCanvas.className = "annot-layer";
-        var htmlLayer = document.createElement("div");
-        htmlLayer.className = "html-annot-layer";
+        var textLayer = document.createElement("div");
+        textLayer.className = "text-layer";
         wrap.appendChild(canvas);
-        wrap.appendChild(annotCanvas);
-        wrap.appendChild(htmlLayer);
+        wrap.appendChild(textLayer);
         frag.appendChild(wrap);
-        pageRenders[i] = {
-          wrap: wrap, canvas: canvas, annotCanvas: annotCanvas,
-          htmlLayer: htmlLayer, rendered: false
-        };
+        pageRenders[i] = { wrap: wrap, canvas: canvas, textLayer: textLayer, rendered: false };
       }
       el.pagesContainer.appendChild(frag);
-
       var chain = Promise.resolve();
       for (var p = 1; p <= totalPages; p++) {
         (function (num) {
-          chain = chain.then(function () { return renderPage(num); });
+          chain = chain.then(function () {
+            if (token !== renderToken) return;
+            return renderPage(num, token);
+          });
         })(p);
       }
       return chain;
     });
   }
 
-  function renderPage(num) {
+  function renderPage(num, token) {
     var pr = pageRenders[num];
     if (!pdfDoc || !pr) return Promise.resolve();
+    if (token != null && token !== renderToken) return Promise.resolve();
+
     return pdfDoc.getPage(num).then(function (page) {
-      var viewport = page.getViewport({ scale: scale });
-      var dpr = window.devicePixelRatio || 1;
+      if (token != null && token !== renderToken) return;
+      var viewport = page.getViewport({ scale: scale, rotation: rotation });
+      var dpr = Math.min(window.devicePixelRatio || 1, 2.5);
       var canvas = pr.canvas;
       var ctx = canvas.getContext("2d", { alpha: false });
       canvas.width = Math.floor(viewport.width * dpr);
       canvas.height = Math.floor(viewport.height * dpr);
       canvas.style.width = Math.floor(viewport.width) + "px";
       canvas.style.height = Math.floor(viewport.height) + "px";
-      pr.annotCanvas.width = canvas.width;
-      pr.annotCanvas.height = canvas.height;
-      pr.annotCanvas.style.width = canvas.style.width;
-      pr.annotCanvas.style.height = canvas.style.height;
-      pr.htmlLayer.style.width = canvas.style.width;
-      pr.htmlLayer.style.height = canvas.style.height;
-      pr.outputScale = dpr;
-      pr.annotCtx = pr.annotCanvas.getContext("2d");
-
+      pr.textLayer.style.width = canvas.style.width;
+      pr.textLayer.style.height = canvas.style.height;
       var transform = dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null;
-      return page.render({ canvasContext: ctx, viewport: viewport, transform: transform }).promise.then(function () {
-        pr.rendered = true;
-        redrawAnnotations(num);
-        bindAnnotEvents(num);
-        syncPointerEvents();
-      });
+      return page.render({ canvasContext: ctx, viewport: viewport, transform: transform }).promise
+        .then(function () {
+          pr.rendered = true;
+          return page.getTextContent().then(function (textContent) {
+            buildTextLayer(pr.textLayer, textContent, viewport);
+          }).catch(function () {});
+        });
     }).catch(function (err) {
       console.warn("[pdf] page " + num, err);
     });
   }
 
-  function syncPointerEvents() {
-    Object.keys(pageRenders).forEach(function (k) {
-      var pr = pageRenders[k];
-      if (!pr) return;
-      if (pr.annotCanvas) {
-        pr.annotCanvas.style.pointerEvents = isWriteMode ? "auto" : "none";
-        pr.annotCanvas.style.zIndex = "2";
-      }
-      if (pr.htmlLayer) {
-        pr.htmlLayer.style.pointerEvents = "none";
-        pr.htmlLayer.style.zIndex = "3";
-      }
-    });
-  }
-
-  function redrawAnnotations(num) {
-    var pr = pageRenders[num];
-    if (!pr || !pr.annotCtx) return;
-    var ctx = pr.annotCtx;
-    var dpr = pr.outputScale || 1;
-    ctx.clearRect(0, 0, pr.annotCanvas.width, pr.annotCanvas.height);
-    var items = annotations[num] || [];
+  function buildTextLayer(layerDiv, textContent, viewport) {
+    layerDiv.innerHTML = "";
+    var items = textContent.items || [];
     for (var i = 0; i < items.length; i++) {
-      if (items[i].type === "text") continue;
-      drawStroke(ctx, items[i], dpr);
+      var item = items[i];
+      if (!item.str) continue;
+      var tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
+      var fontHeight = Math.sqrt(tx[2] * tx[2] + tx[3] * tx[3]);
+      var span = document.createElement("span");
+      span.textContent = item.str;
+      span.style.left = tx[4] + "px";
+      span.style.top = (tx[5] - fontHeight) + "px";
+      span.style.fontSize = fontHeight + "px";
+      span.style.fontFamily = "sans-serif";
+      layerDiv.appendChild(span);
     }
-    renderHtmlAnnotations(num);
-  }
-
-  function renderHtmlAnnotations(num) {
-    var pr = pageRenders[num];
-    if (!pr || !pr.htmlLayer) return;
-    pr.htmlLayer.innerHTML = "";
-    var items = annotations[num] || [];
-    items.forEach(function (item) {
-      if (item.type !== "text") return;
-      var div = document.createElement("div");
-      div.className = "text-annot";
-      div.style.left = item.x + "px";
-      div.style.top = item.y + "px";
-      div.style.color = item.color || "#ff2d95";
-      div.style.fontSize = (item.fontSize || 16) + "px";
-      div.style.pointerEvents = isWriteMode ? "auto" : "none";
-      div.textContent = item.text || "";
-      if (isWriteMode) {
-        div.contentEditable = "true";
-        div.spellcheck = false;
-        div.addEventListener("blur", function () {
-          pushUndo();
-          item.text = div.textContent || "";
-        });
-        div.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
-      }
-      pr.htmlLayer.appendChild(div);
-    });
-  }
-
-  function drawStroke(ctx, stroke, dpr) {
-    if (!stroke || !stroke.points || !stroke.points.length) return;
-    var pts = stroke.points;
-    ctx.save();
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    if (stroke.tool === "highlighter") {
-      ctx.globalCompositeOperation = "multiply";
-      ctx.strokeStyle = stroke.color || "#ffeb3b";
-      ctx.lineWidth = (stroke.size || 12) * dpr;
-      ctx.globalAlpha = 0.45;
-    } else if (stroke.tool === "eraser") {
-      ctx.globalCompositeOperation = "destination-out";
-      ctx.lineWidth = (stroke.size || 16) * dpr;
-      ctx.globalAlpha = 1;
-    } else {
-      ctx.globalCompositeOperation = "source-over";
-      ctx.strokeStyle = stroke.color || "#ff2d95";
-      ctx.lineWidth = (stroke.size || 3) * dpr;
-      ctx.globalAlpha = 1;
-    }
-    ctx.beginPath();
-    ctx.moveTo(pts[0].x * dpr, pts[0].y * dpr);
-    for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x * dpr, pts[i].y * dpr);
-    if (pts.length === 1) ctx.lineTo(pts[0].x * dpr + 0.5, pts[0].y * dpr);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  function pointerToLocal(e, canvas, dpr) {
-    var rect = canvas.getBoundingClientRect();
-    return {
-      x: (e.clientX - rect.left) * (canvas.width / rect.width) / dpr,
-      y: (e.clientY - rect.top) * (canvas.height / rect.height) / dpr
-    };
-  }
-
-  function shouldDraw(e) {
-    if (!isWriteMode) return false;
-    if (e.pointerType === "pen") {
-      hasPenCapability = true;
-      updatePenStatus();
-      return true;
-    }
-    if (e.pointerType === "touch") return inputMode === "finger";
-    return true;
-  }
-
-  function shouldPan(e) {
-    if (!isWriteMode) return false;
-    return e.pointerType === "touch" && inputMode === "pen";
-  }
-
-  function bindAnnotEvents(num) {
-    var pr = pageRenders[num];
-    if (!pr || pr._bound) return;
-    pr._bound = true;
-    var canvas = pr.annotCanvas;
-
-    canvas.addEventListener("pointerdown", function (e) {
-      if (e.pointerType === "pen") { hasPenCapability = true; updatePenStatus(); }
-      if (!isWriteMode) return;
-
-      if (currentTool === "text") {
-        if (!shouldDraw(e) && e.pointerType !== "mouse") return;
-        e.preventDefault();
-        var rect = canvas.getBoundingClientRect();
-        openTextEditor(num, e.clientX - rect.left, e.clientY - rect.top);
-        return;
-      }
-
-      if (e.pointerType === "touch" && inputMode === "finger") {
-        var touchCount = 0;
-        Object.keys(activePointers).forEach(function (id) {
-          if (activePointers[id] === "draw" || activePointers[id] === "pan") touchCount++;
-        });
-        if (touchCount >= 1) {
-          isDrawing = false;
-          currentStroke = null;
-          activePointers[e.pointerId] = "pan";
-          panState = {
-            id: e.pointerId, x: e.clientX, y: e.clientY,
-            scrollLeft: el.viewer.scrollLeft, scrollTop: el.viewer.scrollTop
-          };
-          try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
-          e.preventDefault();
-          return;
-        }
-      }
-
-      if (shouldPan(e)) {
-        e.preventDefault();
-        activePointers[e.pointerId] = "pan";
-        panState = {
-          id: e.pointerId, x: e.clientX, y: e.clientY,
-          scrollLeft: el.viewer.scrollLeft, scrollTop: el.viewer.scrollTop
-        };
-        try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
-        return;
-      }
-
-      if (!shouldDraw(e)) return;
-      e.preventDefault();
-      e.stopPropagation();
-      try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
-      isDrawing = true;
-      activePointers[e.pointerId] = "draw";
-      pushUndo();
-      var dpr = pr.outputScale || 1;
-      var pt = pointerToLocal(e, canvas, dpr);
-      currentStroke = {
-        tool: currentTool,
-        color: currentTool === "highlighter" ? (strokeColor || "#ffeb3b") : strokeColor,
-        size: currentTool === "highlighter" ? Math.max(strokeSize * 3, 10)
-          : (currentTool === "eraser" ? Math.max(strokeSize * 4, 12) : strokeSize),
-        points: [pt]
-      };
-      if (!annotations[num]) annotations[num] = [];
-      annotations[num].push(currentStroke);
-      redrawAnnotations(num);
-    }, { passive: false });
-
-    canvas.addEventListener("pointermove", function (e) {
-      if (activePointers[e.pointerId] === "pan" && panState && panState.id === e.pointerId) {
-        e.preventDefault();
-        el.viewer.scrollLeft = panState.scrollLeft - (e.clientX - panState.x);
-        el.viewer.scrollTop = panState.scrollTop - (e.clientY - panState.y);
-        return;
-      }
-      if (!isWriteMode || !isDrawing || activePointers[e.pointerId] !== "draw") return;
-      e.preventDefault();
-      if (!currentStroke) return;
-      var dpr = pr.outputScale || 1;
-      currentStroke.points.push(pointerToLocal(e, canvas, dpr));
-      redrawAnnotations(num);
-    }, { passive: false });
-
-    function endStroke(e) {
-      if (activePointers[e.pointerId] === "pan") {
-        panState = null;
-        try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
-      }
-      if (activePointers[e.pointerId] === "draw") {
-        isDrawing = false;
-        currentStroke = null;
-        try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
-      }
-      delete activePointers[e.pointerId];
-    }
-    canvas.addEventListener("pointerup", endStroke);
-    canvas.addEventListener("pointercancel", endStroke);
-  }
-
-  function openTextEditor(page, x, y) {
-    pendingTextPlace = { page: page, x: x, y: y };
-    el.textPopup.classList.remove("hidden");
-    el.textInput.value = "";
-    el.textInput.focus();
-  }
-
-  function commitTextEditor() {
-    if (!pendingTextPlace) return;
-    var text = (el.textInput.value || "").trim();
-    el.textPopup.classList.add("hidden");
-    if (!text) { pendingTextPlace = null; return; }
-    var page = pendingTextPlace.page;
-    pushUndo();
-    if (!annotations[page]) annotations[page] = [];
-    annotations[page].push({
-      type: "text",
-      x: pendingTextPlace.x,
-      y: pendingTextPlace.y,
-      text: text,
-      color: strokeColor || "#ff2d95",
-      fontSize: fontSize
-    });
-    redrawAnnotations(page);
-    pendingTextPlace = null;
-    setStatus("文字を配置しました");
-  }
-
-  function cancelTextEditor() {
-    el.textPopup.classList.add("hidden");
-    pendingTextPlace = null;
   }
 
   function buildThumbnails() {
     if (!pdfDoc || !el.thumbsPanel) return;
     el.thumbsPanel.innerHTML = "";
-    var max = Math.min(totalPages, 40);
+    var max = Math.min(totalPages, 60);
     for (var i = 1; i <= max; i++) {
       (function (pageNum) {
         var item = document.createElement("button");
@@ -564,7 +290,7 @@
         item.addEventListener("click", function () { goToPage(pageNum); });
         el.thumbsPanel.appendChild(item);
         pdfDoc.getPage(pageNum).then(function (page) {
-          var vp = page.getViewport({ scale: 0.18 });
+          var vp = page.getViewport({ scale: 0.16, rotation: rotation });
           c.width = vp.width;
           c.height = vp.height;
           return page.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise;
@@ -589,11 +315,16 @@
           btn.dataset.level = String(level);
           btn.textContent = item.title || "(無題)";
           btn.addEventListener("click", function () {
-            if (item.dest) {
-              pdfDoc.getPageIndex(item.dest[0]).then(function (idx) {
+            if (!item.dest) return;
+            var destPromise = typeof item.dest === "string"
+              ? pdfDoc.getDestination(item.dest)
+              : Promise.resolve(item.dest);
+            destPromise.then(function (dest) {
+              if (!dest) return;
+              return pdfDoc.getPageIndex(dest[0]).then(function (idx) {
                 goToPage(idx + 1);
-              }).catch(function () {});
-            }
+              });
+            }).catch(function () {});
           });
           el.outlinePanel.appendChild(btn);
           if (item.items && item.items.length) addItems(item.items, level + 1);
@@ -611,17 +342,21 @@
     el.pageNum.value = String(num);
     var wrap = document.getElementById("page-wrap-" + num);
     if (wrap) wrap.scrollIntoView({ behavior: "smooth", block: "start" });
-    var thumbs = el.thumbsPanel && el.thumbsPanel.querySelectorAll(".thumb-item");
-    if (thumbs) {
-      thumbs.forEach(function (t) {
-        t.classList.toggle("active", t.dataset.page === String(num));
-      });
-    }
+    highlightThumb(num);
+    updateProgress();
+    if (presenting) renderPresentPage(num);
+  }
+
+  function highlightThumb(num) {
+    if (!el.thumbsPanel) return;
+    el.thumbsPanel.querySelectorAll(".thumb-item").forEach(function (t) {
+      t.classList.toggle("active", t.dataset.page === String(num));
+    });
   }
 
   function onViewerScroll() {
-    if (!pdfDoc) return;
-    var y = el.viewer.scrollTop + el.viewer.clientHeight * 0.25;
+    if (!pdfDoc || presenting) return;
+    var y = el.viewer.scrollTop + el.viewer.clientHeight * 0.28;
     var best = 1;
     for (var i = 1; i <= totalPages; i++) {
       var w = document.getElementById("page-wrap-" + i);
@@ -630,6 +365,8 @@
     if (best !== currentPage) {
       currentPage = best;
       el.pageNum.value = String(best);
+      highlightThumb(best);
+      updateProgress();
     }
   }
 
@@ -637,20 +374,63 @@
     zoomMode = String(mode);
     if (el.zoomSelect) {
       var opts = ["auto", "page-width", "page-fit"];
-      el.zoomSelect.value = opts.indexOf(zoomMode) >= 0 ? zoomMode : (parseFloat(zoomMode) || 1);
+      if (opts.indexOf(zoomMode) >= 0) el.zoomSelect.value = zoomMode;
+      else {
+        var n = parseFloat(zoomMode);
+        el.zoomSelect.value = isFinite(n) ? String(n) : "auto";
+      }
     }
     if (!pdfDoc) return;
     setStatus("再描画中…");
     renderAllPages().then(function () {
-      setStatus(totalPages + " ページ");
+      setStatus(totalPages + " ページ · 閲覧専用");
       goToPage(currentPage);
+      updateViewStatus();
     });
+  }
+
+  function rotateClockwise() {
+    rotation = (rotation + 90) % 360;
+    if (!pdfDoc) return;
+    setStatus("回転中…");
+    renderAllPages().then(function () {
+      buildThumbnails();
+      setStatus(totalPages + " ページ · 回転 " + rotation + "°");
+      goToPage(currentPage);
+      updateViewStatus();
+    });
+  }
+
+  function toggleFacing() {
+    facing = !facing;
+    el.viewer.classList.toggle("facing", facing);
+    if (el.btnLayout) el.btnLayout.classList.toggle("active", facing);
+    applyZoom(zoomMode);
+    setStatus(facing ? "見開き表示" : "単ページ連続表示");
+    updateViewStatus();
+  }
+
+  function toggleInvert() {
+    inverted = !inverted;
+    el.viewer.classList.toggle("inverted", inverted);
+    if (el.btnInvert) el.btnInvert.classList.toggle("active", inverted);
+    setStatus(inverted ? "反転表示 ON" : "反転表示 OFF");
+    updateViewStatus();
+  }
+
+  function updateViewStatus() {
+    var parts = [Math.round(scale * 100) + "%"];
+    if (rotation) parts.push(rotation + "°");
+    if (facing) parts.push("見開き");
+    if (inverted) parts.push("反転");
+    setViewStatus(parts.join(" · "));
   }
 
   function runSearch(query) {
     searchMatches = [];
     searchIndex = -1;
     el.searchCount.textContent = "";
+    clearSearchHits();
     if (!pdfDoc || !query) return;
     setStatus("検索中…");
     query = query.toLowerCase();
@@ -659,195 +439,99 @@
       if (i > totalPages) {
         el.searchCount.textContent = searchMatches.length ? searchMatches.length + " 頁" : "0";
         setStatus(searchMatches.length ? "検索完了" : "見つかりません");
-        if (searchMatches.length) { searchIndex = 0; goToPage(searchMatches[0]); }
+        if (searchMatches.length) { searchIndex = 0; goToSearchMatch(0); }
         return;
       }
-      pdfDoc.getPage(i).then(function (page) {
-        return page.getTextContent();
-      }).then(function (content) {
-        var text = content.items.map(function (it) { return it.str; }).join(" ").toLowerCase();
-        if (text.indexOf(query) >= 0) searchMatches.push(i);
-        i++;
-        next();
-      }).catch(function () { i++; next(); });
+      pdfDoc.getPage(i).then(function (page) { return page.getTextContent(); })
+        .then(function (content) {
+          var text = content.items.map(function (it) { return it.str; }).join(" ").toLowerCase();
+          if (text.indexOf(query) >= 0) searchMatches.push(i);
+          i++; next();
+        }).catch(function () { i++; next(); });
     }
     next();
   }
 
-  function searchStep(dir) {
+  function clearSearchHits() {
+    Object.keys(pageRenders).forEach(function (k) {
+      var pr = pageRenders[k];
+      if (pr && pr.wrap) pr.wrap.classList.remove("search-hit");
+    });
+  }
+
+  function goToSearchMatch(idx) {
     if (!searchMatches.length) return;
-    searchIndex = (searchIndex + dir + searchMatches.length) % searchMatches.length;
-    goToPage(searchMatches[searchIndex]);
+    searchIndex = ((idx % searchMatches.length) + searchMatches.length) % searchMatches.length;
+    var page = searchMatches[searchIndex];
+    clearSearchHits();
+    var pr = pageRenders[page];
+    if (pr && pr.wrap) pr.wrap.classList.add("search-hit");
+    goToPage(page);
     el.searchCount.textContent = (searchIndex + 1) + " / " + searchMatches.length;
   }
 
-  function setWriteMode(on) {
-    isWriteMode = !!on;
-    document.body.classList.toggle("write-active", isWriteMode);
-    el.viewer.classList.toggle("write-mode", isWriteMode);
-    el.btnWrite.classList.toggle("active", isWriteMode);
-    el.annotToolbar.classList.toggle("hidden", !isWriteMode);
-    syncPointerEvents();
-    updateInputModeUI();
-    Object.keys(pageRenders).forEach(function (k) { redrawAnnotations(Number(k)); });
-    setStatus(isWriteMode
-      ? (inputMode === "pen" ? "書き込み（ペンモード）" : "書き込み（指モード）")
-      : "閲覧モード");
+  function searchStep(dir) {
+    if (!searchMatches.length) return;
+    goToSearchMatch(searchIndex + dir);
   }
 
-  function exportAnnotatedPdf() {
-    if (!pdfDoc || !rawPdfBytes) {
-      setStatus("先にPDFを開いてください");
-      return;
-    }
-    if (typeof PDFLib === "undefined") {
-      setStatus("pdf-lib 読込失敗");
-      return;
-    }
-    setStatus("PDF書き出し中…");
-    var title = (el.title && el.title.textContent) || "annotated";
-    var baseName = String(title).replace(/\.pdf$/i, "").replace(/[^\w\u3040-\u30ff\u4e00-\u9fff\-]+/g, "_") || "annotated";
-
-    var bytesForLib = rawPdfBytes.buffer.slice(
-      rawPdfBytes.byteOffset,
-      rawPdfBytes.byteOffset + rawPdfBytes.byteLength
-    );
-
-    var needsTextFont = false;
-    Object.keys(annotations).forEach(function (k) {
-      (annotations[k] || []).forEach(function (it) {
-        if (it.type === "text" && it.text) needsTextFont = true;
-      });
-    });
-
-    PDFLib.PDFDocument.load(bytesForLib, { ignoreEncryption: true }).then(function (outDoc) {
-      var fontPromise;
-      if (needsTextFont) {
-        fontPromise = fetch("https://cdn.jsdelivr.net/gh/AquaCamel/cdn-fonts@main/ipaexg.ttf")
-          .then(function (res) {
-            if (!res.ok) throw new Error("font");
-            return res.arrayBuffer();
-          })
-          .then(function (buf) { return outDoc.embedFont(buf); })
-          .catch(function () {
-            return outDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
-          });
-      } else {
-        fontPromise = Promise.resolve(null);
-      }
-
-      return fontPromise.then(function (font) {
-        var pageCount = outDoc.getPageCount();
-        var ratio = 1 / (scale || 1);
-        var lineCap = (PDFLib.LineCapStyle && PDFLib.LineCapStyle.Round) || undefined;
-
-        for (var pageIndex = 0; pageIndex < pageCount; pageIndex++) {
-          var page = outDoc.getPage(pageIndex);
-          var pageH = page.getSize().height;
-          var items = annotations[pageIndex + 1] || [];
-
-          for (var ii = 0; ii < items.length; ii++) {
-            var item = items[ii];
-            if (item.type === "text") {
-              if (!font || !item.text) continue;
-              var tx = (item.x || 0) * ratio;
-              var fontSizePdf = Math.max(6, (item.fontSize || 16) * ratio);
-              var lines = String(item.text).split("\n");
-              for (var li = 0; li < lines.length; li++) {
-                var ty = pageH - ((item.y || 0) * ratio + li * fontSizePdf * 1.35) - fontSizePdf;
-                try {
-                  page.drawText(lines[li], {
-                    x: Math.max(0, tx),
-                    y: Math.max(0, ty),
-                    size: fontSizePdf,
-                    font: font,
-                    color: hexToPdfColor(item.color || "#ff2d95")
-                  });
-                } catch (e) {}
-              }
-              continue;
-            }
-
-            if (!item.points || item.points.length < 1) continue;
-            if (item.tool === "eraser") continue;
-
-            var pts = item.points;
-            var thickness = (item.size || 3) * ratio;
-            if (item.tool === "highlighter") thickness = Math.max(thickness, 8 * ratio);
-            thickness = Math.max(0.5, thickness);
-            var color = hexToPdfColor(item.color || (item.tool === "highlighter" ? "#ffeb3b" : "#ff2d95"));
-            var opacity = item.tool === "highlighter" ? 0.4 : 1;
-
-            if (pts.length >= 2 && page.drawSvgPath) {
-              var d = "M " + (pts[0].x * ratio) + " " + (pageH - pts[0].y * ratio);
-              for (var pi = 1; pi < pts.length; pi++) {
-                d += " L " + (pts[pi].x * ratio) + " " + (pageH - pts[pi].y * ratio);
-              }
-              try {
-                page.drawSvgPath(d, {
-                  borderColor: color,
-                  borderWidth: thickness,
-                  borderOpacity: opacity
-                });
-              } catch (e) {
-                var step = Math.max(1, Math.floor(pts.length / 80));
-                for (var i = 0; i < pts.length - 1; i += step) {
-                  var j = Math.min(i + step, pts.length - 1);
-                  try {
-                    page.drawLine({
-                      start: { x: pts[i].x * ratio, y: pageH - pts[i].y * ratio },
-                      end: { x: pts[j].x * ratio, y: pageH - pts[j].y * ratio },
-                      thickness: thickness,
-                      color: color,
-                      opacity: opacity,
-                      lineCap: lineCap
-                    });
-                  } catch (e2) {}
-                }
-              }
-            } else {
-              var x = pts[0].x * ratio;
-              var y = pageH - pts[0].y * ratio;
-              try {
-                page.drawLine({
-                  start: { x: x, y: y },
-                  end: { x: x + 0.5, y: y },
-                  thickness: thickness,
-                  color: color,
-                  opacity: opacity,
-                  lineCap: lineCap
-                });
-              } catch (e) {}
-            }
-          }
-        }
-
-        return outDoc.save({ useObjectStreams: true });
-      });
-    }).then(function (pdfBytes) {
-      var blob = new Blob([pdfBytes], { type: "application/pdf" });
-      var a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = baseName + "_edited.pdf";
-      a.click();
-      URL.revokeObjectURL(a.href);
-      setStatus("PDFを書き出しました（元の文字・図は保持）: " + baseName + "_edited.pdf");
-    }).catch(function (err) {
-      console.error(err);
-      setStatus("書き出し失敗: " + (err && err.message ? err.message : "エラー"));
-    });
+  function enterPresent() {
+    if (!pdfDoc) return;
+    presenting = true;
+    el.presentOverlay.classList.remove("hidden");
+    renderPresentPage(currentPage);
+    try {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function () {});
+    } catch (e) {}
+    setStatus("プレゼンテーションモード");
   }
 
-  function hexToPdfColor(hex) {
-    var h = String(hex || "#ff2d95").replace("#", "");
-    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
-    var r = parseInt(h.slice(0, 2), 16) / 255;
-    var g = parseInt(h.slice(2, 4), 16) / 255;
-    var b = parseInt(h.slice(4, 6), 16) / 255;
-    if (!isFinite(r) || !isFinite(g) || !isFinite(b)) {
-      return PDFLib.rgb(1, 0.18, 0.58);
-    }
-    return PDFLib.rgb(r, g, b);
+  function exitPresent() {
+    presenting = false;
+    el.presentOverlay.classList.add("hidden");
+    el.presentStage.innerHTML = "";
+    try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
+    setStatus(totalPages + " ページ · 閲覧専用");
+  }
+
+  function renderPresentPage(num) {
+    if (!pdfDoc || !el.presentStage) return;
+    el.presentStage.innerHTML = "";
+    if (el.presentPageLabel) el.presentPageLabel.textContent = num + " / " + totalPages;
+    pdfDoc.getPage(num).then(function (page) {
+      var baseVp = page.getViewport({ scale: 1, rotation: rotation });
+      var maxW = el.presentStage.clientWidth || window.innerWidth;
+      var maxH = el.presentStage.clientHeight || window.innerHeight - 48;
+      var s = Math.min(maxW / baseVp.width, maxH / baseVp.height) * 0.96;
+      var viewport = page.getViewport({ scale: s, rotation: rotation });
+      var canvas = document.createElement("canvas");
+      var dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.floor(viewport.width * dpr);
+      canvas.height = Math.floor(viewport.height * dpr);
+      canvas.style.width = Math.floor(viewport.width) + "px";
+      canvas.style.height = Math.floor(viewport.height) + "px";
+      var ctx = canvas.getContext("2d", { alpha: false });
+      var transform = dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null;
+      el.presentStage.appendChild(canvas);
+      return page.render({ canvasContext: ctx, viewport: viewport, transform: transform }).promise;
+    }).catch(function (err) { console.warn(err); });
+  }
+
+  function printPdf() {
+    if (!downloadUrl) { setStatus("印刷用データがありません"); return; }
+    var w = window.open(downloadUrl);
+    if (w) {
+      w.addEventListener("load", function () { try { w.print(); } catch (e) {} });
+    } else setStatus("ポップアップがブロックされました");
+  }
+
+  function debounce(fn, ms) {
+    var t = null;
+    return function () {
+      var args = arguments;
+      clearTimeout(t);
+      t = setTimeout(function () { fn.apply(null, args); }, ms);
+    };
   }
 
   function bindUI() {
@@ -861,14 +545,12 @@
 
     ["dragenter", "dragover"].forEach(function (ev) {
       el.viewer.addEventListener(ev, function (e) {
-        e.preventDefault();
-        el.dropZone.classList.add("dragover");
+        e.preventDefault(); el.dropZone.classList.add("dragover");
       });
     });
     ["dragleave", "drop"].forEach(function (ev) {
       el.viewer.addEventListener(ev, function (e) {
-        e.preventDefault();
-        el.dropZone.classList.remove("dragover");
+        e.preventDefault(); el.dropZone.classList.remove("dragover");
       });
     });
     el.viewer.addEventListener("drop", function (e) {
@@ -881,31 +563,39 @@
     el.pageNum.addEventListener("change", function () {
       goToPage(parseInt(el.pageNum.value, 10) || 1);
     });
-
     el.btnZoomIn.addEventListener("click", function () {
       applyZoom(Math.min(4, (scale || 1) * 1.25));
     });
     el.btnZoomOut.addEventListener("click", function () {
-      applyZoom(Math.max(0.3, (scale || 1) / 1.25));
+      applyZoom(Math.max(0.25, (scale || 1) / 1.25));
     });
-    el.zoomSelect.addEventListener("change", function () {
-      applyZoom(el.zoomSelect.value);
+    el.zoomSelect.addEventListener("change", function () { applyZoom(el.zoomSelect.value); });
+    el.btnRotate.addEventListener("click", rotateClockwise);
+    el.btnLayout.addEventListener("click", toggleFacing);
+    el.btnInvert.addEventListener("click", toggleInvert);
+    el.btnPresent.addEventListener("click", function () {
+      if (presenting) exitPresent(); else enterPresent();
     });
+    el.presentExit.addEventListener("click", exitPresent);
 
     el.btnSearch.addEventListener("click", function () {
       el.searchBar.classList.toggle("hidden");
       if (!el.searchBar.classList.contains("hidden")) el.searchInput.focus();
     });
-    el.searchClose.addEventListener("click", function () { el.searchBar.classList.add("hidden"); });
+    el.searchClose.addEventListener("click", function () {
+      el.searchBar.classList.add("hidden"); clearSearchHits();
+    });
     el.searchInput.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") runSearch(el.searchInput.value.trim());
+      if (e.key === "Enter") {
+        if (e.shiftKey) searchStep(-1);
+        else if (searchMatches.length && el.searchInput.value.trim()) searchStep(1);
+        else runSearch(el.searchInput.value.trim());
+      }
     });
     el.searchPrev.addEventListener("click", function () { searchStep(-1); });
     el.searchNext.addEventListener("click", function () { searchStep(1); });
 
-    el.btnSidebar.addEventListener("click", function () {
-      el.sidebar.classList.toggle("hidden");
-    });
+    el.btnSidebar.addEventListener("click", function () { el.sidebar.classList.toggle("hidden"); });
     document.querySelectorAll(".sidebar-tab").forEach(function (tab) {
       tab.addEventListener("click", function () {
         document.querySelectorAll(".sidebar-tab").forEach(function (t) { t.classList.remove("active"); });
@@ -913,93 +603,88 @@
         var panel = tab.dataset.panel;
         el.thumbsPanel.classList.toggle("hidden", panel !== "thumbs");
         el.outlinePanel.classList.toggle("hidden", panel !== "outline");
+        el.infoPanel.classList.toggle("hidden", panel !== "info");
       });
-    });
-
-    el.btnWrite.addEventListener("click", function () { setWriteMode(!isWriteMode); });
-
-    if (el.modePen) el.modePen.addEventListener("click", function () { setInputMode("pen"); });
-    if (el.modeFinger) el.modeFinger.addEventListener("click", function () { setInputMode("finger"); });
-
-    document.querySelectorAll(".annot-tool").forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        document.querySelectorAll(".annot-tool").forEach(function (b) { b.classList.remove("active"); });
-        btn.classList.add("active");
-        currentTool = btn.dataset.tool || "pen";
-      });
-    });
-    el.annotColor.addEventListener("input", function () { strokeColor = el.annotColor.value; });
-    el.annotSize.addEventListener("input", function () { strokeSize = parseInt(el.annotSize.value, 10) || 3; });
-    if (el.annotFontSize) {
-      el.annotFontSize.addEventListener("change", function () {
-        fontSize = parseInt(el.annotFontSize.value, 10) || 16;
-      });
-    }
-    if (el.annotUndo) el.annotUndo.addEventListener("click", undo);
-    el.annotClearPage.addEventListener("click", function () {
-      if (!currentPage) return;
-      pushUndo();
-      annotations[currentPage] = [];
-      redrawAnnotations(currentPage);
-      setStatus("ページ " + currentPage + " の書き込みを消去");
-    });
-    el.annotExport.addEventListener("click", function () {
-      exportAnnotatedPdf();
     });
 
     el.btnFullscreen.addEventListener("click", function () {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(function () {});
-      } else {
-        document.exitFullscreen();
-      }
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function () {});
+      else document.exitFullscreen();
     });
-
-    if (el.textOk) el.textOk.addEventListener("click", commitTextEditor);
-    if (el.textCancel) el.textCancel.addEventListener("click", cancelTextEditor);
-    if (el.textInput) {
-      el.textInput.addEventListener("keydown", function (e) {
-        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) commitTextEditor();
-        if (e.key === "Escape") cancelTextEditor();
-      });
-    }
-
+    el.btnPrint.addEventListener("click", printPdf);
     el.viewer.addEventListener("scroll", onViewerScroll, { passive: true });
 
+    el.viewer.addEventListener("wheel", function (e) {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        if (e.deltaY < 0) applyZoom(Math.min(4, (scale || 1) * 1.1));
+        else applyZoom(Math.max(0.25, (scale || 1) / 1.1));
+      }
+    }, { passive: false });
+
     document.addEventListener("keydown", function (e) {
-      if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable)) {
-        if (e.key === "Escape" && pendingTextPlace) cancelTextEditor();
+      if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) {
+        if (e.key === "Escape" && !el.searchBar.classList.contains("hidden")) {
+          el.searchBar.classList.add("hidden"); clearSearchHits();
+        }
+        return;
+      }
+      if (presenting) {
+        if (e.key === "Escape") { e.preventDefault(); exitPresent(); }
+        else if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.key === " " || e.key === "PageDown") {
+          e.preventDefault(); goToPage(currentPage + 1);
+        } else if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.key === "PageUp") {
+          e.preventDefault(); goToPage(currentPage - 1);
+        } else if (e.key === "Home") { e.preventDefault(); goToPage(1); }
+        else if (e.key === "End") { e.preventDefault(); goToPage(totalPages); }
         return;
       }
       if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); goToPage(currentPage - 1); }
-      else if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") { e.preventDefault(); goToPage(currentPage + 1); }
-      else if (e.key === "+" || e.key === "=") el.btnZoomIn.click();
-      else if (e.key === "-") el.btnZoomOut.click();
-      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") { e.preventDefault(); el.btnSearch.click(); }
-      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); if (isWriteMode) undo(); }
-      else if (e.key.toLowerCase() === "w" && pdfDoc) setWriteMode(!isWriteMode);
-      else if (e.key.toLowerCase() === "p" && isWriteMode) setInputMode("pen");
-      else if (e.key.toLowerCase() === "t" && isWriteMode) setInputMode("finger");
+      else if (e.key === "ArrowRight" || e.key === "PageDown") { e.preventDefault(); goToPage(currentPage + 1); }
+      else if (e.key === " " && !e.shiftKey) { e.preventDefault(); goToPage(currentPage + 1); }
+      else if (e.key === "Home") { e.preventDefault(); goToPage(1); }
+      else if (e.key === "End") { e.preventDefault(); goToPage(totalPages); }
+      else if (e.key === "+" || e.key === "=") { e.preventDefault(); el.btnZoomIn.click(); }
+      else if (e.key === "-") { e.preventDefault(); el.btnZoomOut.click(); }
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        el.searchBar.classList.remove("hidden");
+        el.searchInput.focus(); el.searchInput.select();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "p") {
+        e.preventDefault(); printPdf();
+      } else if (e.key.toLowerCase() === "f" && pdfDoc && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault(); enterPresent();
+      } else if (e.key.toLowerCase() === "r" && pdfDoc && !e.ctrlKey) {
+        e.preventDefault(); rotateClockwise();
+      } else if (e.key.toLowerCase() === "i" && pdfDoc && !e.ctrlKey) {
+        e.preventDefault(); toggleInvert();
+      } else if (e.key === "Escape") {
+        if (!el.searchBar.classList.contains("hidden")) {
+          el.searchBar.classList.add("hidden"); clearSearchHits();
+        } else if (!el.sidebar.classList.contains("hidden")) {
+          el.sidebar.classList.add("hidden");
+        }
+      }
     });
 
-    window.addEventListener("pointerdown", function (e) {
-      if (e.pointerType === "pen") { hasPenCapability = true; updatePenStatus(); }
-    }, { passive: true });
+    window.addEventListener("resize", debounce(function () {
+      if (!pdfDoc) return;
+      if (zoomMode === "auto" || zoomMode === "page-width" || zoomMode === "page-fit") {
+        applyZoom(zoomMode);
+      }
+      if (presenting) renderPresentPage(currentPage);
+    }, 200));
   }
 
   function boot() {
-    updateInputModeUI();
     bindUI();
     setControlsEnabled(false);
     var src = getQueryParam("src") || getQueryParam("url") || getQueryParam("file");
     if (src) {
-      try {
-        loadPdfFromUrl(new URL(src, location.href).href, src.split("/").pop());
-      } catch (e) {
-        setStatus("URL不正");
-      }
+      try { loadPdfFromUrl(new URL(src, location.href).href, src.split("/").pop()); }
+      catch (e) { setStatus("URL不正"); }
     } else {
-      setStatus("PDFを開いてください");
+      setStatus("PDFを開いてください · 閲覧専用");
     }
   }
 
