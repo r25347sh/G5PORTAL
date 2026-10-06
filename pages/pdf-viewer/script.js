@@ -90,8 +90,17 @@
     catch (e) { return null; }
   }
   function escapeHtml(s) {
-    return String(s).replace(/&/g, "&").replace(/</g, "<")
-      .replace(/>/g, ">").replace(/"/g, """);
+    var out = "";
+    var str = String(s);
+    for (var i = 0; i < str.length; i++) {
+      var c = str.charAt(i);
+      if (c === "&") out += "&" + "amp;";
+      else if (c === "<") out += "&" + "lt;";
+      else if (c === ">") out += "&" + "gt;";
+      else if (c === '"') out += "&" + "quot;";
+      else out += c;
+    }
+    return out;
   }
   function computeScale(baseW, baseH) {
     var availW = el.viewer.clientWidth - 32;
@@ -151,7 +160,7 @@
       updateViewStatus();
     }).catch(function (err) {
       console.error(err);
-      setStatus("読み込み失敗");
+      setStatus("読み込み失敗: " + (err && err.message ? err.message : ""));
       setControlsEnabled(false);
       el.dropZone.classList.remove("hidden");
     });
@@ -172,6 +181,7 @@
   }
 
   function loadPdfFromFile(file) {
+    setStatus("ファイル読込中: " + (file && file.name ? file.name : ""));
     var reader = new FileReader();
     reader.onload = function () {
       loadPdfFromData(new Uint8Array(reader.result), file.name);
@@ -602,7 +612,10 @@
     });
     el.viewer.addEventListener("drop", function (e) {
       var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-      if (f && (f.type === "application/pdf" || /\.pdf$/i.test(f.name))) loadPdfFromFile(f);
+      if (f && (f.type === "application/pdf" || /\.pdf$/i.test(f.name))) {
+        if (!ensurePdfjs()) return;
+        loadPdfFromFile(f);
+      }
     });
 
     el.btnPrev.addEventListener("click", function () { goToPage(currentPage - 1); });
