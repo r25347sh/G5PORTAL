@@ -20,65 +20,51 @@
       <span class="pdf-title" id="pdf-title">PDFビューアー</span>
     </div>
     <div class="tb-center">
-      <button type="button" id="btn-prev" class="btn btn-ghost btn-sm" title="前のページ" disabled>◀</button>
+      <button type="button" id="btn-prev" class="btn btn-ghost btn-sm" title="前のページ (←)" disabled>◀</button>
       <span class="page-info">
-        <input type="number" id="page-num" min="1" value="1" class="page-input" disabled>
+        <input type="number" id="page-num" min="1" value="1" class="page-input" disabled title="ページ番号">
         <span>/</span>
         <span id="page-count">–</span>
       </span>
-      <button type="button" id="btn-next" class="btn btn-ghost btn-sm" title="次のページ" disabled>▶</button>
+      <button type="button" id="btn-next" class="btn btn-ghost btn-sm" title="次のページ (→)" disabled>▶</button>
     </div>
     <div class="tb-right">
-      <button type="button" id="btn-zoom-out" class="btn btn-ghost btn-sm" title="縮小" disabled>−</button>
-      <select id="zoom-select" class="zoom-select" disabled>
+      <button type="button" id="btn-zoom-out" class="btn btn-ghost btn-sm" title="縮小 (−)" disabled>−</button>
+      <select id="zoom-select" class="zoom-select" disabled title="表示倍率">
         <option value="auto">自動</option>
         <option value="page-width">幅に合わせる</option>
         <option value="page-fit">ページ全体</option>
+        <option value="0.5">50%</option>
         <option value="0.75">75%</option>
         <option value="1">100%</option>
         <option value="1.25">125%</option>
         <option value="1.5">150%</option>
         <option value="2">200%</option>
+        <option value="3">300%</option>
       </select>
-      <button type="button" id="btn-zoom-in" class="btn btn-ghost btn-sm" title="拡大" disabled>＋</button>
-      <button type="button" id="btn-search" class="btn btn-ghost btn-sm" title="検索" disabled>🔍</button>
+      <button type="button" id="btn-zoom-in" class="btn btn-ghost btn-sm" title="拡大 (+)" disabled>＋</button>
+      <button type="button" id="btn-rotate" class="btn btn-ghost btn-sm" title="回転 (R)" disabled>⟳</button>
+      <button type="button" id="btn-search" class="btn btn-ghost btn-sm" title="検索 (Ctrl+F)" disabled>🔍</button>
       <button type="button" id="btn-sidebar" class="btn btn-ghost btn-sm" title="サイドバー" disabled>☰</button>
-      <button type="button" id="btn-write" class="btn btn-ghost btn-sm" title="書き込みモード" disabled>✎</button>
+      <button type="button" id="btn-layout" class="btn btn-ghost btn-sm" title="見開き切替" disabled>📑</button>
+      <button type="button" id="btn-invert" class="btn btn-ghost btn-sm" title="反転表示 (I)" disabled>◐</button>
+      <button type="button" id="btn-present" class="btn btn-ghost btn-sm" title="プレゼン (F)" disabled>▶</button>
       <button type="button" id="btn-fullscreen" class="btn btn-ghost btn-sm" title="全画面">⛶</button>
+      <a id="btn-download" class="btn btn-ghost btn-sm hidden" title="ダウンロード" download>⬇</a>
+      <button type="button" id="btn-print" class="btn btn-ghost btn-sm" title="印刷 (Ctrl+P)" disabled>🖨</button>
     </div>
   </header>
 
   <div class="search-bar hidden" id="search-bar">
     <input type="search" id="search-input" placeholder="テキストを検索…" autocomplete="off">
     <span class="search-count" id="search-count"></span>
-    <button type="button" id="search-prev" class="btn btn-ghost btn-sm">↑</button>
-    <button type="button" id="search-next" class="btn btn-ghost btn-sm">↓</button>
-    <button type="button" id="search-close" class="btn btn-ghost btn-sm">×</button>
+    <button type="button" id="search-prev" class="btn btn-ghost btn-sm" title="前の結果">↑</button>
+    <button type="button" id="search-next" class="btn btn-ghost btn-sm" title="次の結果">↓</button>
+    <button type="button" id="search-close" class="btn btn-ghost btn-sm" title="閉じる">×</button>
   </div>
 
-  <div class="annot-toolbar hidden" id="annot-toolbar">
-    <div class="input-mode-toggle" role="group" aria-label="入力モード">
-      <button type="button" id="mode-pen" class="mode-btn active" data-mode="pen" title="ペン＝描画 / 指＝移動">🖊 ペン</button>
-      <button type="button" id="mode-finger" class="mode-btn" data-mode="finger" title="指＝描画 / 2本指＝移動">👆 指</button>
-    </div>
-    <span class="annot-sep"></span>
-    <button type="button" class="annot-tool active" data-tool="pen" title="ペン">🖊</button>
-    <button type="button" class="annot-tool" data-tool="highlighter" title="ハイライター">🖍</button>
-    <button type="button" class="annot-tool" data-tool="eraser" title="消しゴム">⌫</button>
-    <button type="button" class="annot-tool" data-tool="text" title="文字入力">T</button>
-    <input type="color" id="annot-color" value="#ff2d95" title="色">
-    <input type="range" id="annot-size" min="1" max="24" value="3" title="太さ">
-    <select id="annot-font-size" class="font-size-select" title="文字サイズ">
-      <option value="14">14</option>
-      <option value="16" selected>16</option>
-      <option value="20">20</option>
-      <option value="24">24</option>
-      <option value="32">32</option>
-    </select>
-    <button type="button" id="annot-undo" class="btn btn-ghost btn-sm" title="元に戻す">↩ Undo</button>
-    <button type="button" id="annot-clear-page" class="btn btn-ghost btn-sm">ページ消去</button>
-    <button type="button" id="annot-export" class="btn btn-ghost btn-sm" title="注釈を焼き込んだPDFを保存">書出(PDF)</button>
-    <span class="pen-hint" id="pen-hint">ペンモード: ペン＝描画 · 指＝移動</span>
+  <div class="progress-track" id="progress-track" aria-hidden="true">
+    <div class="progress-fill" id="progress-fill"></div>
   </div>
 
   <div class="pdf-layout">
@@ -86,9 +72,11 @@
       <div class="sidebar-tabs">
         <button type="button" class="sidebar-tab active" data-panel="thumbs">サムネ</button>
         <button type="button" class="sidebar-tab" data-panel="outline">目次</button>
+        <button type="button" class="sidebar-tab" data-panel="info">情報</button>
       </div>
       <div class="sidebar-panel" id="thumbs-panel"></div>
       <div class="sidebar-panel hidden" id="outline-panel"></div>
+      <div class="sidebar-panel hidden" id="info-panel"></div>
     </aside>
 
     <main class="pdf-viewer" id="pdf-viewer">
@@ -96,31 +84,32 @@
         <div class="drop-inner">
           <div class="drop-icon">📄</div>
           <h2>PDFを開く</h2>
-          <p>ファイルをドロップ、または「開く」ボタン<br>副教材のPDFからも直接開けます</p>
+          <p>ファイルをドロップ、または「開く」ボタン<br>
+            閲覧専用 · 高速レンダリング · 検索 · 見開き · プレゼン対応</p>
           <button type="button" class="btn btn-primary" id="btn-open-main">ファイルを選択</button>
+          <p class="drop-hints">← → ページ / + − ズーム / Ctrl+F 検索 / F プレゼン / R 回転 / I 反転</p>
         </div>
       </div>
       <div class="pages-container" id="pages-container"></div>
     </main>
   </div>
 
-  <div class="text-editor-popup hidden" id="text-editor-popup">
-    <textarea id="text-editor-input" rows="3" placeholder="文字を入力…"></textarea>
-    <div class="text-editor-actions">
-      <button type="button" id="text-editor-ok" class="btn btn-primary btn-sm">配置</button>
-      <button type="button" id="text-editor-cancel" class="btn btn-ghost btn-sm">取消</button>
-    </div>
+  <div class="status-bar" id="status-bar">
+    <span id="status-text">準備完了 · 閲覧専用</span>
+    <span id="view-status" class="view-status"></span>
   </div>
 
-  <div class="status-bar" id="status-bar">
-    <span id="status-text">準備完了</span>
-    <span id="pen-status" class="pen-status"></span>
+  <div class="present-overlay hidden" id="present-overlay">
+    <div class="present-stage" id="present-stage"></div>
+    <div class="present-chrome">
+      <span id="present-page-label">1 / 1</span>
+      <button type="button" id="present-exit" class="btn btn-ghost btn-sm">Esc 終了</button>
+    </div>
   </div>
 
   <script src="../../src/js/main.js"></script>
   <script src="../../MENU/MENU.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
