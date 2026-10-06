@@ -1,6 +1,6 @@
 /**
  * G5 Portal · PDF Viewer
- * Undo + pen/finger + text + vector PDF export (original content preserved)
+ * Undo + pen/finger + text + fast vector PDF export (original content preserved)
  * Annotations are session-only (cleared on reload)
  */
 (function () {
@@ -713,97 +713,117 @@
       rawPdfBytes.byteOffset + rawPdfBytes.byteLength
     );
 
-    function withDocAndFont() {
-      return PDFLib.PDFDocument.load(bytesForLib, { ignoreEncryption: true }).then(function (outDoc) {
-        return fetch("https://cdn.jsdelivr.net/gh/AquaCamel/cdn-fonts@main/ipaexg.ttf")
+    var needsTextFont = false;
+    Object.keys(annotations).forEach(function (k) {
+      (annotations[k] || []).forEach(function (it) {
+        if (it.type === "text" && it.text) needsTextFont = true;
+      });
+    });
+
+    PDFLib.PDFDocument.load(bytesForLib, { ignoreEncryption: true }).then(function (outDoc) {
+      var fontPromise;
+      if (needsTextFont) {
+        fontPromise = fetch("https://cdn.jsdelivr.net/gh/AquaCamel/cdn-fonts@main/ipaexg.ttf")
           .then(function (res) {
-            if (!res.ok) throw new Error("no jp font");
+            if (!res.ok) throw new Error("font");
             return res.arrayBuffer();
           })
-          .then(function (fontBuf) { return outDoc.embedFont(fontBuf); })
+          .then(function (buf) { return outDoc.embedFont(buf); })
           .catch(function () {
             return outDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
-          })
-          .then(function (font) {
-            return { outDoc: outDoc, font: font };
           });
-      });
-    }
-
-    withDocAndFont().then(function (pack) {
-      var outDoc = pack.outDoc;
-      var font = pack.font;
-      var pageCount = outDoc.getPageCount();
-
-      for (var pageIndex = 0; pageIndex < pageCount; pageIndex++) {
-        var page = outDoc.getPage(pageIndex);
-        var size = page.getSize();
-        var pageH = size.height;
-        var items = annotations[pageIndex + 1] || [];
-        var ratio = 1 / (scale || 1);
-
-        items.forEach(function (item) {
-          if (item.type === "text") {
-            var tx = (item.x || 0) * ratio;
-            var fontSizePdf = Math.max(6, (item.fontSize || 16) * ratio);
-            var lines = String(item.text || "").split("\n");
-            lines.forEach(function (line, li) {
-              var tyFromTop = (item.y || 0) * ratio + li * fontSizePdf * 1.35;
-              var ty = pageH - tyFromTop - fontSizePdf;
-              try {
-                page.drawText(line, {
-                  x: Math.max(0, tx),
-                  y: Math.max(0, ty),
-                  size: fontSizePdf,
-                  font: font,
-                  color: hexToPdfColor(item.color || "#ff2d95"),
-                  opacity: 1
-                });
-              } catch (e) {}
-            });
-            return;
-          }
-
-          if (!item.points || !item.points.length) return;
-          if (item.tool === "eraser") return;
-
-          var pts = item.points;
-          var thickness = (item.size || 3) * ratio;
-          if (item.tool === "highlighter") thickness = Math.max(thickness, 8 * ratio);
-          var color = hexToPdfColor(item.color || (item.tool === "highlighter" ? "#ffeb3b" : "#ff2d95"));
-          var opacity = item.tool === "highlighter" ? 0.4 : 1;
-          var lineCap = (PDFLib.LineCapStyle && PDFLib.LineCapStyle.Round) || undefined;
-
-          for (var i = 0; i < pts.length - 1; i++) {
-            try {
-              page.drawLine({
-                start: { x: pts[i].x * ratio, y: pageH - pts[i].y * ratio },
-                end: { x: pts[i + 1].x * ratio, y: pageH - pts[i + 1].y * ratio },
-                thickness: Math.max(0.5, thickness),
-                color: color,
-                opacity: opacity,
-                lineCap: lineCap
-              });
-            } catch (e) {}
-          }
-          if (pts.length === 1) {
-            try {
-              var x = pts[0].x * ratio;
-              var y = pageH - pts[0].y * ratio;
-              page.drawLine({
-                start: { x: x, y: y },
-                end: { x: x + 0.5, y: y },
-                thickness: Math.max(0.5, thickness),
-                color: color,
-                opacity: opacity,
-                lineCap: lineCap
-              });
-            } catch (e) {}
-          }
-        });
+      } else {
+        fontPromise = Promise.resolve(null);
       }
 
-      return outDoc.save();
+      return fontPromise.then(function (font) {
+        var pageCount = outDoc.getPageCount();
+        var ratio = 1 / (scale || 1);
+        var lineCap = (PDFLib.LineCapStyle && PDFLib.LineCapStyle.Round) || undefined;
+
+        for (var pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+          var page = outDoc.getPage(pageIndex);
+          var pageH = page.getSize().height;
+          var items = annotations[pageIndex + 1] || [];
+
+          for (var ii = 0; ii < items.length; ii++) {
+            var item = items[ii];
+            if (item.type === "text") {
+              if (!font || !item.text) continue;
+              var tx = (item.x || 0) * ratio;
+              var fontSizePdf = Math.max(6, (item.fontSize || 16) * ratio);
+              var lines = String(item.text).split("\n");
+              for (var li = 0; li < lines.length; li++) {
+                var ty = pageH - ((item.y || 0) * ratio + li * fontSizePdf * 1.35) - fontSizePdf;
+                try {
+                  page.drawText(lines[li], {
+                    x: Math.max(0, tx),
+                    y: Math.max(0, ty),
+                    size: fontSizePdf,
+                    font: font,
+                    color: hexToPdfColor(item.color || "#ff2d95")
+                  });
+                } catch (e) {}
+              }
+              continue;
+            }
+
+            if (!item.points || item.points.length < 1) continue;
+            if (item.tool === "eraser") continue;
+
+            var pts = item.points;
+            var thickness = (item.size || 3) * ratio;
+            if (item.tool === "highlighter") thickness = Math.max(thickness, 8 * ratio);
+            thickness = Math.max(0.5, thickness);
+            var color = hexToPdfColor(item.color || (item.tool === "highlighter" ? "#ffeb3b" : "#ff2d95"));
+            var opacity = item.tool === "highlighter" ? 0.4 : 1;
+
+            if (pts.length >= 2 && page.drawSvgPath) {
+              var d = "M " + (pts[0].x * ratio) + " " + (pageH - pts[0].y * ratio);
+              for (var pi = 1; pi < pts.length; pi++) {
+                d += " L " + (pts[pi].x * ratio) + " " + (pageH - pts[pi].y * ratio);
+              }
+              try {
+                page.drawSvgPath(d, {
+                  borderColor: color,
+                  borderWidth: thickness,
+                  borderOpacity: opacity
+                });
+              } catch (e) {
+                var step = Math.max(1, Math.floor(pts.length / 80));
+                for (var i = 0; i < pts.length - 1; i += step) {
+                  var j = Math.min(i + step, pts.length - 1);
+                  try {
+                    page.drawLine({
+                      start: { x: pts[i].x * ratio, y: pageH - pts[i].y * ratio },
+                      end: { x: pts[j].x * ratio, y: pageH - pts[j].y * ratio },
+                      thickness: thickness,
+                      color: color,
+                      opacity: opacity,
+                      lineCap: lineCap
+                    });
+                  } catch (e2) {}
+                }
+              }
+            } else {
+              var x = pts[0].x * ratio;
+              var y = pageH - pts[0].y * ratio;
+              try {
+                page.drawLine({
+                  start: { x: x, y: y },
+                  end: { x: x + 0.5, y: y },
+                  thickness: thickness,
+                  color: color,
+                  opacity: opacity,
+                  lineCap: lineCap
+                });
+              } catch (e) {}
+            }
+          }
+        }
+
+        return outDoc.save({ useObjectStreams: true });
+      });
     }).then(function (pdfBytes) {
       var blob = new Blob([pdfBytes], { type: "application/pdf" });
       var a = document.createElement("a");
