@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja" data-color-mode="dark" data-color-scheme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDFページ結合 · G⁵ Portal</title>
+  <link rel="stylesheet" href="../../src/css/style.css">
+  <link rel="stylesheet" href="../../MENU/MENU.css">
+  <style>
+    .tool-wrap { max-width: 640px; margin: 2rem auto; padding: 0 1rem 3rem; }
+    .tool-card {
+      background: rgba(16,11,26,0.9);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+    }
+    .tool-card h1 { font-size: 1.4rem; margin: 0 0 0.5rem; }
+    .tool-card p.desc { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.25rem; }
+    .file-list { list-style: none; padding: 0; margin: 0 0 1rem; }
+    .file-list li {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 0.7rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 0.4rem;
+      background: rgba(255,255,255,0.04);
+      font-size: 0.88rem;
+    }
+    .file-list li span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-list .ord { color: var(--text-muted); min-width: 1.5rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+    .status { margin-top: 1rem; font-size: 0.85rem; color: var(--cyan); min-height: 1.2em; }
+    .back { display: inline-block; margin-bottom: 1rem; }
+    .drop-hint {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+      cursor: pointer;
+    }
+    .drop-hint.dragover { border-color: var(--pink); background: rgba(255,45,149,0.08); }
+  </style>
+</head>
+<body>
+  <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
+  <div class="tool-wrap">
+    <a href="../../index.html" class="btn btn-ghost btn-sm back">← ホーム</a>
+    <div class="tool-card">
+      <h1>📎 PDFページ結合</h1>
+      <p class="desc">複数のPDFを選んだ順に1つにまとめます。ブラウザ内処理です。</p>
+      <div class="drop-hint" id="drop-hint">ここにPDFをドロップ、または下のボタンで追加</div>
+      <input type="file" id="pdf-files" accept="application/pdf,.pdf" multiple hidden>
+      <ul class="file-list" id="file-list"></ul>
+      <div class="actions">
+        <button type="button" id="btn-add" class="btn btn-ghost">ファイルを追加</button>
+        <button type="button" id="btn-clear" class="btn btn-ghost">リストクリア</button>
+        <button type="button" id="btn-merge" class="btn btn-primary">結合して保存</button>
+      </div>
+      <div class="status" id="status"></div>
+    </div>
+  </div>
+  <script src="../../src/js/main.js"></script>
+  <script src="../../MENU/MENU.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

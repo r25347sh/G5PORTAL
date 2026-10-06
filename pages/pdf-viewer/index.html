@@ -57,14 +57,28 @@
   </div>
 
   <div class="annot-toolbar hidden" id="annot-toolbar">
+    <div class="input-mode-toggle" role="group" aria-label="入力モード">
+      <button type="button" id="mode-pen" class="mode-btn active" data-mode="pen" title="ペン＝描画 / 指＝移動">🖊 ペン</button>
+      <button type="button" id="mode-finger" class="mode-btn" data-mode="finger" title="指＝描画 / 2本指＝移動">👆 指</button>
+    </div>
+    <span class="annot-sep"></span>
     <button type="button" class="annot-tool active" data-tool="pen" title="ペン">🖊</button>
     <button type="button" class="annot-tool" data-tool="highlighter" title="ハイライター">🖍</button>
     <button type="button" class="annot-tool" data-tool="eraser" title="消しゴム">⌫</button>
+    <button type="button" class="annot-tool" data-tool="text" title="文字入力">T</button>
     <input type="color" id="annot-color" value="#ff2d95" title="色">
     <input type="range" id="annot-size" min="1" max="24" value="3" title="太さ">
+    <select id="annot-font-size" class="font-size-select" title="文字サイズ">
+      <option value="14">14</option>
+      <option value="16" selected>16</option>
+      <option value="20">20</option>
+      <option value="24">24</option>
+      <option value="32">32</option>
+    </select>
+    <button type="button" id="annot-undo" class="btn btn-ghost btn-sm" title="元に戻す">↩ Undo</button>
     <button type="button" id="annot-clear-page" class="btn btn-ghost btn-sm">ページ消去</button>
-    <button type="button" id="annot-export" class="btn btn-ghost btn-sm">書出</button>
-    <span class="pen-hint" id="pen-hint">ペン＝描画 / 指＝移動</span>
+    <button type="button" id="annot-export" class="btn btn-ghost btn-sm" title="注釈をJSONで書き出し">書出(JSON)</button>
+    <span class="pen-hint" id="pen-hint">ペンモード: ペン＝描画 · 指＝移動</span>
   </div>
 
   <div class="pdf-layout">
@@ -88,6 +102,14 @@
       </div>
       <div class="pages-container" id="pages-container"></div>
     </main>
+  </div>
+
+  <div class="text-editor-popup hidden" id="text-editor-popup">
+    <textarea id="text-editor-input" rows="3" placeholder="文字を入力…"></textarea>
+    <div class="text-editor-actions">
+      <button type="button" id="text-editor-ok" class="btn btn-primary btn-sm">配置</button>
+      <button type="button" id="text-editor-cancel" class="btn btn-ghost btn-sm">取消</button>
+    </div>
   </div>
 
   <div class="status-bar" id="status-bar">
