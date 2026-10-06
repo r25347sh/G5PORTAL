@@ -1,9 +1,7 @@
 /**
  * G5 Portal · Calendar
- * Primary: same-origin events.json (GitHub Actions syncs from Google ICS)
- * Refresh: force-reload events.json (cache-busted)
- * Optional: try live ICS via CORS proxy in background
- * Event types: ctb / exam / ceremony / default
+ * Refresh button: prioritize live Google Calendar ICS
+ * Fallback: events.json snapshot / local cache
  */
 (function () {
   "use strict";
@@ -18,9 +16,9 @@
   ];
 
   var LOCAL_JSON = "events.json";
-  var CACHE_KEY = "g5_cal_events_v6";
-  var CACHE_TTL_MS = 10 * 60 * 1000; /* 10 min — Actions sync ~hourly */
-  var FETCH_TIMEOUT_MS = 14000;
+  var CACHE_KEY = "g5_cal_events_v7";
+  var CACHE_TTL_MS = 10 * 60 * 1000;
+  var FETCH_TIMEOUT_MS = 16000;
 
   var EXAM_RE = /期末試験|期末テスト|中間試験|中間テスト|定期試験|定期テスト|模擬試験|模試/;
   var CEREMONY_RE = /^(終業式|始業式)$/;
@@ -33,14 +31,9 @@
   var calendarEl = document.getElementById("calendar");
   var calendar = null;
   var toastTimer = null;
-  var liveRefreshing = false;
+  var refreshing = false;
 
-  var TYPE_LABEL = {
-    ctb: "CTB",
-    exam: "試験",
-    ceremony: "式典",
-    default: "一般"
-  };
+  var TYPE_LABEL = { ctb: "CTB", exam: "試験", ceremony: "式典", default: "一般" };
 
   function showToast(msg) {
     if (!toastEl) return;
@@ -48,9 +41,7 @@
     toastEl.classList.remove("hidden");
     toastEl.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () {
-      toastEl.classList.remove("show");
-    }, 2200);
+    toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 2400);
   }
 
   function setStatus(text, kind) {
@@ -62,13 +53,8 @@
 
   function fetchWithTimeout(url, ms) {
     var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
-    var timer = setTimeout(function () {
-      if (ctrl) ctrl.abort();
-    }, ms || FETCH_TIMEOUT_MS);
-    return fetch(url, {
-      cache: "no-store",
-      signal: ctrl ? ctrl.signal : undefined
-    })
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, ms || FETCH_TIMEOUT_MS);
+    return fetch(url, { cache: "no-store", signal: ctrl ? ctrl.signal : undefined })
       .then(function (res) {
         clearTimeout(timer);
         if (!res.ok) throw new Error("HTTP " + res.status);
@@ -88,18 +74,17 @@
       if (!obj || !obj.ts || !Array.isArray(obj.events)) return null;
       if (Date.now() - obj.ts > CACHE_TTL_MS) return null;
       return obj.events;
-    } catch (e) {
-      return null;
-    }
+    } catch (e) { return null; }
   }
 
   function writeLsCache(events) {
     try {
-      localStorage.setItem(
-        CACHE_KEY,
-        JSON.stringify({ ts: Date.now(), events: events })
-      );
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), events: events }));
     } catch (e) {}
+  }
+
+  function clearLsCache() {
+    try { localStorage.removeItem(CACHE_KEY); } catch (e) {}
   }
 
   function classifyEvent(title, description) {
@@ -123,11 +108,7 @@
       end: e.end,
       allDay: !!e.allDay,
       classNames: ["g5-ev", "g5-ev--" + type],
-      extendedProps: {
-        description: description,
-        location: location,
-        type: type
-      }
+      extendedProps: { description: description, location: location, type: type }
     };
   }
 
@@ -137,7 +118,7 @@
   }
 
   function loadLocalJson() {
-    var url = LOCAL_JSON + (LOCAL_JSON.indexOf("?") >= 0 ? "&" : "?") + "t=" + Date.now();
+    var url = LOCAL_JSON + "?t=" + Date.now();
     return fetchWithTimeout(url, 8000)
       .then(function (res) { return res.json(); })
       .then(function (data) {
@@ -149,29 +130,23 @@
   }
 
   function icsToEvents(icsText) {
-    if (typeof ICAL === "undefined") {
-      throw new Error("ical.js not loaded");
-    }
+    if (typeof ICAL === "undefined") throw new Error("ical.js not loaded");
     var jcal = ICAL.parse(icsText);
     var comp = new ICAL.Component(jcal);
     var vevents = comp.getAllSubcomponents("vevent");
     var events = [];
-
     vevents.forEach(function (ve) {
       try {
         var ev = new ICAL.Event(ve);
         var start = ev.startDate;
         var end = ev.endDate;
         if (!start) return;
-
         var allDay = start.isDate;
         var startIso, endIso;
-
         if (allDay) {
           startIso = start.toString();
-          if (end) {
-            endIso = end.toString();
-          } else {
+          if (end) endIso = end.toString();
+          else {
             var d = start.toJSDate();
             d.setUTCDate(d.getUTCDate() + 1);
             endIso = d.toISOString().slice(0, 10);
@@ -182,23 +157,19 @@
             ? end.toJSDate().toISOString()
             : new Date(start.toJSDate().getTime() + 3600000).toISOString();
         }
-
-        events.push(
-          decorateEvent({
-            id: ev.uid || undefined,
-            title: ev.summary || "(no title)",
-            start: startIso,
-            end: endIso,
-            allDay: allDay,
-            description: ev.description || "",
-            location: ev.location || ""
-          })
-        );
+        events.push(decorateEvent({
+          id: ev.uid || undefined,
+          title: ev.summary || "(no title)",
+          start: startIso,
+          end: endIso,
+          allDay: allDay,
+          description: ev.description || "",
+          location: ev.location || ""
+        }));
       } catch (err) {
         console.warn("[G5 cal] skip event", err);
       }
     });
-
     return events;
   }
 
@@ -208,16 +179,14 @@
       return fetchWithTimeout(url, FETCH_TIMEOUT_MS)
         .then(function (res) { return res.text(); })
         .then(function (text) {
-          if (!text || text.indexOf("BEGIN:VCALENDAR") < 0) {
-            throw new Error("Invalid ICS");
-          }
+          if (!text || text.indexOf("BEGIN:VCALENDAR") < 0) throw new Error("Invalid ICS");
           return icsToEvents(text);
         });
     }
 
     var chain = Promise.reject(new Error("start"));
     chain = chain.catch(function () {
-      return fetchWithTimeout(ICS_URL, 5000)
+      return fetchWithTimeout(ICS_URL, 6000)
         .then(function (r) { return r.text(); })
         .then(function (t) {
           if (!t || t.indexOf("BEGIN:VCALENDAR") < 0) throw new Error("bad");
@@ -230,7 +199,7 @@
     return chain.then(function (events) {
       if (!events.length) throw new Error("no events");
       writeLsCache(events);
-      return { events: events, source: "ライブ" };
+      return { events: events, source: "Google Calendar" };
     });
   }
 
@@ -240,7 +209,6 @@
     var optsTime = { hour: "2-digit", minute: "2-digit" };
     var s = new Date(start);
     var e = end ? new Date(end) : null;
-
     if (allDay) {
       var sStr = s.toLocaleDateString("ja-JP", optsDate);
       if (!e) return sStr;
@@ -248,16 +216,10 @@
       if (last.toDateString() === s.toDateString()) return sStr;
       return sStr + " – " + last.toLocaleDateString("ja-JP", optsDate);
     }
-
-    var out =
-      s.toLocaleDateString("ja-JP", optsDate) +
-      " " +
-      s.toLocaleTimeString("ja-JP", optsTime);
+    var out = s.toLocaleDateString("ja-JP", optsDate) + " " + s.toLocaleTimeString("ja-JP", optsTime);
     if (e) {
       out += " – ";
-      if (e.toDateString() !== s.toDateString()) {
-        out += e.toLocaleDateString("ja-JP", optsDate) + " ";
-      }
+      if (e.toDateString() !== s.toDateString()) out += e.toLocaleDateString("ja-JP", optsDate) + " ";
       out += e.toLocaleTimeString("ja-JP", optsTime);
     }
     return out;
@@ -278,25 +240,19 @@
     backdrop.className = "cal-modal-backdrop";
     backdrop.setAttribute("role", "dialog");
     backdrop.setAttribute("aria-modal", "true");
-
     var modal = document.createElement("div");
     modal.className = "cal-modal cal-modal--" + type;
-
     var badge = document.createElement("span");
     badge.className = "cal-type-badge cal-type-badge--" + type;
     badge.textContent = TYPE_LABEL[type] || type;
     modal.appendChild(badge);
-
     var title = document.createElement("h3");
     title.textContent = ev.title || "";
     modal.appendChild(title);
-
     var meta = document.createElement("p");
     meta.className = "meta";
-    meta.innerHTML =
-      "<strong>日時</strong> " + formatRange(ev.start, ev.end, ev.allDay);
+    meta.innerHTML = "<strong>日時</strong> " + formatRange(ev.start, ev.end, ev.allDay);
     modal.appendChild(meta);
-
     var loc = ev.extendedProps && ev.extendedProps.location;
     if (loc) {
       var locEl = document.createElement("p");
@@ -304,7 +260,6 @@
       locEl.innerHTML = "<strong>場所</strong> " + escapeHtml(loc);
       modal.appendChild(locEl);
     }
-
     var desc = ev.extendedProps && ev.extendedProps.description;
     if (desc) {
       var descEl = document.createElement("div");
@@ -312,7 +267,6 @@
       descEl.textContent = desc;
       modal.appendChild(descEl);
     }
-
     var actions = document.createElement("div");
     actions.className = "modal-actions";
     var closeBtn = document.createElement("button");
@@ -321,11 +275,9 @@
     closeBtn.textContent = "閉じる";
     actions.appendChild(closeBtn);
     modal.appendChild(actions);
-
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
     requestAnimationFrame(function () { backdrop.classList.add("open"); });
-
     function close() {
       backdrop.classList.remove("open");
       setTimeout(function () {
@@ -333,13 +285,9 @@
       }, 280);
       document.removeEventListener("keydown", onKey);
     }
-    function onKey(e) {
-      if (e.key === "Escape") close();
-    }
+    function onKey(e) { if (e.key === "Escape") close(); }
     closeBtn.addEventListener("click", close);
-    backdrop.addEventListener("click", function (e) {
-      if (e.target === backdrop) close();
-    });
+    backdrop.addEventListener("click", function (e) { if (e.target === backdrop) close(); });
     document.addEventListener("keydown", onKey);
   }
 
@@ -352,27 +300,15 @@
       setStatus("#calendar missing", "err");
       return;
     }
-
     if (calendar) {
       calendar.destroy();
       calendar = null;
     }
-
     calendar = new FullCalendar.Calendar(calendarEl, {
       locale: "ja",
-      initialView: window.matchMedia("(max-width: 640px)").matches
-        ? "listMonth"
-        : "dayGridMonth",
-      headerToolbar: {
-        left: "prev,next",
-        center: "title",
-        right: "dayGridMonth,listMonth"
-      },
-      buttonText: {
-        today: "今日",
-        month: "月",
-        list: "リスト"
-      },
+      initialView: window.matchMedia("(max-width: 640px)").matches ? "listMonth" : "dayGridMonth",
+      headerToolbar: { left: "prev,next", center: "title", right: "dayGridMonth,listMonth" },
+      buttonText: { today: "今日", month: "月", list: "リスト" },
       height: "auto",
       navLinks: true,
       editable: false,
@@ -400,62 +336,43 @@
     if (toastMsg) showToast(toastMsg);
   }
 
-  function clearLsCache() {
-    try {
-      localStorage.removeItem(CACHE_KEY);
-    } catch (e) {}
-  }
-
-  /* メイン経路: same-origin events.json（Actions が Google ICS を同期） */
-  function refreshFromSnapshot(showToastOnOk) {
-    if (liveRefreshing) return Promise.resolve();
-    liveRefreshing = true;
-    setStatus("更新中…", null);
+  /** 更新ボタン: Google Calendar ライブ優先 */
+  function refreshLiveFirst(showToastOnOk) {
+    if (refreshing) return Promise.resolve();
+    refreshing = true;
+    setStatus("Google Calendar から取得中…", null);
     clearLsCache();
-    return loadLocalJson()
-      .then(function (r) {
-        applyEvents(
-          r,
-          showToastOnOk ? "更新しました（" + r.events.length + "件）" : null
-        );
-      })
-      .catch(function (err) {
-        console.warn("[G5 cal] snapshot failed", err);
-        var cached = readLsCache();
-        if (cached && cached.length) {
-          applyEvents(
-            { events: normalizeEvents(cached), source: "キャッシュ" },
-            showToastOnOk ? "キャッシュ表示" : null
-          );
-        } else if (!calendar) {
-          setStatus("取得失敗", "err");
-          initCalendar([]);
-          if (showToastOnOk) showToast("更新失敗");
-        } else {
-          var n = calendar.getEvents ? calendar.getEvents().length : 0;
-          if (n) setStatus(n + " 件・オフライン表示", "err");
-          if (showToastOnOk) showToast("更新失敗（オフライン）");
-        }
-      })
-      .then(function () {
-        liveRefreshing = false;
-        /* バックグラウンドでライブ ICS も試す（成功したら差し替え） */
-        tryLiveInBackground();
-      });
-  }
 
-  function tryLiveInBackground() {
-    fetchLiveIcs()
+    return fetchLiveIcs()
       .then(function (r) {
-        if (!r || !r.events || !r.events.length) return;
-        var current = calendar && calendar.getEvents ? calendar.getEvents().length : 0;
-        if (r.events.length >= current) {
-          applyEvents(r, null);
-        }
+        applyEvents(r, showToastOnOk ? "Google Calendar から更新（" + r.events.length + "件）" : null);
       })
-      .catch(function () {
-        /* プロキシ失敗は無視 — snapshot が正本 */
-      });
+      .catch(function (liveErr) {
+        console.warn("[G5 cal] live failed", liveErr);
+        setStatus("ライブ取得失敗 → 同期データ…", null);
+        return loadLocalJson()
+          .then(function (r) {
+            applyEvents(r, showToastOnOk ? "同期データで更新（" + r.events.length + "件）" : null);
+          })
+          .catch(function () {
+            var cached = readLsCache();
+            if (cached && cached.length) {
+              applyEvents(
+                { events: normalizeEvents(cached), source: "キャッシュ" },
+                showToastOnOk ? "キャッシュ表示" : null
+              );
+            } else if (!calendar) {
+              setStatus("取得失敗", "err");
+              initCalendar([]);
+              if (showToastOnOk) showToast("更新失敗");
+            } else {
+              var n = calendar.getEvents ? calendar.getEvents().length : 0;
+              if (n) setStatus(n + " 件・オフライン表示", "err");
+              if (showToastOnOk) showToast("更新失敗（オフライン）");
+            }
+          });
+      })
+      .then(function () { refreshing = false; });
   }
 
   function showStaleFast() {
@@ -465,36 +382,29 @@
       return Promise.resolve(true);
     }
     return loadLocalJson()
-      .then(function (r) {
-        applyEvents(r);
-        return true;
-      })
-      .catch(function () {
-        return false;
-      });
+      .then(function (r) { applyEvents(r); return true; })
+      .catch(function () { return false; });
   }
 
-  function load(force) {
-    if (force) {
-      return refreshFromSnapshot(true);
-    }
+  function loadInitial() {
     setStatus("読み込み中…", null);
     return showStaleFast().then(function () {
-      /* 初回も snapshot を取り直しつつ、ライブは裏で */
       return loadLocalJson()
-        .then(function (r) {
-          applyEvents(r);
-        })
+        .then(function (r) { applyEvents(r); })
         .catch(function () {})
         .then(function () {
-          tryLiveInBackground();
+          fetchLiveIcs()
+            .then(function (r) {
+              if (r && r.events && r.events.length) applyEvents(r, null);
+            })
+            .catch(function () {});
         });
     });
   }
 
   if (btnRefresh) {
     btnRefresh.addEventListener("click", function () {
-      load(true);
+      refreshLiveFirst(true);
     });
   }
   if (btnToday) {
@@ -508,7 +418,7 @@
       setStatus("FullCalendar CDN failed", "err");
       return;
     }
-    load(false);
+    loadInitial();
   }
 
   if (document.readyState === "loading") {
