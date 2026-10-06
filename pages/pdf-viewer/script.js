@@ -1,6 +1,7 @@
 /**
- * G5 Portal · PDF Viewer (simple restore)
- * PDF.js 3.x UMD · pen=draw / finger=pan in write mode
+ * G5 Portal · PDF Viewer
+ * Simple + Undo + pen/finger toggle + text annotations
+ * Export annotations as JSON (by design - annotations layer)
  */
 (function () {
   "use strict";
@@ -20,11 +21,14 @@
   var zoomMode = "auto";
   var pageRenders = {};
   var annotations = {};
+  var undoStack = [];
   var pdfFingerprint = "";
   var isWriteMode = false;
+  var inputMode = "pen";
   var currentTool = "pen";
   var strokeColor = "#ff2d95";
   var strokeSize = 3;
+  var fontSize = 16;
   var searchMatches = [];
   var searchIndex = -1;
   var hasPenCapability = false;
@@ -32,44 +36,33 @@
   var currentStroke = null;
   var activePointers = {};
   var panState = null;
+  var pendingTextPlace = null;
+
+  try {
+    var sm = localStorage.getItem("g5_pdf_input_mode");
+    if (sm === "pen" || sm === "finger") inputMode = sm;
+  } catch (e) {}
 
   var $ = function (id) { return document.getElementById(id); };
   var el = {
-    title: $("pdf-title"),
-    fileInput: $("file-input"),
-    btnOpen: $("btn-open"),
-    btnOpenMain: $("btn-open-main"),
-    btnPrev: $("btn-prev"),
-    btnNext: $("btn-next"),
-    pageNum: $("page-num"),
-    pageCount: $("page-count"),
-    btnZoomIn: $("btn-zoom-in"),
-    btnZoomOut: $("btn-zoom-out"),
-    zoomSelect: $("zoom-select"),
-    btnSearch: $("btn-search"),
-    btnSidebar: $("btn-sidebar"),
-    btnWrite: $("btn-write"),
-    btnFullscreen: $("btn-fullscreen"),
-    searchBar: $("search-bar"),
-    searchInput: $("search-input"),
-    searchCount: $("search-count"),
-    searchPrev: $("search-prev"),
-    searchNext: $("search-next"),
-    searchClose: $("search-close"),
-    annotToolbar: $("annot-toolbar"),
-    annotColor: $("annot-color"),
-    annotSize: $("annot-size"),
-    annotClearPage: $("annot-clear-page"),
-    annotExport: $("annot-export"),
-    penHint: $("pen-hint"),
-    sidebar: $("pdf-sidebar"),
-    thumbsPanel: $("thumbs-panel"),
-    outlinePanel: $("outline-panel"),
-    viewer: $("pdf-viewer"),
-    pagesContainer: $("pages-container"),
-    dropZone: $("drop-zone"),
-    statusText: $("status-text"),
-    penStatus: $("pen-status")
+    title: $("pdf-title"), fileInput: $("file-input"),
+    btnOpen: $("btn-open"), btnOpenMain: $("btn-open-main"),
+    btnPrev: $("btn-prev"), btnNext: $("btn-next"),
+    pageNum: $("page-num"), pageCount: $("page-count"),
+    btnZoomIn: $("btn-zoom-in"), btnZoomOut: $("btn-zoom-out"), zoomSelect: $("zoom-select"),
+    btnSearch: $("btn-search"), btnSidebar: $("btn-sidebar"),
+    btnWrite: $("btn-write"), btnFullscreen: $("btn-fullscreen"),
+    searchBar: $("search-bar"), searchInput: $("search-input"), searchCount: $("search-count"),
+    searchPrev: $("search-prev"), searchNext: $("search-next"), searchClose: $("search-close"),
+    annotToolbar: $("annot-toolbar"), annotColor: $("annot-color"), annotSize: $("annot-size"),
+    annotFontSize: $("annot-font-size"), annotUndo: $("annot-undo"),
+    annotClearPage: $("annot-clear-page"), annotExport: $("annot-export"), penHint: $("pen-hint"),
+    modePen: $("mode-pen"), modeFinger: $("mode-finger"),
+    sidebar: $("pdf-sidebar"), thumbsPanel: $("thumbs-panel"), outlinePanel: $("outline-panel"),
+    viewer: $("pdf-viewer"), pagesContainer: $("pages-container"), dropZone: $("drop-zone"),
+    statusText: $("status-text"), penStatus: $("pen-status"),
+    textPopup: $("text-editor-popup"), textInput: $("text-editor-input"),
+    textOk: $("text-editor-ok"), textCancel: $("text-editor-cancel")
   };
 
   function setStatus(msg) {
@@ -83,15 +76,31 @@
     });
   }
 
+  function updateInputModeUI() {
+    if (el.modePen) el.modePen.classList.toggle("active", inputMode === "pen");
+    if (el.modeFinger) el.modeFinger.classList.toggle("active", inputMode === "finger");
+    if (el.penHint) {
+      el.penHint.textContent = inputMode === "pen"
+        ? "ペンモード: ペン＝描画 · 指＝移動"
+        : "指モード: 指＝描画 · 2本指＝移動";
+    }
+    updatePenStatus();
+  }
+
+  function setInputMode(mode) {
+    if (mode !== "pen" && mode !== "finger") return;
+    inputMode = mode;
+    try { localStorage.setItem("g5_pdf_input_mode", mode); } catch (e) {}
+    updateInputModeUI();
+    setStatus(inputMode === "pen" ? "入力: ペンモード" : "入力: 指モード");
+  }
+
   function updatePenStatus() {
     if (!el.penStatus) return;
-    if (hasPenCapability) {
-      el.penStatus.textContent = "電子ペン検知";
-      el.penStatus.classList.add("has-pen");
-    } else {
-      el.penStatus.textContent = "";
-      el.penStatus.classList.remove("has-pen");
-    }
+    var parts = [];
+    if (hasPenCapability) parts.push("電子ペン検知");
+    if (isWriteMode) parts.push(inputMode === "pen" ? "ペン入力" : "指入力");
+    el.penStatus.textContent = parts.join(" · ");
   }
 
   function storageKey() {
@@ -106,11 +115,32 @@
         if (obj && typeof obj === "object") annotations = obj;
       }
     } catch (e) { annotations = {}; }
+    undoStack = [];
   }
 
   function saveAnnotations() {
     try { localStorage.setItem(storageKey(), JSON.stringify(annotations)); }
     catch (e) {}
+  }
+
+  function snapshotAnnot() {
+    return JSON.parse(JSON.stringify(annotations));
+  }
+
+  function pushUndo() {
+    undoStack.push(snapshotAnnot());
+    if (undoStack.length > 40) undoStack.shift();
+  }
+
+  function undo() {
+    if (!undoStack.length) {
+      setStatus("これ以上戻せません");
+      return;
+    }
+    annotations = undoStack.pop();
+    Object.keys(pageRenders).forEach(function (k) { redrawAnnotations(Number(k)); });
+    saveAnnotations();
+    setStatus("元に戻しました");
   }
 
   function getQueryParam(name) {
@@ -149,6 +179,7 @@
     pageRenders = {};
     el.pagesContainer.innerHTML = "";
     annotations = {};
+    undoStack = [];
 
     pdfjsLib.getDocument({ data: data }).promise.then(function (doc) {
       pdfDoc = doc;
@@ -218,10 +249,16 @@
         canvas.className = "pdf-canvas";
         var annotCanvas = document.createElement("canvas");
         annotCanvas.className = "annot-layer";
+        var htmlLayer = document.createElement("div");
+        htmlLayer.className = "html-annot-layer";
         wrap.appendChild(canvas);
         wrap.appendChild(annotCanvas);
+        wrap.appendChild(htmlLayer);
         frag.appendChild(wrap);
-        pageRenders[i] = { wrap: wrap, canvas: canvas, annotCanvas: annotCanvas, rendered: false };
+        pageRenders[i] = {
+          wrap: wrap, canvas: canvas, annotCanvas: annotCanvas,
+          htmlLayer: htmlLayer, rendered: false
+        };
       }
       el.pagesContainer.appendChild(frag);
 
@@ -251,6 +288,8 @@
       pr.annotCanvas.height = canvas.height;
       pr.annotCanvas.style.width = canvas.style.width;
       pr.annotCanvas.style.height = canvas.style.height;
+      pr.htmlLayer.style.width = canvas.style.width;
+      pr.htmlLayer.style.height = canvas.style.height;
       pr.outputScale = dpr;
       pr.annotCtx = pr.annotCanvas.getContext("2d");
 
@@ -259,9 +298,19 @@
         pr.rendered = true;
         redrawAnnotations(num);
         bindAnnotEvents(num);
+        syncPointerEvents();
       });
     }).catch(function (err) {
       console.warn("[pdf] page " + num, err);
+    });
+  }
+
+  function syncPointerEvents() {
+    Object.keys(pageRenders).forEach(function (k) {
+      var pr = pageRenders[k];
+      if (!pr) return;
+      if (pr.annotCanvas) pr.annotCanvas.style.pointerEvents = isWriteMode ? "auto" : "none";
+      if (pr.htmlLayer) pr.htmlLayer.style.pointerEvents = isWriteMode ? "auto" : "none";
     });
   }
 
@@ -271,8 +320,40 @@
     var ctx = pr.annotCtx;
     var dpr = pr.outputScale || 1;
     ctx.clearRect(0, 0, pr.annotCanvas.width, pr.annotCanvas.height);
-    var strokes = annotations[num] || [];
-    for (var i = 0; i < strokes.length; i++) drawStroke(ctx, strokes[i], dpr);
+    var items = annotations[num] || [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type === "text") continue;
+      drawStroke(ctx, items[i], dpr);
+    }
+    renderHtmlAnnotations(num);
+  }
+
+  function renderHtmlAnnotations(num) {
+    var pr = pageRenders[num];
+    if (!pr || !pr.htmlLayer) return;
+    pr.htmlLayer.innerHTML = "";
+    var items = annotations[num] || [];
+    items.forEach(function (item, idx) {
+      if (item.type !== "text") return;
+      var div = document.createElement("div");
+      div.className = "text-annot";
+      div.style.left = item.x + "px";
+      div.style.top = item.y + "px";
+      div.style.color = item.color || "#ff2d95";
+      div.style.fontSize = (item.fontSize || 16) + "px";
+      div.textContent = item.text || "";
+      if (isWriteMode) {
+        div.contentEditable = "true";
+        div.spellcheck = false;
+        div.addEventListener("blur", function () {
+          pushUndo();
+          item.text = div.textContent || "";
+          saveAnnotations();
+        });
+        div.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
+      }
+      pr.htmlLayer.appendChild(div);
+    });
   }
 
   function drawStroke(ctx, stroke, dpr) {
@@ -319,8 +400,13 @@
       updatePenStatus();
       return true;
     }
-    if (e.pointerType === "touch") return false;
+    if (e.pointerType === "touch") return inputMode === "finger";
     return true;
+  }
+
+  function shouldPan(e) {
+    if (!isWriteMode) return false;
+    return e.pointerType === "touch" && inputMode === "pen";
   }
 
   function bindAnnotEvents(num) {
@@ -328,21 +414,44 @@
     if (!pr || pr._bound) return;
     pr._bound = true;
     var canvas = pr.annotCanvas;
-    canvas.style.pointerEvents = isWriteMode ? "auto" : "none";
 
     canvas.addEventListener("pointerdown", function (e) {
       if (e.pointerType === "pen") { hasPenCapability = true; updatePenStatus(); }
       if (!isWriteMode) return;
 
-      if (e.pointerType === "touch") {
+      if (currentTool === "text") {
+        if (!shouldDraw(e) && e.pointerType !== "mouse") return;
+        e.preventDefault();
+        var rect = canvas.getBoundingClientRect();
+        openTextEditor(num, e.clientX - rect.left, e.clientY - rect.top);
+        return;
+      }
+
+      if (e.pointerType === "touch" && inputMode === "finger") {
+        var touchCount = 0;
+        Object.keys(activePointers).forEach(function (id) {
+          if (activePointers[id] === "draw" || activePointers[id] === "pan") touchCount++;
+        });
+        if (touchCount >= 1) {
+          isDrawing = false;
+          currentStroke = null;
+          activePointers[e.pointerId] = "pan";
+          panState = {
+            id: e.pointerId, x: e.clientX, y: e.clientY,
+            scrollLeft: el.viewer.scrollLeft, scrollTop: el.viewer.scrollTop
+          };
+          try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+          e.preventDefault();
+          return;
+        }
+      }
+
+      if (shouldPan(e)) {
         e.preventDefault();
         activePointers[e.pointerId] = "pan";
         panState = {
-          id: e.pointerId,
-          x: e.clientX,
-          y: e.clientY,
-          scrollLeft: el.viewer.scrollLeft,
-          scrollTop: el.viewer.scrollTop
+          id: e.pointerId, x: e.clientX, y: e.clientY,
+          scrollLeft: el.viewer.scrollLeft, scrollTop: el.viewer.scrollTop
         };
         try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
         return;
@@ -354,6 +463,7 @@
       try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
       isDrawing = true;
       activePointers[e.pointerId] = "draw";
+      pushUndo();
       var dpr = pr.outputScale || 1;
       var pt = pointerToLocal(e, canvas, dpr);
       currentStroke = {
@@ -398,6 +508,40 @@
     }
     canvas.addEventListener("pointerup", endStroke);
     canvas.addEventListener("pointercancel", endStroke);
+  }
+
+  function openTextEditor(page, x, y) {
+    pendingTextPlace = { page: page, x: x, y: y };
+    el.textPopup.classList.remove("hidden");
+    el.textInput.value = "";
+    el.textInput.focus();
+  }
+
+  function commitTextEditor() {
+    if (!pendingTextPlace) return;
+    var text = (el.textInput.value || "").trim();
+    el.textPopup.classList.add("hidden");
+    if (!text) { pendingTextPlace = null; return; }
+    var page = pendingTextPlace.page;
+    pushUndo();
+    if (!annotations[page]) annotations[page] = [];
+    annotations[page].push({
+      type: "text",
+      x: pendingTextPlace.x,
+      y: pendingTextPlace.y,
+      text: text,
+      color: strokeColor || "#ff2d95",
+      fontSize: fontSize
+    });
+    saveAnnotations();
+    redrawAnnotations(page);
+    pendingTextPlace = null;
+    setStatus("文字を配置しました");
+  }
+
+  function cancelTextEditor() {
+    el.textPopup.classList.add("hidden");
+    pendingTextPlace = null;
   }
 
   function buildThumbnails() {
@@ -542,11 +686,12 @@
     el.viewer.classList.toggle("write-mode", isWriteMode);
     el.btnWrite.classList.toggle("active", isWriteMode);
     el.annotToolbar.classList.toggle("hidden", !isWriteMode);
-    Object.keys(pageRenders).forEach(function (k) {
-      var pr = pageRenders[k];
-      if (pr && pr.annotCanvas) pr.annotCanvas.style.pointerEvents = isWriteMode ? "auto" : "none";
-    });
-    setStatus(isWriteMode ? "書き込みモード（ペン＝描画 / 指＝移動）" : "閲覧モード");
+    syncPointerEvents();
+    updateInputModeUI();
+    Object.keys(pageRenders).forEach(function (k) { redrawAnnotations(Number(k)); });
+    setStatus(isWriteMode
+      ? (inputMode === "pen" ? "書き込み（ペンモード）" : "書き込み（指モード）")
+      : "閲覧モード");
   }
 
   function bindUI() {
@@ -617,6 +762,9 @@
 
     el.btnWrite.addEventListener("click", function () { setWriteMode(!isWriteMode); });
 
+    if (el.modePen) el.modePen.addEventListener("click", function () { setInputMode("pen"); });
+    if (el.modeFinger) el.modeFinger.addEventListener("click", function () { setInputMode("finger"); });
+
     document.querySelectorAll(".annot-tool").forEach(function (btn) {
       btn.addEventListener("click", function () {
         document.querySelectorAll(".annot-tool").forEach(function (b) { b.classList.remove("active"); });
@@ -626,8 +774,15 @@
     });
     el.annotColor.addEventListener("input", function () { strokeColor = el.annotColor.value; });
     el.annotSize.addEventListener("input", function () { strokeSize = parseInt(el.annotSize.value, 10) || 3; });
+    if (el.annotFontSize) {
+      el.annotFontSize.addEventListener("change", function () {
+        fontSize = parseInt(el.annotFontSize.value, 10) || 16;
+      });
+    }
+    if (el.annotUndo) el.annotUndo.addEventListener("click", undo);
     el.annotClearPage.addEventListener("click", function () {
       if (!currentPage) return;
+      pushUndo();
       annotations[currentPage] = [];
       redrawAnnotations(currentPage);
       saveAnnotations();
@@ -640,6 +795,7 @@
       a.download = "annotations.json";
       a.click();
       URL.revokeObjectURL(a.href);
+      setStatus("注釈をJSONで書き出しました（描画レイヤー用）");
     });
 
     el.btnFullscreen.addEventListener("click", function () {
@@ -650,16 +806,31 @@
       }
     });
 
+    if (el.textOk) el.textOk.addEventListener("click", commitTextEditor);
+    if (el.textCancel) el.textCancel.addEventListener("click", cancelTextEditor);
+    if (el.textInput) {
+      el.textInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) commitTextEditor();
+        if (e.key === "Escape") cancelTextEditor();
+      });
+    }
+
     el.viewer.addEventListener("scroll", onViewerScroll, { passive: true });
 
     document.addEventListener("keydown", function (e) {
-      if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT")) return;
+      if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable)) {
+        if (e.key === "Escape" && pendingTextPlace) cancelTextEditor();
+        return;
+      }
       if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); goToPage(currentPage - 1); }
       else if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") { e.preventDefault(); goToPage(currentPage + 1); }
       else if (e.key === "+" || e.key === "=") el.btnZoomIn.click();
       else if (e.key === "-") el.btnZoomOut.click();
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") { e.preventDefault(); el.btnSearch.click(); }
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); if (isWriteMode) undo(); }
       else if (e.key.toLowerCase() === "w" && pdfDoc) setWriteMode(!isWriteMode);
+      else if (e.key.toLowerCase() === "p" && isWriteMode) setInputMode("pen");
+      else if (e.key.toLowerCase() === "t" && isWriteMode) setInputMode("finger");
     });
 
     window.addEventListener("pointerdown", function (e) {
@@ -668,7 +839,7 @@
   }
 
   function boot() {
-    updatePenStatus();
+    updateInputModeUI();
     bindUI();
     setControlsEnabled(false);
     var src = getQueryParam("src") || getQueryParam("url") || getQueryParam("file");
