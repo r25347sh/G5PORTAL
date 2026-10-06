@@ -62,16 +62,23 @@
   </div>
 
   <div class="annot-toolbar hidden" id="annot-toolbar">
+    <div class="input-mode-toggle" role="group" aria-label="入力モード">
+      <button type="button" id="mode-pen" class="mode-btn active" data-mode="pen" title="電子ペンモード：ペン＝描画 / 指＝移動">🖊 ペン</button>
+      <button type="button" id="mode-finger" class="mode-btn" data-mode="finger" title="指モード：指＝描画 / 2本指＝移動">👆 指</button>
+    </div>
+    <span class="annot-sep"></span>
     <button type="button" class="annot-tool active" data-tool="pen" title="ペン">🖊</button>
     <button type="button" class="annot-tool" data-tool="highlighter" title="マーカー">🖍</button>
     <button type="button" class="annot-tool" data-tool="eraser" title="消しゴム">⌫</button>
+    <button type="button" class="annot-tool" data-tool="line" title="直線">／</button>
+    <button type="button" class="annot-tool" data-tool="rect" title="四角">□</button>
     <input type="color" id="annot-color" value="#ff2d95" title="色">
     <input type="range" id="annot-size" min="1" max="28" value="3" title="太さ">
     <button type="button" id="annot-undo" class="btn btn-ghost btn-sm" title="元に戻す">↩</button>
     <button type="button" id="annot-redo" class="btn btn-ghost btn-sm" title="やり直し">↪</button>
     <button type="button" id="annot-clear-page" class="btn btn-ghost btn-sm" title="このページ消去">消去</button>
     <button type="button" id="annot-export" class="btn btn-ghost btn-sm" title="書き出し">書出</button>
-    <span class="pen-hint" id="pen-hint">ペン＝描画 · 指＝移動 · マウス＝描画</span>
+    <span class="pen-hint" id="pen-hint">ペンモード: ペン＝描画 · 指＝移動</span>
   </div>
 
   <div class="progress-bar hidden" id="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
@@ -90,7 +97,7 @@
         <div class="drop-inner">
           <div class="drop-icon">📄</div>
           <h2>PDFを開く</h2>
-          <p>ドロップ / 選択 / 副教材リンク<br>ピンチズーム · 書き込み · 検索対応</p>
+          <p>ドロップ / 選択 / 副教材リンク<br>ペン・指切替 · 図形 · 検索対応</p>
           <button type="button" class="btn btn-primary" id="btn-open-main">ファイルを選択</button>
         </div>
       </div>
