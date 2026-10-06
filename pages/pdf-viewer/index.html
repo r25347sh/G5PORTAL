@@ -16,7 +16,7 @@
     <div class="tb-left">
       <a href="../../index.html" class="btn btn-ghost btn-sm" title="ホーム">←</a>
       <button type="button" id="btn-open" class="btn btn-ghost btn-sm" title="開く">📂 開く</button>
-      <input type="file" id="file-input" accept="application/pdf,.pdf" hidden>
+      <input type="file" id="file-input" class="file-input-hidden" accept=".pdf,application/pdf" tabindex="-1" aria-hidden="true">
       <span class="pdf-title" id="pdf-title">PDFビューアー</span>
     </div>
     <div class="tb-center">
@@ -87,6 +87,7 @@
           <p>ファイルをドロップ、または「開く」ボタン<br>
             閲覧専用 · 高速レンダリング · 検索 · 見開き · プレゼン対応</p>
           <button type="button" class="btn btn-primary" id="btn-open-main">ファイルを選択</button>
+          <label for="file-input" class="btn btn-ghost btn-sm file-label" id="btn-open-label">またはここをタップ</label>
           <p class="drop-hints">← → ページ / + − ズーム / Ctrl+F 検索 / F プレゼン / R 回転 / I 反転</p>
         </div>
       </div>
