@@ -19,7 +19,6 @@
 <body>
   <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
 
-  <!-- Hero -->
   <header class="hero">
     <div class="hero-badge">Reitaku High School · 5G</div>
     <h1><span>FREE TOOLS & MATERIALS</span> G⁵ Portal</h1>
@@ -32,7 +31,6 @@
     </div>
   </header>
 
-  <!-- Independent Calendar Section -->
   <section id="calendar" class="main_section featured-section">
     <div class="section-header">
       <h2>カレンダー</h2>
@@ -50,14 +48,12 @@
     </div>
   </section>
 
-  <!-- Tools -->
   <section id="tools" class="main_section">
     <div class="section-header">
       <h2>ツール</h2>
       <p>無料で使える自作ツール</p>
     </div>
 
-    <!-- Category: Document -->
     <div class="tool-category">
       <h3 class="cat-title">ドキュメント</h3>
       <div class="cards-grid">
@@ -70,7 +66,6 @@
       </div>
     </div>
 
-    <!-- Category: Text -->
     <div class="tool-category">
       <h3 class="cat-title">文字</h3>
       <div class="cards-grid">
@@ -107,7 +102,6 @@
       </div>
     </div>
 
-    <!-- Category: Time / Random / Color -->
     <div class="tool-category">
       <h3 class="cat-title">時間・乱数・色</h3>
       <div class="cards-grid">
@@ -138,7 +132,6 @@
       </div>
     </div>
 
-    <!-- Category: Share -->
     <div class="tool-category">
       <h3 class="cat-title">共有</h3>
       <div class="cards-grid">
@@ -154,18 +147,10 @@
           <p>WebRTC DataChannel。ファイル選択後に共有 URL / QR を発行。</p>
           <a href="pages/file-share/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
         </article>
-        <!-- Hidden tool: only when ?hidden=1 -->
-        <article class="card hidden-tool" id="temp-chat-card" hidden>
-          <div class="card-icon">💬</div>
-          <h3>一時チャット</h3>
-          <p>WebRTC。サーバーに履歴を残さない一時テキストチャット。URL / QR で接続。</p>
-          <a href="pages/temp-chat/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
-        </article>
       </div>
     </div>
   </section>
 
-  <!-- Materials -->
   <section id="materials" class="main_section">
     <div class="section-header">
       <h2>副教材</h2>
@@ -193,7 +178,6 @@
   </footer>
 
   <style>
-    /* Index-specific enhancements (keep global style.css lean) */
     .featured-section { padding-top: 2.5rem; }
     .featured-card-wrap { max-width: 520px; margin: 0 auto; }
     .featured-card {
@@ -219,21 +203,9 @@
       background: linear-gradient(160deg, rgba(0,245,255,0.07), rgba(16,11,26,0.92) 60%);
     }
     .hero-cta { gap: 0.7rem; }
-    .hidden-tool[hidden] { display: none !important; }
     @media (max-width: 480px) {
       .hero-cta .btn { width: 100%; max-width: 280px; }
     }
   </style>
-  <script>
-    (function () {
-      try {
-        var p = new URLSearchParams(location.search);
-        if (p.get('hidden') === '1') {
-          var card = document.getElementById('temp-chat-card');
-          if (card) card.hidden = false;
-        }
-      } catch (e) {}
-    })();
-  </script>
 </body>
 </html>
