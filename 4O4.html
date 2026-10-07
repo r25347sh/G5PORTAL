@@ -9,86 +9,56 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
-      min-height: 100%;
-      background: #050505;
-      color: #9a9a9a;
+      min-height: 100%; background: #050505; color: #9a9a9a;
       font-family: "SF Mono", Consolas, Menlo, monospace;
       -webkit-font-smoothing: antialiased;
     }
     .gate {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-      user-select: none;
-      -webkit-user-select: none;
-      position: relative;
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; padding: 2rem;
+      user-select: none; -webkit-user-select: none;
     }
     .gate-code {
-      font-size: clamp(3rem, 12vw, 5rem);
-      font-weight: 600;
-      letter-spacing: 0.14em;
-      color: #3a3a3a;
-      margin-bottom: 1rem;
+      font-size: clamp(3rem, 12vw, 5rem); font-weight: 600;
+      letter-spacing: 0.14em; color: #3a3a3a; margin-bottom: 1rem;
     }
-    #gate-o {
-      display: inline-block;
-      color: #4a4a4a;
-      cursor: default;
-      padding: 0 0.05em;
+    .gate-code span {
+      display: inline-block; padding: 0 0.06em; cursor: default;
+      transition: color 0.12s, text-shadow 0.12s;
+    }
+    .gate-code span.lit {
+      color: #c8c8c8; text-shadow: 0 0 10px rgba(200,200,200,0.3);
     }
     .gate-msg {
-      font-size: 0.75rem;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: #2a2a2a;
+      font-size: 0.75rem; letter-spacing: 0.22em;
+      text-transform: uppercase; color: #2a2a2a;
     }
     .gate-hint {
-      margin-top: 2rem;
-      font-size: 0.9rem;
-      letter-spacing: 0.35em;
-      color: #2e2e2e;
-      min-height: 1.2em;
+      margin-top: 2rem; font-size: 0.85rem; letter-spacing: 0.3em;
+      color: #2e2e2e; min-height: 1.2em;
     }
-    .hz {
-      position: fixed;
-      width: 56px;
-      height: 56px;
-      z-index: 5;
-      opacity: 0;
-      pointer-events: none;
-    }
-    body.hz-on .hz { pointer-events: auto; }
-    .hz-tl { top: 0; left: 0; }
-    .hz-tr { top: 0; right: 0; }
-    .hz-bl { bottom: 0; left: 0; }
-    .hz-br { bottom: 0; right: 0; }
   </style>
 </head>
 <body>
-  <div id="gate" class="gate">
-    <div class="gate-code">4<span id="gate-o">O</span>4</div>
+  <div class="gate">
+    <div class="gate-code" id="code" aria-hidden="true">
+      <span data-k="a">4</span><span data-k="o">O</span><span data-k="b">4</span>
+    </div>
     <p class="gate-msg">not found</p>
-    <p class="gate-hint" id="gate-hint"></p>
-    <div class="hz hz-tl" data-hz="0"></div>
-    <div class="hz hz-tr" data-hz="1"></div>
-    <div class="hz hz-bl" data-hz="2"></div>
-    <div class="hz hz-br" data-hz="3"></div>
+    <p class="gate-hint" id="hint"></p>
   </div>
   <script>
   (function () {
+    /* Unlock: tap O three times (≤900ms gaps), then left 4, then right 4 */
     var KEY = "__g5_pr";
     var TTL = 2 * 60 * 60 * 1000;
-    var ORDER = [3, 0, 2, 1];
     var XR = "https://r25347sh.github.io/xr/";
-    var gateO = document.getElementById("gate-o");
-    var hint = document.getElementById("gate-hint");
-    var zonesReady = false;
-    var step = 0;
-    var holdTimer = null;
-    var holdMs = 1400;
+    var phase = 0;
+    var oCount = 0;
+    var lastT = 0;
+    var phaseTimer = null;
+    var spans = document.querySelectorAll("#code span");
+    var hint = document.getElementById("hint");
 
     function unlocked() {
       try {
@@ -96,74 +66,65 @@
         if (!raw) return false;
         var o = JSON.parse(raw);
         if (!o || !o.t || o.v !== 1) return false;
-        if (Date.now() - o.t > TTL) {
-          sessionStorage.removeItem(KEY);
-          return false;
-        }
+        if (Date.now() - o.t > TTL) { sessionStorage.removeItem(KEY); return false; }
         return true;
       } catch (e) { return false; }
     }
-
     function setUnlock() {
-      try {
-        sessionStorage.setItem(KEY, JSON.stringify({ t: Date.now(), v: 1 }));
-      } catch (e) {}
+      try { sessionStorage.setItem(KEY, JSON.stringify({ t: Date.now(), v: 1 })); } catch (e) {}
+    }
+    function go() { setUnlock(); location.replace(XR); }
+    if (unlocked()) { go(); return; }
+
+    function reset() {
+      phase = 0; oCount = 0; lastT = 0;
+      clearTimeout(phaseTimer);
+      spans.forEach(function (s) { s.classList.remove("lit"); });
+      if (hint) hint.textContent = "";
+    }
+    function arm(ms) {
+      clearTimeout(phaseTimer);
+      phaseTimer = setTimeout(reset, ms);
+    }
+    function flash(el) {
+      el.classList.add("lit");
+      setTimeout(function () { el.classList.remove("lit"); }, 180);
     }
 
-    function go() {
-      setUnlock();
-      location.replace(XR);
-    }
-
-    if (unlocked()) {
-      go();
-      return;
-    }
-
-    function onHoldStart(e) {
-      if (zonesReady) return;
-      e.preventDefault();
-      holdTimer = setTimeout(function () {
-        zonesReady = true;
-        document.body.classList.add("hz-on");
-        if (hint) hint.textContent = "·";
-        step = 0;
-      }, holdMs);
-    }
-    function onHoldEnd() { clearTimeout(holdTimer); }
-
-    if (gateO) {
-      gateO.addEventListener("mousedown", onHoldStart);
-      gateO.addEventListener("touchstart", onHoldStart, { passive: false });
-      gateO.addEventListener("mouseup", onHoldEnd);
-      gateO.addEventListener("mouseleave", onHoldEnd);
-      gateO.addEventListener("touchend", onHoldEnd);
-      gateO.addEventListener("touchcancel", onHoldEnd);
-    }
-
-    var resetTimer = null;
-    function resetStep() {
-      step = 0;
-      if (hint && zonesReady) hint.textContent = "·";
-    }
-
-    document.querySelectorAll(".hz").forEach(function (hz) {
-      hz.addEventListener("click", function (e) {
-        if (!zonesReady) return;
+    spans.forEach(function (sp) {
+      sp.addEventListener("click", function (e) {
         e.preventDefault();
-        e.stopPropagation();
-        var id = parseInt(hz.getAttribute("data-hz"), 10);
-        if (id === ORDER[step]) {
-          step++;
-          if (hint) hint.textContent = new Array(step + 1).join("·");
-          clearTimeout(resetTimer);
-          resetTimer = setTimeout(resetStep, 3200);
-          if (step >= ORDER.length) {
-            clearTimeout(resetTimer);
-            go();
+        var k = sp.getAttribute("data-k");
+        var now = Date.now();
+        flash(sp);
+
+        if (phase === 0) {
+          if (k !== "o") { reset(); return; }
+          if (oCount > 0 && now - lastT > 900) { reset(); oCount = 0; }
+          oCount++;
+          lastT = now;
+          if (hint) hint.textContent = new Array(oCount + 1).join("·");
+          if (oCount >= 3) {
+            phase = 1;
+            if (hint) hint.textContent = "···";
+            arm(2000);
+          } else {
+            arm(900);
           }
-        } else {
-          resetStep();
+          return;
+        }
+        if (phase === 1) {
+          if (k !== "a") { reset(); return; }
+          phase = 2;
+          if (hint) hint.textContent = "····";
+          arm(2000);
+          return;
+        }
+        if (phase === 2) {
+          if (k !== "b") { reset(); return; }
+          clearTimeout(phaseTimer);
+          if (hint) hint.textContent = "·····";
+          setTimeout(go, 200);
         }
       });
     });
