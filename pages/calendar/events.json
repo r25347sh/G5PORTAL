@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-07T04:24:24Z",
+  "updatedAt": "2026-10-07T07:58:02Z",
   "source": "G5PORTAL Google Calendar ICS",
   "events": [
     {
@@ -55,6 +55,19 @@
       }
     },
     {
+      "id": "4gk4n12gnvv8and79do71ts7rq@google.com",
+      "title": "柏 de 吹奏楽 Party",
+      "start": "2026-10-18",
+      "end": "2026-10-19",
+      "allDay": true,
+      "description": "柏駅前で演奏を行います。\n\n【CTB】",
+      "location": "",
+      "extendedProps": {
+        "description": "柏駅前で演奏を行います。\n\n【CTB】",
+        "location": ""
+      }
+    },
+    {
       "id": "6tf6j0g4hstlg6v6elgraqacg9@google.com",
       "title": "九州研修",
       "start": "2026-10-20",
@@ -64,19 +77,6 @@
       "location": "",
       "extendedProps": {
         "description": "",
-        "location": ""
-      }
-    },
-    {
-      "id": "4gk4n12gnvv8and79do71ts7rq@google.com",
-      "title": "柏 de 吹奏楽 Party",
-      "start": "2026-10-25",
-      "end": "2026-10-26",
-      "allDay": true,
-      "description": "柏駅前で演奏を行います。\n\n【CTB】",
-      "location": "",
-      "extendedProps": {
-        "description": "柏駅前で演奏を行います。\n\n【CTB】",
         "location": ""
       }
     },
@@ -94,10 +94,10 @@
       }
     },
     {
-      "id": "0e9k5odi637b339ibiqfcl8a8j@google.com",
-      "title": "面談期間",
+      "id": "73qogih68oa64memjrb1drebbm@google.com",
+      "title": "後期保護者学級　休校日",
       "start": "2026-11-07",
-      "end": "2026-11-15",
+      "end": "2026-11-08",
       "allDay": true,
       "description": "",
       "location": "",
@@ -107,10 +107,10 @@
       }
     },
     {
-      "id": "73qogih68oa64memjrb1drebbm@google.com",
-      "title": "後期保護者学級　休校日",
+      "id": "0e9k5odi637b339ibiqfcl8a8j@google.com",
+      "title": "面談期間",
       "start": "2026-11-07",
-      "end": "2026-11-08",
+      "end": "2026-11-15",
       "allDay": true,
       "description": "",
       "location": "",
@@ -276,19 +276,6 @@
       }
     },
     {
-      "id": "1qleaolhah3ifh85q6err123n0@google.com",
-      "title": "修了式",
-      "start": "2027-03-20",
-      "end": "2027-03-21",
-      "allDay": true,
-      "description": "",
-      "location": "",
-      "extendedProps": {
-        "description": "",
-        "location": ""
-      }
-    },
-    {
       "id": "chj3iphj61gj8bb4cgo38b9k70pm8b9o70o62bb3chhjcp9h6ko6ccb2cg@google.com",
       "title": "定期演奏会",
       "start": "2027-03-20",
@@ -299,6 +286,19 @@
       "extendedProps": {
         "description": "定期演奏会\n柏市民文化会館で行われます。\nたくさんの方のご来場、心よりお待ちしております。\n\n【CTB】",
         "location": "柏市民文化会館大ホール"
+      }
+    },
+    {
+      "id": "1qleaolhah3ifh85q6err123n0@google.com",
+      "title": "修了式",
+      "start": "2027-03-20",
+      "end": "2027-03-21",
+      "allDay": true,
+      "description": "",
+      "location": "",
+      "extendedProps": {
+        "description": "",
+        "location": ""
       }
     }
   ]
