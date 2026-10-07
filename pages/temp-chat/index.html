@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#07050f">
+  <meta name="robots" content="noindex,nofollow">
+  <title>一時チャット · G⁵ Portal</title>
+  <link rel="stylesheet" href="../../src/css/style.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../../MENU/MENU.css">
+  <script src="../../src/js/main.js" defer></script>
+  <script src="../../MENU/MENU.js" defer></script>
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
+  <header class="tool-header">
+    <a href="../../index.html?hidden=1" class="btn btn-ghost tool-back">← G⁵ Portal</a>
+    <h1>一時チャット</h1>
+    <p class="tool-sub">WebRTC · サーバーに履歴を残さない一時テキストチャット</p>
+  </header>
+  <main class="tool-main">
+    <div class="mode-tabs">
+      <button type="button" class="mode-tab active" data-mode="host">部屋を作る</button>
+      <button type="button" class="mode-tab" data-mode="join">参加する</button>
+    </div>
+
+    <section id="panel-host" class="tool-card">
+      <p class="hint">部屋を作ると接続 URL / QR が発行されます。相手に渡すとチャットが始まります。閉じると接続は切れ、履歴は端末にもサーバーにも残りません。</p>
+      <label for="host-name">表示名（任意）</label>
+      <input type="text" id="host-name" placeholder="例: Host" maxlength="24" autocomplete="nickname">
+      <div class="tool-actions">
+        <button type="button" id="btn-host-start" class="btn btn-primary">部屋を作る</button>
+        <button type="button" id="btn-host-stop" class="btn btn-ghost hidden">解散する</button>
+      </div>
+      <div id="host-info" class="share-info hidden">
+        <label>接続 URL</label>
+        <div class="url-row">
+          <input type="text" id="share-url" readonly>
+          <button type="button" id="btn-copy-url" class="btn btn-ghost">コピー</button>
+        </div>
+        <div id="qr-box" class="qr-box"></div>
+        <p id="host-status" class="status">待機中…</p>
+      </div>
+    </section>
+
+    <section id="panel-join" class="tool-card hidden">
+      <p class="hint">共有 URL を開くか、ルーム ID を入力して参加します。</p>
+      <label for="join-name">表示名（任意）</label>
+      <input type="text" id="join-name" placeholder="例: Guest" maxlength="24" autocomplete="nickname">
+      <label for="room-input">ルーム ID</label>
+      <input type="text" id="room-input" placeholder="ホスト側の ID" autocomplete="off" spellcheck="false">
+      <div class="tool-actions">
+        <button type="button" id="btn-join" class="btn btn-primary">参加</button>
+        <button type="button" id="btn-leave" class="btn btn-ghost hidden">退出</button>
+      </div>
+      <p id="join-status" class="status"></p>
+    </section>
+
+    <section id="chat-panel" class="tool-card chat-panel hidden">
+      <div class="chat-meta">
+        <span id="chat-peer-label">未接続</span>
+        <span id="chat-conn-badge" class="badge">オフライン</span>
+      </div>
+      <div id="chat-log" class="chat-log" role="log" aria-live="polite"></div>
+      <form id="chat-form" class="chat-form">
+        <input type="text" id="chat-input" placeholder="メッセージ…" maxlength="2000" autocomplete="off" disabled>
+        <button type="submit" id="btn-send" class="btn btn-primary" disabled>送信</button>
+      </form>
+    </section>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
