@@ -96,6 +96,9 @@
 .cal-legend-swatch--ceremony {
   background: linear-gradient(135deg, #7b3fd4, #c77dff);
 }
+.cal-legend-swatch--holiday {
+  background: linear-gradient(135deg, #e85d4c, #ff8a75);
+}
 
 /* FullCalendar G5 theme */
 .fc-g5 {
@@ -215,6 +218,25 @@
 }
 .fc-g5 .fc-event.g5-ev--ceremony .fc-event-title {
   color: #fff !important;
+}
+
+.fc-g5 .fc-event.g5-ev--holiday {
+  background: linear-gradient(135deg, #c43c2e, #ff7a66) !important;
+  box-shadow: 0 2px 10px rgba(232, 93, 76, 0.4);
+  color: #fff !important;
+}
+.fc-g5 .fc-event.g5-ev--holiday .fc-event-title {
+  color: #fff !important;
+}
+.fc-g5 .fc-event.g5-ev--holiday:hover {
+  box-shadow: 0 4px 16px rgba(232, 93, 76, 0.55);
+}
+.fc-g5 .fc-list-event.g5-ev--holiday .fc-list-event-dot {
+  border-color: #e85d4c !important;
+}
+.cal-type-badge--holiday {
+  background: linear-gradient(135deg, #c43c2e, #ff7a66);
+  color: #fff;
 }
 
 .fc-g5 .fc-daygrid-event-dot {
