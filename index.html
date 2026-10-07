@@ -154,6 +154,13 @@
           <p>WebRTC DataChannel。ファイル選択後に共有 URL / QR を発行。</p>
           <a href="pages/file-share/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
         </article>
+        <!-- Hidden tool: only when ?hidden=1 -->
+        <article class="card hidden-tool" id="temp-chat-card" hidden>
+          <div class="card-icon">💬</div>
+          <h3>一時チャット</h3>
+          <p>WebRTC。サーバーに履歴を残さない一時テキストチャット。URL / QR で接続。</p>
+          <a href="pages/temp-chat/index.html" class="btn btn-ghost" style="margin-top:1rem;font-size:0.85rem;">開く</a>
+        </article>
       </div>
     </div>
   </section>
@@ -212,9 +219,21 @@
       background: linear-gradient(160deg, rgba(0,245,255,0.07), rgba(16,11,26,0.92) 60%);
     }
     .hero-cta { gap: 0.7rem; }
+    .hidden-tool[hidden] { display: none !important; }
     @media (max-width: 480px) {
       .hero-cta .btn { width: 100%; max-width: 280px; }
     }
   </style>
+  <script>
+    (function () {
+      try {
+        var p = new URLSearchParams(location.search);
+        if (p.get('hidden') === '1') {
+          var card = document.getElementById('temp-chat-card');
+          if (card) card.hidden = false;
+        }
+      } catch (e) {}
+    })();
+  </script>
 </body>
 </html>
