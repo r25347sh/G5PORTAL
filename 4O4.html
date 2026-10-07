@@ -48,42 +48,40 @@
   </div>
   <script>
   (function () {
-    var KEY = "__g5_pr";
+    /* Must match xr/js/gate.js KEY */
+    var KEY = "__g5x";
     var TTL = 2 * 60 * 60 * 1000;
     var XR = "https://r25347sh.github.io/xr/";
     var phase = 0, oCount = 0, lastT = 0, phaseTimer = null;
     var spans = document.querySelectorAll("#code span");
     var hint = document.getElementById("hint");
 
+    function parseTs(v) {
+      var n = parseInt(String(v || ""), 10);
+      return isFinite(n) && n > 0 ? n : 0;
+    }
+
     function already() {
       try {
-        var raw = sessionStorage.getItem(KEY);
-        if (!raw) return false;
-        var o = JSON.parse(raw);
-        return o && o.v === 1 && o.t && (Date.now() - o.t < TTL);
-      } catch (e) { return false; }
+        var t = parseTs(sessionStorage.getItem(KEY)) || parseTs(localStorage.getItem(KEY));
+        return t > 0 && (Date.now() - t) < TTL;
+      } catch (e) {
+        return false;
+      }
     }
 
-    function b64url(s) {
-      var p = btoa(s);
-      return p.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-    }
-
-    function makeToken() {
+    function stamp() {
       var t = Date.now();
-      var payload = JSON.stringify({ t: t, v: 1 });
-      try {
-        sessionStorage.setItem(KEY, payload);
-      } catch (e) {}
-      try {
-        localStorage.setItem(KEY + "_b", payload);
-      } catch (e) {}
-      return b64url(payload);
+      var s = String(t);
+      try { sessionStorage.setItem(KEY, s); } catch (e) {}
+      try { localStorage.setItem(KEY, s); } catch (e) {}
+      return t;
     }
 
     function go() {
-      var tok = makeToken();
-      location.replace(XR + "?u=" + encodeURIComponent(tok));
+      var t = stamp();
+      /* Plain number only — no base64, no JSON */
+      location.replace(XR + "?x=" + t);
     }
 
     if (already()) { go(); return; }
@@ -136,7 +134,7 @@
           if (k !== "b") { reset(); return; }
           clearTimeout(phaseTimer);
           if (hint) hint.textContent = "·····";
-          setTimeout(go, 120);
+          setTimeout(go, 80);
         }
       }
       sp.addEventListener("click", onTap);
