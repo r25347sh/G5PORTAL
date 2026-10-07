@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-07T01:09:19Z",
+  "updatedAt": "2026-10-07T04:24:24Z",
   "source": "G5PORTAL Google Calendar ICS",
   "events": [
     {
@@ -25,6 +25,19 @@
       "location": "",
       "extendedProps": {
         "description": "柏市民文化会館で行います。\n\n\n【CTB】",
+        "location": ""
+      }
+    },
+    {
+      "id": "2isa3jf7ipf5366glc0g9rocea@google.com",
+      "title": "調理実習①",
+      "start": "2026-10-14",
+      "end": "2026-10-15",
+      "allDay": true,
+      "description": "エプロン、三角巾、プリント、マスク等を持って調理教室にて集合。\n\n《班》\n〈①班〉\n6神山,15富樫,22渡辺（旬）\n8倉田,18馬場\n〈②班〉\n9小超,20星野\n3大原,19弘實,23渡辺（美）\n〈③班〉\n10佐藤,21吉岡\n1磯崎,13高松\n〈④班〉\n2梅澤,17秦野\n5柿葉,11芝崎\n〈⑤班〉\n7河口,12鈴木\n4奥田,16野口",
+      "location": "",
+      "extendedProps": {
+        "description": "エプロン、三角巾、プリント、マスク等を持って調理教室にて集合。\n\n《班》\n〈①班〉\n6神山,15富樫,22渡辺（旬）\n8倉田,18馬場\n〈②班〉\n9小超,20星野\n3大原,19弘實,23渡辺（美）\n〈③班〉\n10佐藤,21吉岡\n1磯崎,13高松\n〈④班〉\n2梅澤,17秦野\n5柿葉,11芝崎\n〈⑤班〉\n7河口,12鈴木\n4奥田,16野口",
         "location": ""
       }
     },
@@ -116,6 +129,19 @@
       "location": "",
       "extendedProps": {
         "description": "",
+        "location": ""
+      }
+    },
+    {
+      "id": "3citcc5rd281j1fgajldosmr3h@google.com",
+      "title": "調理実習②",
+      "start": "2026-11-11",
+      "end": "2026-11-12",
+      "allDay": true,
+      "description": "エプロン、三角巾、プリント、マスク等を持って調理教室にて集合。\n\n3限4限昼休みを使って調理実習。\n13:20にSHR。",
+      "location": "",
+      "extendedProps": {
+        "description": "エプロン、三角巾、プリント、マスク等を持って調理教室にて集合。\n\n3限4限昼休みを使って調理実習。\n13:20にSHR。",
         "location": ""
       }
     },
