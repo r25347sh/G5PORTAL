@@ -11,7 +11,6 @@
     html, body {
       min-height: 100%; background: #050505; color: #9a9a9a;
       font-family: "SF Mono", Consolas, Menlo, monospace;
-      -webkit-font-smoothing: antialiased;
     }
     .gate {
       min-height: 100vh; display: flex; flex-direction: column;
@@ -23,7 +22,7 @@
       letter-spacing: 0.14em; color: #3a3a3a; margin-bottom: 1rem;
     }
     .gate-code span {
-      display: inline-block; padding: 0 0.06em; cursor: default;
+      display: inline-block; padding: 0 0.08em; cursor: default;
       transition: color 0.12s, text-shadow 0.12s;
     }
     .gate-code span.lit {
@@ -49,32 +48,37 @@
   </div>
   <script>
   (function () {
-    /* Unlock: tap O three times (≤900ms gaps), then left 4, then right 4 */
     var KEY = "__g5_pr";
     var TTL = 2 * 60 * 60 * 1000;
     var XR = "https://r25347sh.github.io/xr/";
-    var phase = 0;
-    var oCount = 0;
-    var lastT = 0;
-    var phaseTimer = null;
+    var phase = 0, oCount = 0, lastT = 0, phaseTimer = null;
     var spans = document.querySelectorAll("#code span");
     var hint = document.getElementById("hint");
 
-    function unlocked() {
+    function already() {
       try {
         var raw = sessionStorage.getItem(KEY);
         if (!raw) return false;
         var o = JSON.parse(raw);
-        if (!o || !o.t || o.v !== 1) return false;
-        if (Date.now() - o.t > TTL) { sessionStorage.removeItem(KEY); return false; }
-        return true;
+        return o && o.v === 1 && o.t && (Date.now() - o.t < TTL);
       } catch (e) { return false; }
     }
-    function setUnlock() {
-      try { sessionStorage.setItem(KEY, JSON.stringify({ t: Date.now(), v: 1 })); } catch (e) {}
+
+    function makeToken() {
+      var t = Date.now();
+      try {
+        sessionStorage.setItem(KEY, JSON.stringify({ t: t, v: 1 }));
+      } catch (e) {}
+      var payload = btoa(JSON.stringify({ t: t, v: 1 }));
+      return payload.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     }
-    function go() { setUnlock(); location.replace(XR); }
-    if (unlocked()) { go(); return; }
+
+    function go() {
+      var tok = makeToken();
+      location.replace(XR + "?u=" + encodeURIComponent(tok));
+    }
+
+    if (already()) { go(); return; }
 
     function reset() {
       phase = 0; oCount = 0; lastT = 0;
@@ -92,24 +96,24 @@
     }
 
     spans.forEach(function (sp) {
-      sp.addEventListener("click", function (e) {
+      function onTap(e) {
         e.preventDefault();
+        e.stopPropagation();
         var k = sp.getAttribute("data-k");
         var now = Date.now();
         flash(sp);
 
         if (phase === 0) {
           if (k !== "o") { reset(); return; }
-          if (oCount > 0 && now - lastT > 900) { reset(); oCount = 0; }
+          if (oCount > 0 && now - lastT > 1200) { oCount = 0; }
           oCount++;
           lastT = now;
           if (hint) hint.textContent = new Array(oCount + 1).join("·");
           if (oCount >= 3) {
             phase = 1;
-            if (hint) hint.textContent = "···";
-            arm(2000);
+            arm(3000);
           } else {
-            arm(900);
+            arm(1200);
           }
           return;
         }
@@ -117,16 +121,21 @@
           if (k !== "a") { reset(); return; }
           phase = 2;
           if (hint) hint.textContent = "····";
-          arm(2000);
+          arm(3000);
           return;
         }
         if (phase === 2) {
           if (k !== "b") { reset(); return; }
           clearTimeout(phaseTimer);
           if (hint) hint.textContent = "·····";
-          setTimeout(go, 200);
+          setTimeout(go, 150);
         }
-      });
+      }
+      sp.addEventListener("click", onTap);
+      sp.addEventListener("touchend", function (e) {
+        e.preventDefault();
+        onTap(e);
+      }, { passive: false });
     });
   })();
   </script>
