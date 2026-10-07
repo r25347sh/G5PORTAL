@@ -6,15 +6,70 @@
   <meta name="robots" content="noindex,nofollow,noarchive">
   <meta name="theme-color" content="#050505">
   <title>4O4</title>
-  <link rel="stylesheet" href="4O4/pr.css">
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
-  <script src="4O4/gate.js" defer></script>
-  <script src="4O4/pr.js" defer></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      min-height: 100%;
+      background: #050505;
+      color: #9a9a9a;
+      font-family: "SF Mono", Consolas, Menlo, monospace;
+      -webkit-font-smoothing: antialiased;
+    }
+    .gate {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      user-select: none;
+      -webkit-user-select: none;
+      position: relative;
+    }
+    .gate-code {
+      font-size: clamp(3rem, 12vw, 5rem);
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      color: #3a3a3a;
+      margin-bottom: 1rem;
+    }
+    #gate-o {
+      display: inline-block;
+      color: #4a4a4a;
+      cursor: default;
+      padding: 0 0.05em;
+    }
+    .gate-msg {
+      font-size: 0.75rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #2a2a2a;
+    }
+    .gate-hint {
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      letter-spacing: 0.35em;
+      color: #2e2e2e;
+      min-height: 1.2em;
+    }
+    .hz {
+      position: fixed;
+      width: 56px;
+      height: 56px;
+      z-index: 5;
+      opacity: 0;
+      pointer-events: none;
+    }
+    body.hz-on .hz { pointer-events: auto; }
+    .hz-tl { top: 0; left: 0; }
+    .hz-tr { top: 0; right: 0; }
+    .hz-bl { bottom: 0; left: 0; }
+    .hz-br { bottom: 0; right: 0; }
+  </style>
 </head>
 <body>
   <div id="gate" class="gate">
-    <div class="gate-code" id="gate-code">4<span id="gate-o">O</span>4</div>
+    <div class="gate-code">4<span id="gate-o">O</span>4</div>
     <p class="gate-msg">not found</p>
     <p class="gate-hint" id="gate-hint"></p>
     <div class="hz hz-tl" data-hz="0"></div>
@@ -22,70 +77,97 @@
     <div class="hz hz-bl" data-hz="2"></div>
     <div class="hz hz-br" data-hz="3"></div>
   </div>
+  <script>
+  (function () {
+    var KEY = "__g5_pr";
+    var TTL = 2 * 60 * 60 * 1000;
+    var ORDER = [3, 0, 2, 1];
+    var XR = "https://r25347sh.github.io/xr/";
+    var gateO = document.getElementById("gate-o");
+    var hint = document.getElementById("gate-hint");
+    var zonesReady = false;
+    var step = 0;
+    var holdTimer = null;
+    var holdMs = 1400;
 
-  <div id="room" class="room hidden" aria-hidden="true">
-    <header class="room-head">
-      <div class="room-title">Private Room</div>
-      <div class="room-sub">ephemeral · p2p · no server log</div>
-    </header>
+    function unlocked() {
+      try {
+        var raw = sessionStorage.getItem(KEY);
+        if (!raw) return false;
+        var o = JSON.parse(raw);
+        if (!o || !o.t || o.v !== 1) return false;
+        if (Date.now() - o.t > TTL) {
+          sessionStorage.removeItem(KEY);
+          return false;
+        }
+        return true;
+      } catch (e) { return false; }
+    }
 
-    <div class="mode-tabs">
-      <button type="button" class="mode-tab active" data-mode="host">Host</button>
-      <button type="button" class="mode-tab" data-mode="join">Join</button>
-    </div>
+    function setUnlock() {
+      try {
+        sessionStorage.setItem(KEY, JSON.stringify({ t: Date.now(), v: 1 }));
+      } catch (e) {}
+    }
 
-    <section id="panel-host" class="panel">
-      <label for="host-name">name</label>
-      <input type="text" id="host-name" maxlength="24" placeholder="optional" autocomplete="nickname">
-      <div class="actions">
-        <button type="button" id="btn-host-start" class="btn primary">open room</button>
-        <button type="button" id="btn-host-stop" class="btn ghost hidden">close</button>
-      </div>
-      <div id="host-info" class="share-info hidden">
-        <label>link</label>
-        <div class="url-row">
-          <input type="text" id="share-url" readonly>
-          <button type="button" id="btn-copy-url" class="btn ghost">copy</button>
-        </div>
-        <div id="qr-box" class="qr-box"></div>
-        <p id="host-status" class="status">waiting…</p>
-      </div>
-    </section>
+    function go() {
+      setUnlock();
+      location.replace(XR);
+    }
 
-    <section id="panel-join" class="panel hidden">
-      <label for="join-name">name</label>
-      <input type="text" id="join-name" maxlength="24" placeholder="optional" autocomplete="nickname">
-      <label for="room-input">room id</label>
-      <input type="text" id="room-input" placeholder="host id" autocomplete="off" spellcheck="false">
-      <div class="actions">
-        <button type="button" id="btn-join" class="btn primary">join</button>
-        <button type="button" id="btn-leave" class="btn ghost hidden">leave</button>
-      </div>
-      <p id="join-status" class="status"></p>
-    </section>
+    if (unlocked()) {
+      go();
+      return;
+    }
 
-    <section id="chat-panel" class="panel chat-panel hidden">
-      <div class="chat-meta">
-        <span id="chat-peer-label">—</span>
-        <span id="chat-conn-badge" class="badge">offline</span>
-      </div>
-      <div id="chat-log" class="chat-log" role="log" aria-live="polite"></div>
-      <form id="chat-form" class="chat-form">
-        <input type="text" id="chat-input" placeholder="message" maxlength="2000" autocomplete="off" disabled>
-        <button type="submit" id="btn-send" class="btn primary" disabled>send</button>
-      </form>
-      <div class="file-row">
-        <label class="btn ghost file-btn">file
-          <input type="file" id="file-input" hidden>
-        </label>
-        <span id="file-meta" class="file-meta"></span>
-        <button type="button" id="btn-file-send" class="btn ghost" disabled>send file</button>
-      </div>
-      <div class="progress hidden" id="file-progress"><div id="file-bar" class="bar"></div></div>
-      <a id="download-link" class="download hidden" download></a>
-    </section>
-  </div>
+    function onHoldStart(e) {
+      if (zonesReady) return;
+      e.preventDefault();
+      holdTimer = setTimeout(function () {
+        zonesReady = true;
+        document.body.classList.add("hz-on");
+        if (hint) hint.textContent = "·";
+        step = 0;
+      }, holdMs);
+    }
+    function onHoldEnd() { clearTimeout(holdTimer); }
 
-  <div id="toast" class="toast" role="status"></div>
+    if (gateO) {
+      gateO.addEventListener("mousedown", onHoldStart);
+      gateO.addEventListener("touchstart", onHoldStart, { passive: false });
+      gateO.addEventListener("mouseup", onHoldEnd);
+      gateO.addEventListener("mouseleave", onHoldEnd);
+      gateO.addEventListener("touchend", onHoldEnd);
+      gateO.addEventListener("touchcancel", onHoldEnd);
+    }
+
+    var resetTimer = null;
+    function resetStep() {
+      step = 0;
+      if (hint && zonesReady) hint.textContent = "·";
+    }
+
+    document.querySelectorAll(".hz").forEach(function (hz) {
+      hz.addEventListener("click", function (e) {
+        if (!zonesReady) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var id = parseInt(hz.getAttribute("data-hz"), 10);
+        if (id === ORDER[step]) {
+          step++;
+          if (hint) hint.textContent = new Array(step + 1).join("·");
+          clearTimeout(resetTimer);
+          resetTimer = setTimeout(resetStep, 3200);
+          if (step >= ORDER.length) {
+            clearTimeout(resetTimer);
+            go();
+          }
+        } else {
+          resetStep();
+        }
+      });
+    });
+  })();
+  </script>
 </body>
 </html>
