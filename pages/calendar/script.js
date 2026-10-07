@@ -16,13 +16,14 @@
   ];
 
   var LOCAL_JSON = "events.json";
-  var CACHE_KEY = "g5_cal_events_v7";
+  var CACHE_KEY = "g5_cal_events_v8";
   var CACHE_TTL_MS = 10 * 60 * 1000;
   var FETCH_TIMEOUT_MS = 16000;
 
   var EXAM_RE = /期末試験|期末テスト|中間試験|中間テスト|定期試験|定期テスト|模擬試験|模試/;
   var CEREMONY_RE = /^(終業式|始業式)$/;
   var CTB_RE = /千葉トレイルブレイザーズ|\bCTB\b/i;
+  var HOLIDAY_RE = /祝日|休日|休校|休講/;
 
   var statusEl = document.getElementById("cal-status");
   var toastEl = document.getElementById("toast");
@@ -33,7 +34,7 @@
   var toastTimer = null;
   var refreshing = false;
 
-  var TYPE_LABEL = { ctb: "CTB", exam: "試験", ceremony: "式典", default: "一般" };
+  var TYPE_LABEL = { holiday: "休業", ctb: "CTB", exam: "試験", ceremony: "式典", default: "一般" };
 
   function showToast(msg) {
     if (!toastEl) return;
@@ -90,6 +91,8 @@
   function classifyEvent(title, description) {
     var t = String(title || "").trim();
     var blob = t + "\n" + String(description || "");
+    // 祝日・休日・休校・休講は最優先で色分け
+    if (HOLIDAY_RE.test(blob)) return "holiday";
     if (CTB_RE.test(blob)) return "ctb";
     if (EXAM_RE.test(t)) return "exam";
     if (CEREMONY_RE.test(t)) return "ceremony";
@@ -226,11 +229,17 @@
   }
 
   function escapeHtml(str) {
-    return String(str)
-      .replace(/&/g, "\u0026amp;")
-      .replace(/</g, "\u0026lt;")
-      .replace(/>/g, "\u0026gt;")
-      .replace(/"/g, "\u0026quot;");
+    var out = "";
+    var s = String(str);
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charAt(i);
+      if (c === "&") out += "&" + "amp;";
+      else if (c === "<") out += "&" + "lt;";
+      else if (c === ">") out += "&" + "gt;";
+      else if (c === '"') out += "&" + "quot;";
+      else out += c;
+    }
+    return out;
   }
 
   function openModal(info) {
