@@ -191,3 +191,21 @@
   .metrics-grid { grid-template-columns: 1fr 1fr; }
   .metric-value { font-size: 1.3rem; }
 }
+
+/* rating */
+.metric-rating {
+  grid-column: 1 / -1;
+  background: linear-gradient(160deg, rgba(255,45,149,0.08), rgba(0,245,255,0.06));
+  border-color: rgba(0, 245, 255, 0.22);
+}
+.rating-value {
+  font-size: 1.55rem !important;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+.rating-best { color: #00f5ff !important; text-shadow: 0 0 12px rgba(0,245,255,0.35); }
+.rating-good { color: #5dff9a !important; }
+.rating-ok { color: #ffd166 !important; }
+.rating-bad { color: #ff8c42 !important; }
+.rating-worst { color: #ff2d95 !important; }
+.rating-na { color: #6a6a7a !important; }
