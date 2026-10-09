@@ -176,3 +176,68 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* camera modal */
+.cam-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0, 0, 0, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  backdrop-filter: blur(6px);
+}
+.cam-modal.hidden { display: none; }
+.cam-panel {
+  width: min(420px, 100%);
+  background: var(--bg-card, #120e1a);
+  border: 1px solid var(--border, rgba(255,255,255,0.12));
+  border-radius: var(--radius, 14px);
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+}
+.cam-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  color: var(--text-muted, #aaa);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.cam-close { font-size: 1rem; padding: 0.2rem 0.55rem; }
+.cam-body {
+  position: relative;
+  background: #000;
+  aspect-ratio: 3 / 4;
+  max-height: 60vh;
+}
+.cam-body video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.cam-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  text-align: center;
+  color: #ff8c9a;
+  font-size: 0.9rem;
+  background: rgba(0,0,0,0.7);
+}
+.cam-error.hidden { display: none; }
+.cam-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  padding: 1rem;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.cam-actions .btn { min-width: 6rem; }
