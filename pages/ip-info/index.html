@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#07050f">
+  <title>IPアドレス情報 · G⁵ Portal</title>
+  <link rel="stylesheet" href="../../src/css/style.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../../MENU/MENU.css">
+  <script src="../../src/js/main.js" defer></script>
+  <script src="../../MENU/MENU.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
+  <header class="tool-header">
+    <a href="../../index.html" class="btn btn-ghost tool-back">← G⁵ Portal</a>
+    <h1>IPアドレス情報</h1>
+    <p class="tool-sub">公開IP · 位置 · ISP · タイムゾーン</p>
+  </header>
+  <main class="tool-main">
+    <div class="tool-card status-card">
+      <div id="status" class="status loading">取得中…</div>
+      <button type="button" id="btn-refresh" class="btn btn-primary">再取得</button>
+    </div>
+
+    <div id="info-grid" class="info-grid hidden">
+      <div class="info-card highlight">
+        <span class="info-label">公開 IP</span>
+        <span class="info-value mono" id="ip">—</span>
+        <button type="button" id="btn-copy-ip" class="btn btn-ghost btn-sm">コピー</button>
+      </div>
+      <div class="info-card">
+        <span class="info-label">国 / 地域</span>
+        <span class="info-value" id="country">—</span>
+      </div>
+      <div class="info-card">
+        <span class="info-label">都市</span>
+        <span class="info-value" id="city">—</span>
+      </div>
+      <div class="info-card">
+        <span class="info-label">地域</span>
+        <span class="info-value" id="region">—</span>
+      </div>
+      <div class="info-card">
+        <span class="info-label">郵便番号</span>
+        <span class="info-value mono" id="postal">—</span>
+      </div>
+      <div class="info-card">
+        <span class="info-label">緯度 / 経度</span>
+        <span class="info-value mono" id="coords">—</span>
+      </div>
+      <div class="info-card">
+        <span class="info-label">タイムゾーン</span>
+        <span class="info-value" id="timezone">—</span>
+      </div>
+      <div class="info-card">
+        <span class="info-label">ISP / 組織</span>
+        <span class="info-value" id="isp">—</span>
+      </div>
+      <div class="info-card">
+        <span class="info-label">AS</span>
+        <span class="info-value mono" id="asn">—</span>
+      </div>
+    </div>
+
+    <div class="tool-card lookup-card">
+      <h2>任意 IP を調べる</h2>
+      <div class="lookup-row">
+        <input type="text" id="lookup-ip" placeholder="例: 8.8.8.8" spellcheck="false" autocomplete="off">
+        <button type="button" id="btn-lookup" class="btn btn-primary">検索</button>
+      </div>
+      <p class="hint">空欄のまま検索すると自分の公開 IP を再取得します</p>
+    </div>
+    <p id="toast" class="toast hidden" role="status"></p>
+  </main>
+  <footer class="site-footer">
+    <p><strong>G⁵ Portal</strong> · IPアドレス情報</p>
+    <p>© 2026 Reitaku H.S. 5G · ipapi.co / ipify</p>
+  </footer>
+</body>
+</html>
