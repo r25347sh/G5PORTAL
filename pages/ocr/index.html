@@ -23,7 +23,7 @@
   <main class="tool-main">
     <div class="tool-card">
       <div class="upload-zone" id="drop-zone">
-        <input type="file" id="file-input" accept="image/*" capture="environment" hidden>
+        <input type="file" id="file-input" accept="image/*" hidden>
         <div class="upload-inner" id="upload-prompt">
           <span class="upload-icon">📷</span>
           <p>画像をドロップ / クリックで選択</p>
@@ -59,6 +59,26 @@
       <textarea id="result" rows="8" placeholder="認識結果がここに表示されます" readonly spellcheck="false"></textarea>
       <p id="confidence" class="hint confidence"></p>
     </div>
+    
+    <!-- Camera modal -->
+    <div id="cam-modal" class="cam-modal hidden" aria-hidden="true">
+      <div class="cam-panel">
+        <div class="cam-head">
+          <span>カメラ</span>
+          <button type="button" id="cam-close" class="btn btn-ghost cam-close">✕</button>
+        </div>
+        <div class="cam-body">
+          <video id="cam-video" playsinline autoplay muted></video>
+          <canvas id="cam-canvas" class="hidden"></canvas>
+          <p id="cam-error" class="cam-error hidden"></p>
+        </div>
+        <div class="cam-actions">
+          <button type="button" id="cam-switch" class="btn btn-ghost">切替</button>
+          <button type="button" id="cam-shot" class="btn btn-primary">撮影</button>
+        </div>
+      </div>
+    </div>
+
     <p id="toast" class="toast hidden" role="status"></p>
   </main>
   <footer class="site-footer">
