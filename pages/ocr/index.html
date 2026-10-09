@@ -32,19 +32,40 @@
         <img id="preview" class="preview-img hidden" alt="プレビュー">
       </div>
       <div class="ocr-controls">
-        <label class="lang-label">認識言語
-          <select id="lang">
-            <option value="jpn+eng">日本語 + 英語</option>
-            <option value="jpn">日本語のみ</option>
-            <option value="eng">英語のみ</option>
-          </select>
-        </label>
+        <div class="ocr-options">
+          <label class="lang-label">認識言語
+            <select id="lang">
+              <option value="jpn+eng">日本語 + 英語</option>
+              <option value="jpn">日本語のみ</option>
+              <option value="eng">英語のみ</option>
+            </select>
+          </label>
+          <label class="lang-label">前処理
+            <select id="preprocess">
+              <option value="auto" selected>自動（推奨）</option>
+              <option value="contrast">高コントラスト</option>
+              <option value="binary">二値化（印刷物）</option>
+              <option value="raw">なし（元画像）</option>
+            </select>
+          </label>
+          <label class="lang-label">領域検出
+            <select id="psm">
+              <option value="3">自動</option>
+              <option value="6" selected>単一ブロック（推奨）</option>
+              <option value="4">縦書き寄りの段落</option>
+              <option value="11">疎らな文字</option>
+              <option value="7">1行</option>
+              <option value="8">1単語</option>
+            </select>
+          </label>
+        </div>
         <div class="tool-actions">
           <button type="button" id="btn-camera" class="btn btn-ghost">カメラ</button>
           <button type="button" id="btn-clear" class="btn btn-ghost">クリア</button>
           <button type="button" id="btn-run" class="btn btn-primary" disabled>認識する</button>
         </div>
       </div>
+      <p class="hint ocr-tip">精度のコツ: 明るい場所で真上から撮影 · 文字を大きく · 印刷物は「二値化」· 画面スクショは「高コントラスト」</p>
       <div id="progress-wrap" class="progress-wrap hidden">
         <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
         <p id="progress-text" class="hint">準備中…</p>
@@ -83,7 +104,7 @@
   </main>
   <footer class="site-footer">
     <p><strong>G⁵ Portal</strong> · OCR 文字認識</p>
-    <p>© 2026 Reitaku H.S. 5G · Powered by Tesseract.js</p>
+    <p>© 2026 Reitaku H.S. 5G · 端末内 OCR · 前処理付き</p>
   </footer>
 </body>
 </html>
