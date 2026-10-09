@@ -58,7 +58,8 @@
             icon: "📺",
             items: [
               { label: "画面シェア", icon: "📺", url: root + "pages/screen-share/index.html" },
-              { label: "ファイル共有", icon: "📁", url: root + "pages/file-share/index.html" }
+              { label: "ファイル共有", icon: "📁", url: root + "pages/file-share/index.html" },
+              { label: "遠隔シャッター", icon: "📷", url: root + "pages/remote-shutter/index.html" }
             ]
           },
           {
