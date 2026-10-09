@@ -80,14 +80,18 @@
 
     function go() {
       var t = stamp();
-      /* Plain number only — no base64, no JSON */
+      /* Cross-origin: G5PORTAL storage is invisible to xr.
+         Token travels only via ?x= (plain timestamp). */
       location.replace(XR + "?x=" + t);
     }
 
     if (already()) { go(); return; }
 
+    var lock = false;
+    var lastTapAt = 0;
+
     function reset() {
-      phase = 0; oCount = 0; lastT = 0;
+      phase = 0; oCount = 0; lastT = 0; lock = false;
       clearTimeout(phaseTimer);
       spans.forEach(function (s) { s.classList.remove("lit"); });
       if (hint) hint.textContent = "";
@@ -101,46 +105,56 @@
       setTimeout(function () { el.classList.remove("lit"); }, 180);
     }
 
+    function onTap(sp) {
+      if (lock) return;
+      var now = Date.now();
+      /* debounce touchend + synthetic click double-fire */
+      if (now - lastTapAt < 280) return;
+      lastTapAt = now;
+
+      var k = sp.getAttribute("data-k");
+      flash(sp);
+
+      if (phase === 0) {
+        if (k !== "o") { reset(); return; }
+        if (oCount > 0 && now - lastT > 1200) { oCount = 0; }
+        oCount++;
+        lastT = now;
+        if (hint) hint.textContent = new Array(oCount + 1).join("·");
+        if (oCount >= 3) {
+          phase = 1;
+          arm(3000);
+        } else {
+          arm(1200);
+        }
+        return;
+      }
+      if (phase === 1) {
+        if (k !== "a") { reset(); return; }
+        phase = 2;
+        if (hint) hint.textContent = "····";
+        arm(3000);
+        return;
+      }
+      if (phase === 2) {
+        if (k !== "b") { reset(); return; }
+        lock = true;
+        clearTimeout(phaseTimer);
+        if (hint) hint.textContent = "·····";
+        setTimeout(go, 80);
+      }
+    }
+
     spans.forEach(function (sp) {
-      function onTap(e) {
+      sp.addEventListener("click", function (e) {
         e.preventDefault();
         e.stopPropagation();
-        var k = sp.getAttribute("data-k");
-        var now = Date.now();
-        flash(sp);
-
-        if (phase === 0) {
-          if (k !== "o") { reset(); return; }
-          if (oCount > 0 && now - lastT > 1200) { oCount = 0; }
-          oCount++;
-          lastT = now;
-          if (hint) hint.textContent = new Array(oCount + 1).join("·");
-          if (oCount >= 3) {
-            phase = 1;
-            arm(3000);
-          } else {
-            arm(1200);
-          }
-          return;
-        }
-        if (phase === 1) {
-          if (k !== "a") { reset(); return; }
-          phase = 2;
-          if (hint) hint.textContent = "····";
-          arm(3000);
-          return;
-        }
-        if (phase === 2) {
-          if (k !== "b") { reset(); return; }
-          clearTimeout(phaseTimer);
-          if (hint) hint.textContent = "·····";
-          setTimeout(go, 80);
-        }
-      }
-      sp.addEventListener("click", onTap);
+        onTap(sp);
+      });
       sp.addEventListener("touchend", function (e) {
         e.preventDefault();
-        onTap(e);
+        e.stopPropagation();
+        onTap(sp);
       }, { passive: false });
     });
   })();
