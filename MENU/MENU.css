@@ -165,3 +165,27 @@
   :root { --rm-item-size: 52px; }
   .menu-fab { width: 56px; height: 56px; }
 }
+
+.ham-group-nested {
+  font-size: 0.88rem;
+  opacity: 0.92;
+  padding-left: 0.35rem;
+}
+.ham-sub-nested {
+  padding-left: 0.65rem;
+}
+.ham-sub .ham-group-btn {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+}
+.ham-sub .ham-group-btn:hover {
+  background: rgba(0, 245, 255, 0.08);
+  color: #00f5ff;
+}

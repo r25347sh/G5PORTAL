@@ -25,23 +25,53 @@
         label: "ツール",
         icon: "◈",
         items: [
-          { label: "PDFビューアー", icon: "📄", url: root + "pages/pdf-viewer/index.html" },
-          { label: "文字数カウント", icon: "文字", url: root + "pages/char-count/index.html" },
-          { label: "文字拡大鏡", icon: "🔍", url: root + "pages/char-magnifier/index.html" },
-          { label: "パスワード生成", icon: "鍵", url: root + "pages/password-gen/index.html" },
-          { label: "暗号化・復号", icon: "🔐", url: root + "pages/crypto/index.html" },
-          { label: "QRコード", icon: "QR", url: root + "pages/qr-code/index.html" },
-          { label: "タイマー", icon: "⏱", url: root + "pages/timer/index.html" },
-          { label: "コイン・サイコロ", icon: "🎲", url: root + "pages/random/index.html" },
-          { label: "カラーピッカー", icon: "🎨", url: root + "pages/color-picker/index.html" },
-          { label: "画面シェア", icon: "📺", url: root + "pages/screen-share/index.html" },
-          { label: "ファイル共有", icon: "📁", url: root + "pages/file-share/index.html" },
-          { label: "デジタル時計", icon: "🕐", url: root + "pages/clock/index.html" },
-          { label: "電卓", icon: "🧮", url: root + "pages/calculator/index.html" },
-          { label: "OCR 文字認識", icon: "📷", url: root + "pages/ocr/index.html" },
-          { label: "グループ分け", icon: "👥", url: root + "pages/group-divider/index.html" },
-          { label: "IPアドレス情報", icon: "🌐", url: root + "pages/ip-info/index.html" },
-          { label: "速度チェッカー", icon: "⚡", url: root + "pages/speed-test/index.html" }
+          {
+            label: "ドキュメント",
+            icon: "📄",
+            items: [
+              { label: "PDFビューアー", icon: "📄", url: root + "pages/pdf-viewer/index.html" }
+            ]
+          },
+          {
+            label: "文字",
+            icon: "文字",
+            items: [
+              { label: "文字数カウント", icon: "文字", url: root + "pages/char-count/index.html" },
+              { label: "文字拡大鏡", icon: "🔍", url: root + "pages/char-magnifier/index.html" },
+              { label: "パスワード生成", icon: "鍵", url: root + "pages/password-gen/index.html" },
+              { label: "暗号化・復号", icon: "🔐", url: root + "pages/crypto/index.html" },
+              { label: "QRコード", icon: "QR", url: root + "pages/qr-code/index.html" }
+            ]
+          },
+          {
+            label: "時間・乱数・色",
+            icon: "⏱",
+            items: [
+              { label: "タイマー", icon: "⏱", url: root + "pages/timer/index.html" },
+              { label: "コイン・サイコロ", icon: "🎲", url: root + "pages/random/index.html" },
+              { label: "カラーピッカー", icon: "🎨", url: root + "pages/color-picker/index.html" },
+              { label: "デジタル時計", icon: "🕐", url: root + "pages/clock/index.html" }
+            ]
+          },
+          {
+            label: "共有",
+            icon: "📺",
+            items: [
+              { label: "画面シェア", icon: "📺", url: root + "pages/screen-share/index.html" },
+              { label: "ファイル共有", icon: "📁", url: root + "pages/file-share/index.html" }
+            ]
+          },
+          {
+            label: "ユーティリティ",
+            icon: "⚡",
+            items: [
+              { label: "電卓", icon: "🧮", url: root + "pages/calculator/index.html" },
+              { label: "OCR 文字認識", icon: "📷", url: root + "pages/ocr/index.html" },
+              { label: "グループ分け", icon: "👥", url: root + "pages/group-divider/index.html" },
+              { label: "IPアドレス情報", icon: "🌐", url: root + "pages/ip-info/index.html" },
+              { label: "速度チェッカー", icon: "⚡", url: root + "pages/speed-test/index.html" }
+            ]
+          }
         ]
       },
       {
@@ -234,27 +264,40 @@
     pieDisabled = true;
     var list = document.getElementById("ham-list");
     list.innerHTML = "";
+
+    function addLink(parent, it) {
+      var a = document.createElement("a");
+      a.href = it.url || "#";
+      a.textContent = (it.icon ? it.icon + " " : "") + it.label;
+      a.addEventListener("click", function (e) {
+        e.preventDefault();
+        navigateWithDelay(it.url);
+      });
+      parent.appendChild(a);
+    }
+
+    function addGroup(parent, entry, depth) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "ham-group-btn" + (depth > 0 ? " ham-group-nested" : "");
+      btn.textContent = (entry.icon ? entry.icon + " " : "") + entry.label;
+      var sub = document.createElement("div");
+      sub.className = "ham-sub" + (depth > 0 ? " ham-sub-nested" : "");
+      entry.items.forEach(function (it) {
+        if (it.items && it.items.length) {
+          addGroup(sub, it, depth + 1);
+        } else {
+          addLink(sub, it);
+        }
+      });
+      btn.onclick = function () { sub.classList.toggle("open"); };
+      parent.appendChild(btn);
+      parent.appendChild(sub);
+    }
+
     buildMenuData().forEach(function (entry) {
       if (entry.items && entry.items.length) {
-        var btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "ham-group-btn";
-        btn.textContent = (entry.icon ? entry.icon + " " : "") + entry.label;
-        var sub = document.createElement("div");
-        sub.className = "ham-sub";
-        entry.items.forEach(function (it) {
-          var a = document.createElement("a");
-          a.href = it.url || "#";
-          a.textContent = (it.icon ? it.icon + " " : "") + it.label;
-          a.addEventListener("click", function (e) {
-            e.preventDefault();
-            navigateWithDelay(it.url);
-          });
-          sub.appendChild(a);
-        });
-        btn.onclick = function () { sub.classList.toggle("open"); };
-        list.appendChild(btn);
-        list.appendChild(sub);
+        addGroup(list, entry, 0);
       } else {
         var a = document.createElement("a");
         a.className = "ham-link";
