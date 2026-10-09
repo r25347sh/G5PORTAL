@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-09T19:55:54Z",
+  "updatedAt": "2026-10-09T23:45:34Z",
   "source": "G5PORTAL Google Calendar ICS",
   "events": [
     {
@@ -94,10 +94,10 @@
       }
     },
     {
-      "id": "0e9k5odi637b339ibiqfcl8a8j@google.com",
-      "title": "面談期間",
+      "id": "73qogih68oa64memjrb1drebbm@google.com",
+      "title": "後期保護者学級　休校日",
       "start": "2026-11-07",
-      "end": "2026-11-15",
+      "end": "2026-11-08",
       "allDay": true,
       "description": "",
       "location": "",
@@ -107,10 +107,10 @@
       }
     },
     {
-      "id": "73qogih68oa64memjrb1drebbm@google.com",
-      "title": "後期保護者学級　休校日",
+      "id": "0e9k5odi637b339ibiqfcl8a8j@google.com",
+      "title": "面談期間",
       "start": "2026-11-07",
-      "end": "2026-11-08",
+      "end": "2026-11-15",
       "allDay": true,
       "description": "",
       "location": "",
