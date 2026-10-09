@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#07050f">
+  <title>グループ分け · G⁵ Portal</title>
+  <link rel="stylesheet" href="../../src/css/style.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../../MENU/MENU.css">
+  <script src="../../src/js/main.js" defer></script>
+  <script src="../../MENU/MENU.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
+  <header class="tool-header">
+    <a href="../../index.html" class="btn btn-ghost tool-back">← G⁵ Portal</a>
+    <h1>グループ分け</h1>
+    <p class="tool-sub">ランダム / 人数指定 · 均等分割 · 結果コピー</p>
+  </header>
+  <main class="tool-main">
+    <div class="tool-card">
+      <label for="members">メンバー一覧（1行に1人）</label>
+      <textarea id="members" rows="8" placeholder="例:&#10;田中&#10;佐藤&#10;鈴木&#10;高橋&#10;伊藤&#10;渡辺" spellcheck="false"></textarea>
+      <div class="options-row">
+        <label class="opt-label">分け方
+          <select id="mode">
+            <option value="groups">グループ数を指定</option>
+            <option value="size">1グループの人数を指定</option>
+          </select>
+        </label>
+        <label class="opt-label" id="num-label">グループ数
+          <input type="number" id="num" min="2" max="50" value="3">
+        </label>
+      </div>
+      <div class="options-row secondary">
+        <label class="check-label">
+          <input type="checkbox" id="shuffle" checked>
+          シャッフルしてから分割
+        </label>
+        <label class="check-label">
+          <input type="checkbox" id="balance" checked>
+          人数をできるだけ均等に
+        </label>
+      </div>
+      <div class="tool-actions">
+        <button type="button" id="btn-sample" class="btn btn-ghost">サンプル</button>
+        <button type="button" id="btn-clear" class="btn btn-ghost">クリア</button>
+        <button type="button" id="btn-run" class="btn btn-primary">グループ分け</button>
+      </div>
+    </div>
+
+    <div id="result-area" class="result-area hidden">
+      <div class="result-head">
+        <h2>結果</h2>
+        <div class="tool-actions">
+          <button type="button" id="btn-rerun" class="btn btn-ghost">再抽選</button>
+          <button type="button" id="btn-copy" class="btn btn-primary">結果をコピー</button>
+        </div>
+      </div>
+      <div id="groups" class="groups-grid"></div>
+    </div>
+    <p id="toast" class="toast hidden" role="status"></p>
+  </main>
+  <footer class="site-footer">
+    <p><strong>G⁵ Portal</strong> · グループ分け</p>
+    <p>© 2026 Reitaku H.S. 5G</p>
+  </footer>
+</body>
+</html>
