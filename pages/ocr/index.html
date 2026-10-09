@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#07050f">
+  <title>OCR 文字認識 · G⁵ Portal</title>
+  <link rel="stylesheet" href="../../src/css/style.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../../MENU/MENU.css">
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
+  <script src="../../src/js/main.js" defer></script>
+  <script src="../../MENU/MENU.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
+  <header class="tool-header">
+    <a href="../../index.html" class="btn btn-ghost tool-back">← G⁵ Portal</a>
+    <h1>OCR 文字認識</h1>
+    <p class="tool-sub">画像から文字を抽出 · 日本語 / 英語対応 · 端末内処理</p>
+  </header>
+  <main class="tool-main">
+    <div class="tool-card">
+      <div class="upload-zone" id="drop-zone">
+        <input type="file" id="file-input" accept="image/*" capture="environment" hidden>
+        <div class="upload-inner" id="upload-prompt">
+          <span class="upload-icon">📷</span>
+          <p>画像をドロップ / クリックで選択</p>
+          <p class="hint">PNG · JPG · WEBP · カメラ撮影可</p>
+        </div>
+        <img id="preview" class="preview-img hidden" alt="プレビュー">
+      </div>
+      <div class="ocr-controls">
+        <label class="lang-label">認識言語
+          <select id="lang">
+            <option value="jpn+eng">日本語 + 英語</option>
+            <option value="jpn">日本語のみ</option>
+            <option value="eng">英語のみ</option>
+          </select>
+        </label>
+        <div class="tool-actions">
+          <button type="button" id="btn-camera" class="btn btn-ghost">カメラ</button>
+          <button type="button" id="btn-clear" class="btn btn-ghost">クリア</button>
+          <button type="button" id="btn-run" class="btn btn-primary" disabled>認識する</button>
+        </div>
+      </div>
+      <div id="progress-wrap" class="progress-wrap hidden">
+        <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+        <p id="progress-text" class="hint">準備中…</p>
+      </div>
+    </div>
+
+    <div class="tool-card result-card">
+      <div class="result-head">
+        <h2>認識結果</h2>
+        <button type="button" id="btn-copy" class="btn btn-ghost" disabled>コピー</button>
+      </div>
+      <textarea id="result" rows="8" placeholder="認識結果がここに表示されます" readonly spellcheck="false"></textarea>
+      <p id="confidence" class="hint confidence"></p>
+    </div>
+    <p id="toast" class="toast hidden" role="status"></p>
+  </main>
+  <footer class="site-footer">
+    <p><strong>G⁵ Portal</strong> · OCR 文字認識</p>
+    <p>© 2026 Reitaku H.S. 5G · Powered by Tesseract.js</p>
+  </footer>
+</body>
+</html>
