@@ -23,6 +23,16 @@
   var currentFile = null;
   var running = false;
 
+  var camModal = document.getElementById("cam-modal");
+  var camVideo = document.getElementById("cam-video");
+  var camCanvas = document.getElementById("cam-canvas");
+  var camError = document.getElementById("cam-error");
+  var camClose = document.getElementById("cam-close");
+  var camShot = document.getElementById("cam-shot");
+  var camSwitch = document.getElementById("cam-switch");
+  var camStream = null;
+  var facingMode = "environment";
+
   function showToast(msg) {
     if (!toastEl) return;
     toastEl.textContent = msg;
@@ -93,10 +103,122 @@
     }
   });
 
-  btnCamera.addEventListener("click", function () {
-    fileInput.setAttribute("capture", "environment");
-    fileInput.click();
+  function stopCamera() {
+    if (camStream) {
+      camStream.getTracks().forEach(function (t) { t.stop(); });
+      camStream = null;
+    }
+    if (camVideo) camVideo.srcObject = null;
+  }
+
+  function closeCam() {
+    stopCamera();
+    if (camModal) {
+      camModal.classList.add("hidden");
+      camModal.setAttribute("aria-hidden", "true");
+    }
+    if (camError) {
+      camError.classList.add("hidden");
+      camError.textContent = "";
+    }
+  }
+
+  function openCam() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      try {
+        fileInput.setAttribute("capture", "environment");
+        fileInput.click();
+        setTimeout(function () { fileInput.removeAttribute("capture"); }, 500);
+      } catch (e) {
+        fileInput.click();
+      }
+      showToast("この端末ではカメラAPIが使えません。ファイル選択に切り替えました");
+      return;
+    }
+    if (camModal) {
+      camModal.classList.remove("hidden");
+      camModal.setAttribute("aria-hidden", "false");
+    }
+    if (camError) camError.classList.add("hidden");
+    startStream();
+  }
+
+  function startStream() {
+    stopCamera();
+    var constraints = {
+      audio: false,
+      video: {
+        facingMode: { ideal: facingMode },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      }
+    };
+    navigator.mediaDevices.getUserMedia(constraints)
+      .then(function (stream) {
+        camStream = stream;
+        camVideo.srcObject = stream;
+        camVideo.play().catch(function () {});
+      })
+      .catch(function (err) {
+        console.error(err);
+        var msg = "カメラを起動できませんでした";
+        if (err && err.name === "NotAllowedError") {
+          msg = "カメラの許可が必要です。ブラウザ設定を確認してください";
+        } else if (err && err.name === "NotFoundError") {
+          msg = "カメラが見つかりません";
+        }
+        if (camError) {
+          camError.textContent = msg;
+          camError.classList.remove("hidden");
+        }
+        showToast(msg);
+      });
+  }
+
+  btnCamera.addEventListener("click", function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    openCam();
   });
+
+  if (camClose) camClose.addEventListener("click", closeCam);
+  if (camModal) {
+    camModal.addEventListener("click", function (e) {
+      if (e.target === camModal) closeCam();
+    });
+  }
+
+  if (camSwitch) {
+    camSwitch.addEventListener("click", function () {
+      facingMode = facingMode === "environment" ? "user" : "environment";
+      startStream();
+    });
+  }
+
+  if (camShot) {
+    camShot.addEventListener("click", function () {
+      if (!camStream || !camVideo.videoWidth) {
+        showToast("カメラの準備ができていません");
+        return;
+      }
+      var w = camVideo.videoWidth;
+      var h = camVideo.videoHeight;
+      camCanvas.width = w;
+      camCanvas.height = h;
+      var ctx = camCanvas.getContext("2d");
+      ctx.drawImage(camVideo, 0, 0, w, h);
+      camCanvas.toBlob(function (blob) {
+        if (!blob) {
+          showToast("撮影に失敗しました");
+          return;
+        }
+        var file = new File([blob], "camera-" + Date.now() + ".jpg", { type: "image/jpeg" });
+        setImage(file);
+        closeCam();
+        showToast("撮影しました");
+      }, "image/jpeg", 0.92);
+    });
+  }
 
   btnClear.addEventListener("click", clearAll);
 
@@ -187,4 +309,6 @@
     };
     return map[s] || s;
   }
+
+  window.addEventListener("pagehide", stopCamera);
 })();
