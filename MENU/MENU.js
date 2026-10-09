@@ -36,7 +36,12 @@
           { label: "カラーピッカー", icon: "🎨", url: root + "pages/color-picker/index.html" },
           { label: "画面シェア", icon: "📺", url: root + "pages/screen-share/index.html" },
           { label: "ファイル共有", icon: "📁", url: root + "pages/file-share/index.html" },
-          { label: "デジタル時計", icon: "🕐", url: root + "pages/clock/index.html" }
+          { label: "デジタル時計", icon: "🕐", url: root + "pages/clock/index.html" },
+          { label: "電卓", icon: "🧮", url: root + "pages/calculator/index.html" },
+          { label: "OCR 文字認識", icon: "📷", url: root + "pages/ocr/index.html" },
+          { label: "グループ分け", icon: "👥", url: root + "pages/group-divider/index.html" },
+          { label: "IPアドレス情報", icon: "🌐", url: root + "pages/ip-info/index.html" },
+          { label: "速度チェッカー", icon: "⚡", url: root + "pages/speed-test/index.html" }
         ]
       },
       {
