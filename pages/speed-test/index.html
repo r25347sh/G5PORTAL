@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#07050f">
+  <title>速度チェッカー · G⁵ Portal</title>
+  <link rel="stylesheet" href="../../src/css/style.css">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../../MENU/MENU.css">
+  <script src="../../src/js/main.js" defer></script>
+  <script src="../../MENU/MENU.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
+  <header class="tool-header">
+    <a href="../../index.html" class="btn btn-ghost tool-back">← G⁵ Portal</a>
+    <h1>速度チェッカー</h1>
+    <p class="tool-sub">ダウンロード · アップロード · レイテンシ（ping）</p>
+  </header>
+  <main class="tool-main">
+    <div class="gauge-card tool-card">
+      <div class="gauge-wrap">
+        <svg class="gauge-svg" viewBox="0 0 200 120" aria-hidden="true">
+          <path class="gauge-track" d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke-width="12"/>
+          <path id="gauge-arc" class="gauge-arc" d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke-width="12"
+                stroke-dasharray="251.3" stroke-dashoffset="251.3"/>
+        </svg>
+        <div class="gauge-center">
+          <div id="gauge-value" class="gauge-value">—</div>
+          <div id="gauge-unit" class="gauge-unit">Mbps</div>
+          <div id="gauge-label" class="gauge-label">待機中</div>
+        </div>
+      </div>
+      <div class="phase-dots" id="phase-dots">
+        <span class="dot" data-phase="ping">Ping</span>
+        <span class="dot" data-phase="download">↓ DL</span>
+        <span class="dot" data-phase="upload">↑ UL</span>
+      </div>
+      <button type="button" id="btn-start" class="btn btn-primary btn-lg">計測開始</button>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <span class="metric-label">Ping</span>
+        <span class="metric-value" id="m-ping">—</span>
+        <span class="metric-unit">ms</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">ダウンロード</span>
+        <span class="metric-value" id="m-dl">—</span>
+        <span class="metric-unit">Mbps</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">アップロード</span>
+        <span class="metric-value" id="m-ul">—</span>
+        <span class="metric-unit">Mbps</span>
+      </div>
+      <div class="metric-card">
+        <span class="metric-label">ジッター</span>
+        <span class="metric-value" id="m-jitter">—</span>
+        <span class="metric-unit">ms</span>
+      </div>
+    </div>
+
+    <div class="tool-card note-card">
+      <p class="hint">※ ブラウザ上での簡易計測です。CDN 経由のテスト用ファイルを使用します。結果は参考値としてご利用ください。モバイル回線やプロキシ環境では誤差が大きくなることがあります。</p>
+    </div>
+    <p id="toast" class="toast hidden" role="status"></p>
+  </main>
+  <footer class="site-footer">
+    <p><strong>G⁵ Portal</strong> · 速度チェッカー</p>
+    <p>© 2026 Reitaku H.S. 5G</p>
+  </footer>
+</body>
+</html>
