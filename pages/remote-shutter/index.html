@@ -24,14 +24,28 @@
     </header>
 
     <main class="tool-main">
-      <div class="mode-tabs">
-        <button type="button" class="mode-tab active" data-mode="camera">カメラ側</button>
-        <button type="button" class="mode-tab" data-mode="remote">リモコン側</button>
-      </div>
+      <section id="panel-pick" class="role-pick">
+        <p class="hint center">使う役割を選んでください。端末を分けて使うのがおすすめです。</p>
+        <div class="role-cards">
+          <button type="button" class="role-card" id="pick-camera" data-role="camera">
+            <span class="role-icon">📷</span>
+            <span class="role-title">カメラ側</span>
+            <span class="role-desc">スマホなど<br>映像を配信する端末</span>
+          </button>
+          <button type="button" class="role-card" id="pick-remote" data-role="remote">
+            <span class="role-icon">🎮</span>
+            <span class="role-title">リモコン側</span>
+            <span class="role-desc">PC など<br>シャッターを押す端末</span>
+          </button>
+        </div>
+      </section>
 
-      <!-- ===== カメラ側（ホスト） ===== -->
-      <section id="panel-camera" class="tool-card">
-        <p class="hint">スマホなどを「カメラ側」にして共有開始。QR / URL をリモコン側で開くと遠隔操作できます。</p>
+      <section id="panel-camera" class="tool-card role-panel hidden">
+        <div class="role-banner camera">
+          <span class="role-badge">📷 カメラ側</span>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-change-role-cam">役割を変える</button>
+        </div>
+        <p class="hint">この端末のカメラ（または画面）を配信します。表示された QR / URL を<strong>リモコン側</strong>で開いてください。</p>
 
         <div class="option-grid">
           <label class="opt">
@@ -63,12 +77,13 @@
         </select>
 
         <div class="tool-actions">
-          <button type="button" id="btn-cam-start" class="btn btn-primary">共有開始</button>
+          <button type="button" id="btn-cam-start" class="btn btn-primary">配信開始</button>
           <button type="button" id="btn-cam-stop" class="btn btn-ghost hidden">停止</button>
           <button type="button" id="btn-switch-cam" class="btn btn-ghost hidden" title="カメラ切替">カメラ切替</button>
         </div>
 
         <div id="cam-info" class="share-info hidden">
+          <p class="share-note">↓ リモコン側に渡す用（この端末では開かない）</p>
           <label>接続 URL</label>
           <div class="url-row">
             <input type="text" id="share-url" readonly>
@@ -85,11 +100,14 @@
         </div>
       </section>
 
-      <!-- ===== リモコン側（ビューア） ===== -->
-      <section id="panel-remote" class="tool-card hidden">
-        <p class="hint">カメラ側の URL を開くか、ルーム ID を入力して接続。接続後はプレビューとシャッターが使えます。</p>
+      <section id="panel-remote" class="tool-card role-panel hidden">
+        <div class="role-banner remote">
+          <span class="role-badge">🎮 リモコン側</span>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-change-role-rem">役割を変える</button>
+        </div>
+        <p class="hint">カメラ側で発行した URL を開くか、ルーム ID を入力して接続します。接続後に写真・動画を遠隔操作できます。</p>
         <label for="room-input">ルーム ID</label>
-        <input type="text" id="room-input" placeholder="カメラ側の ID" autocomplete="off" spellcheck="false">
+        <input type="text" id="room-input" placeholder="カメラ側のルーム ID" autocomplete="off" spellcheck="false">
         <div class="tool-actions">
           <button type="button" id="btn-join" class="btn btn-primary">接続</button>
         </div>
@@ -102,7 +120,6 @@
     <footer class="site-footer"><p><strong>G⁵ Portal</strong> · Remote Shutter</p></footer>
   </div>
 
-  <!-- ===== リモコン操作ステージ（接続後） ===== -->
   <div id="remote-stage" class="remote-stage" hidden>
     <video id="remote-video" autoplay playsinline></video>
     <canvas id="capture-canvas" class="hidden"></canvas>
