@@ -233,8 +233,14 @@
   inset: 0;
   background: #000;
   z-index: 50;
-  display: flex;
+  display: none;
   flex-direction: column;
+}
+.remote-stage:not([hidden]) {
+  display: flex;
+}
+.remote-stage[hidden] {
+  display: none !important;
 }
 .remote-stage video {
   flex: 1;
@@ -252,10 +258,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,0.75);
+  background: rgba(0,0,0,0.85);
   color: #fff;
   gap: 1rem;
-  z-index: 2;
+  z-index: 10;
+}
+.remote-connecting.hidden {
+  display: none !important;
 }
 .spinner {
   width: 42px;
@@ -277,6 +286,7 @@
   z-index: 3;
   padding: env(safe-area-inset-top, 0.5rem) 0.75rem env(safe-area-inset-bottom, 1rem);
 }
+.remote-hud.hidden { display: none !important; }
 .remote-hud > * { pointer-events: auto; }
 
 .hud-top {
