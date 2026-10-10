@@ -21,7 +21,6 @@
   z-index: 1;
 }
 
-/* ===== 役割選択 ===== */
 .role-pick { margin-bottom: 1rem; }
 .hint.center { text-align: center; }
 .role-cards {
@@ -227,7 +226,6 @@
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .hidden { display: none !important; }
 
-/* ===== Remote Stage ===== */
 .remote-stage {
   position: fixed;
   inset: 0;
@@ -436,4 +434,79 @@
   .hud-shutter { gap: 1.8rem; }
   .shutter-btn.photo { width: 64px; height: 64px; }
   .shutter-btn.photo .shutter-inner { width: 48px; height: 48px; }
+}
+
+.adv-box {
+  margin: 1rem 0 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+.adv-box summary {
+  cursor: pointer;
+  padding: 0.75rem 1rem;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  list-style: none;
+  user-select: none;
+}
+.adv-box summary::-webkit-details-marker { display: none; }
+.adv-box summary::before {
+  content: "▸ ";
+  color: var(--pink);
+}
+.adv-box[open] summary::before { content: "▾ "; }
+.adv-body {
+  padding: 0 1rem 1rem;
+  border-top: 1px solid var(--border);
+}
+.adv-body label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0.75rem 0 0.35rem;
+}
+.range {
+  width: 100%;
+  accent-color: var(--pink);
+  height: 1.4rem;
+}
+
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.25) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.25) 1px, transparent 1px);
+  background-size: 33.333% 33.333%;
+  z-index: 2;
+}
+
+.host-gallery-wrap {
+  margin-top: 1.25rem;
+}
+.gallery-label {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+.host-gallery {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.25rem 0;
+}
+.host-gallery img,
+.host-gallery video {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 2px solid rgba(255,255,255,0.3);
+  cursor: pointer;
+  flex-shrink: 0;
+  background: #222;
 }
