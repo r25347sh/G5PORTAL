@@ -48,24 +48,15 @@
         <p class="hint">この端末のカメラ（または画面）を配信します。表示された QR / URL を<strong>リモコン側</strong>で開いてください。</p>
 
         <div class="option-grid">
-          <label class="opt">
-            <input type="checkbox" id="opt-audio" checked>
-            <span>マイク（音）</span>
-          </label>
-          <label class="opt">
-            <input type="checkbox" id="opt-screen">
-            <span>画面共有</span>
-          </label>
-          <label class="opt">
-            <input type="checkbox" id="opt-mirror" checked>
-            <span>ミラー表示</span>
-          </label>
+          <label class="opt"><input type="checkbox" id="opt-audio" checked><span>マイク（音）</span></label>
+          <label class="opt"><input type="checkbox" id="opt-screen"><span>画面共有</span></label>
+          <label class="opt"><input type="checkbox" id="opt-mirror" checked><span>ミラー表示</span></label>
         </div>
 
         <label for="facing-select">カメラ</label>
         <select id="facing-select" class="quality-select">
-          <option value="environment" selected>背面（environment）</option>
-          <option value="user">前面（user）</option>
+          <option value="environment">背面</option>
+          <option value="user">前面</option>
         </select>
 
         <label for="quality-select">解像度</label>
@@ -76,27 +67,68 @@
           <option value="max">最大</option>
         </select>
 
+        <details class="adv-box" id="adv-camera">
+          <summary>高度な設定</summary>
+          <div class="adv-body">
+            <label for="jpeg-quality">写真品質 <span id="jpeg-quality-val">92</span>%</label>
+            <input type="range" id="jpeg-quality" min="50" max="100" value="92" class="range">
+
+            <label for="video-bitrate">動画ビットレート</label>
+            <select id="video-bitrate" class="quality-select">
+              <option value="2500000">2.5 Mbps（軽量）</option>
+              <option value="4000000" selected>4 Mbps（標準）</option>
+              <option value="8000000">8 Mbps（高画質）</option>
+              <option value="12000000">12 Mbps（最高）</option>
+            </select>
+
+            <label for="fps-select">フレームレート</label>
+            <select id="fps-select" class="quality-select">
+              <option value="24">24 fps</option>
+              <option value="30" selected>30 fps</option>
+              <option value="60">60 fps</option>
+            </select>
+
+            <label for="zoom-range">ズーム <span id="zoom-val">1.0</span>×</label>
+            <input type="range" id="zoom-range" min="1" max="5" step="0.1" value="1" class="range">
+
+            <div class="option-grid">
+              <label class="opt"><input type="checkbox" id="opt-torch"><span>トーチ（ライト）</span></label>
+              <label class="opt"><input type="checkbox" id="opt-grid"><span>グリッド表示</span></label>
+              <label class="opt"><input type="checkbox" id="opt-wake" checked><span>画面スリープ防止</span></label>
+              <label class="opt"><input type="checkbox" id="opt-save-host" checked><span>撮影をこの端末にも残す</span></label>
+              <label class="opt"><input type="checkbox" id="opt-save-remote" checked><span>リモコンにも送る</span></label>
+              <label class="opt"><input type="checkbox" id="opt-burst"><span>連写（3枚）</span></label>
+            </div>
+          </div>
+        </details>
+
         <div class="tool-actions">
           <button type="button" id="btn-cam-start" class="btn btn-primary">配信開始</button>
           <button type="button" id="btn-cam-stop" class="btn btn-ghost hidden">停止</button>
-          <button type="button" id="btn-switch-cam" class="btn btn-ghost hidden" title="カメラ切替">カメラ切替</button>
+          <button type="button" id="btn-switch-cam" class="btn btn-ghost hidden">カメラ切替</button>
         </div>
 
         <div id="cam-info" class="share-info hidden">
-          <p class="share-note">↓ リモコン側に渡す用（この端末では開かない）</p>
-          <label>接続 URL</label>
+          <p class="share-note">※ この URL はリモコン側の端末で開いてください（カメラ側では開かない）</p>
           <div class="url-row">
             <input type="text" id="share-url" readonly>
             <button type="button" id="btn-copy-url" class="btn btn-ghost">コピー</button>
           </div>
-          <p class="room-id-line">ルーム ID: <code id="host-room-id">—</code></p>
+          <p class="room-id-line">ルーム ID: <code id="host-room-id"></code></p>
           <div id="qr-box" class="qr-box"></div>
-          <p id="cam-status" class="status">待機中…</p>
         </div>
 
-        <div class="preview-wrap hidden" id="cam-preview-wrap">
-          <video id="local-preview" class="preview" muted autoplay playsinline></video>
-          <div class="preview-badge" id="cam-badge">LIVE</div>
+        <p id="cam-status" class="status"></p>
+
+        <div id="cam-preview-wrap" class="preview-wrap hidden">
+          <video id="local-preview" class="preview" autoplay playsinline muted></video>
+          <div id="cam-grid" class="grid-overlay hidden" aria-hidden="true"></div>
+          <span id="cam-badge" class="preview-badge">LIVE</span>
+        </div>
+
+        <div id="host-gallery-wrap" class="host-gallery-wrap hidden">
+          <p class="gallery-label">撮影したメディア（タップで保存）</p>
+          <div id="host-gallery" class="host-gallery"></div>
         </div>
       </section>
 
@@ -105,9 +137,19 @@
           <span class="role-badge">🎮 リモコン側</span>
           <button type="button" class="btn btn-ghost btn-sm" id="btn-change-role-rem">役割を変える</button>
         </div>
-        <p class="hint">カメラ側で発行した URL を開くか、ルーム ID を入力して接続します。接続後に写真・動画を遠隔操作できます。</p>
+        <p class="hint">カメラ側で発行した URL を開くか、ルーム ID を入力して接続します。</p>
         <label for="room-input">ルーム ID</label>
         <input type="text" id="room-input" placeholder="カメラ側のルーム ID" autocomplete="off" spellcheck="false">
+        <details class="adv-box">
+          <summary>高度な設定（リモコン）</summary>
+          <div class="adv-body">
+            <div class="option-grid">
+              <label class="opt"><input type="checkbox" id="opt-remote-sound" checked><span>シャッター音</span></label>
+              <label class="opt"><input type="checkbox" id="opt-remote-vibrate" checked><span>バイブ</span></label>
+              <label class="opt"><input type="checkbox" id="opt-auto-fs"><span>接続後フルスクリーン</span></label>
+            </div>
+          </div>
+        </details>
         <div class="tool-actions">
           <button type="button" id="btn-join" class="btn btn-primary">接続</button>
         </div>
@@ -121,7 +163,7 @@
   </div>
 
   <div id="remote-stage" class="remote-stage" hidden>
-    <video id="remote-video" autoplay playsinline></video>
+    <video id="remote-video" autoplay playsinline muted></video>
     <canvas id="capture-canvas" class="hidden"></canvas>
 
     <div id="remote-connecting" class="remote-connecting">
@@ -129,7 +171,7 @@
       <p id="remote-connecting-text">接続中…</p>
     </div>
 
-    <div id="remote-hud" class="remote-hud" hidden>
+    <div id="remote-hud" class="remote-hud hidden">
       <div class="hud-top">
         <button type="button" id="btn-leave" class="hud-btn" title="切断">✕</button>
         <span id="rec-indicator" class="rec-indicator hidden">● REC <span id="rec-time">00:00</span></span>
@@ -141,6 +183,7 @@
         <button type="button" id="btn-toggle-mirror" class="hud-chip" data-on="1" title="ミラー">🪞 ミラー</button>
         <button type="button" id="btn-req-switch" class="hud-chip" title="カメラ切替">🔄 カメラ</button>
         <button type="button" id="btn-req-screen" class="hud-chip" title="画面共有切替">🖥️ 画面</button>
+        <button type="button" id="btn-req-torch" class="hud-chip" data-on="0" title="ライト">🔦 ライト</button>
         <select id="timer-select" class="hud-select" title="セルフタイマー">
           <option value="0">タイマーなし</option>
           <option value="3">3秒</option>
