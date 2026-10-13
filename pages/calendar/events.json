@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-13T01:02:06Z",
+  "updatedAt": "2026-10-13T08:44:33Z",
   "source": "G5PORTAL Google Calendar ICS",
   "events": [
     {
@@ -60,10 +60,10 @@
       "start": "2026-10-18",
       "end": "2026-10-19",
       "allDay": true,
-      "description": "柏駅前で演奏を行います。\n\n【CTB】",
+      "description": "柏駅前で「千葉トレイルブレイザーズ」として演奏を行います。<br><br>11:30~と15:20~で演奏いたします。<br>観覧無料です。<br>柏駅東口ファミリー広場で演奏いたします。<br>沢山の方のご来場を、心よりお待ちしております。<br><br><a href=\"https://www.city.kashiwa.lg.jp/bunka/party2026.html\">柏市ホームページ</a><br><a href=\"https://kashiwa-s-sounds.jimdofree.com/%E3%81%8A%E7%9F%A5%E3%82%89%E3%81%9B/#:~:text=%E5%87%BA%E6%BC%94%EF%BC%9A-,%E5%8D%83%E8%91%89%E3%83%88%E3%83%AC%E3%82%A4%E3%83%AB%E3%83%96%E3%83%AC%E3%82%A4%E3%82%B6%E3%83%BC%E3%82%BA,-%E6%9F%8F%E5%B8%82%E7%AB%8B%E6%9D%BE%E8%91%89\">kashiwa Special Soundsホームページ</a><br><br><br>【CTB】",
       "location": "",
       "extendedProps": {
-        "description": "柏駅前で演奏を行います。\n\n【CTB】",
+        "description": "柏駅前で「千葉トレイルブレイザーズ」として演奏を行います。<br><br>11:30~と15:20~で演奏いたします。<br>観覧無料です。<br>柏駅東口ファミリー広場で演奏いたします。<br>沢山の方のご来場を、心よりお待ちしております。<br><br><a href=\"https://www.city.kashiwa.lg.jp/bunka/party2026.html\">柏市ホームページ</a><br><a href=\"https://kashiwa-s-sounds.jimdofree.com/%E3%81%8A%E7%9F%A5%E3%82%89%E3%81%9B/#:~:text=%E5%87%BA%E6%BC%94%EF%BC%9A-,%E5%8D%83%E8%91%89%E3%83%88%E3%83%AC%E3%82%A4%E3%83%AB%E3%83%96%E3%83%AC%E3%82%A4%E3%82%B6%E3%83%BC%E3%82%BA,-%E6%9F%8F%E5%B8%82%E7%AB%8B%E6%9D%BE%E8%91%89\">kashiwa Special Soundsホームページ</a><br><br><br>【CTB】",
         "location": ""
       }
     },
@@ -94,10 +94,10 @@
       }
     },
     {
-      "id": "73qogih68oa64memjrb1drebbm@google.com",
-      "title": "後期保護者学級　休校日",
+      "id": "0e9k5odi637b339ibiqfcl8a8j@google.com",
+      "title": "面談期間",
       "start": "2026-11-07",
-      "end": "2026-11-08",
+      "end": "2026-11-15",
       "allDay": true,
       "description": "",
       "location": "",
@@ -107,10 +107,10 @@
       }
     },
     {
-      "id": "0e9k5odi637b339ibiqfcl8a8j@google.com",
-      "title": "面談期間",
+      "id": "73qogih68oa64memjrb1drebbm@google.com",
+      "title": "後期保護者学級　休校日",
       "start": "2026-11-07",
-      "end": "2026-11-15",
+      "end": "2026-11-08",
       "allDay": true,
       "description": "",
       "location": "",
