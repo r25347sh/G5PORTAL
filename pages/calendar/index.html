@@ -7,7 +7,7 @@
   <meta name="description" content="G5 Portal calendar">
   <title>カレンダー · G5 Portal</title>
   <link rel="stylesheet" href="../../src/css/style.css">
-  <link rel="stylesheet" href="style.css?v=20261007h">
+  <link rel="stylesheet" href="style.css?v=20261014a">
   <link rel="stylesheet" href="../../MENU/MENU.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
 </head>
@@ -22,9 +22,14 @@
     <div class="cal-toolbar tool-card">
       <div class="cal-status" id="cal-status">読み込み中…</div>
       <div class="cal-actions">
+        <div class="cal-search-wrap">
+          <span class="cal-search-icon" aria-hidden="true">🔍</span>
+          <input type="search" id="cal-search" class="cal-search" placeholder="予定を検索…" autocomplete="off" enterkeyhint="search">
+        </div>
         <button type="button" id="btn-refresh" class="btn btn-ghost" title="refresh">↻ 更新</button>
         <button type="button" id="btn-today" class="btn btn-primary">今日</button>
       </div>
+      <div class="cal-filters" id="cal-filters" role="group" aria-label="種別フィルタ"></div>
     </div>
     <div id="calendar" class="fc-g5"></div>
     <section class="tool-card cal-legend">
@@ -36,7 +41,7 @@
         <span class="cal-legend-item"><span class="cal-legend-swatch cal-legend-swatch--holiday"></span>休業（祝日・休校など）</span>
       </div>
       <p class="hint">
-        Google カレンダー（G5PORTAL）の内容を GitHub Actions が約1時間ごとに同期します。「更新」で最新の同期データを再取得します。
+        Google カレンダー（G5PORTAL）の内容を GitHub Actions が約1時間ごとに同期します。「更新」で最新を再取得します。メモ内のリンク・改行は安全に表示されます。
       </p>
     </section>
     <p id="toast" class="toast hidden" role="status"></p>
@@ -48,6 +53,6 @@
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/locales/ja.global.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/ical.js@1.5.0/build/ical.min.js"></script>
-  <script src="script.js?v=20261007h"></script>
+  <script src="script.js?v=20261014a"></script>
 </body>
 </html>
