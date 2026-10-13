@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-13T21:39:21Z",
+  "updatedAt": "2026-10-13T23:21:18Z",
   "source": "G5PORTAL Google Calendar ICS",
   "events": [
     {
@@ -47,10 +47,10 @@
       "start": "2026-10-17",
       "end": "2026-10-18",
       "allDay": true,
-      "description": "小金原カラス公園で演奏を行います。\n【CTB】",
+      "description": "SHR後、めっちゃ急げばあるいは間に合うかもしれないくらいの場所・時間に演奏を行います。\n小金原カラス公園で演奏を行います。\n【CTB】",
       "location": "",
       "extendedProps": {
-        "description": "小金原カラス公園で演奏を行います。\n【CTB】",
+        "description": "SHR後、めっちゃ急げばあるいは間に合うかもしれないくらいの場所・時間に演奏を行います。\n小金原カラス公園で演奏を行います。\n【CTB】",
         "location": ""
       }
     },
@@ -185,6 +185,19 @@
       }
     },
     {
+      "id": "6bum7p139cafsn2koh4utevape@google.com",
+      "title": "【演奏会】酒井根47×48期会",
+      "start": "2026-12-30",
+      "end": "2026-12-31",
+      "allDay": true,
+      "description": "全日本吹奏楽コンクールに17大会連続で金賞（一位）を取り続けた「柏市立酒井根中学校」！\n\nそのOB・OGによる演奏会です！\n\n場所：柏市立酒井根中学校体育館（だと思われる）\n一般入場：可能（だと思われる）\n値段：無料（これは確定）",
+      "location": "",
+      "extendedProps": {
+        "description": "全日本吹奏楽コンクールに17大会連続で金賞（一位）を取り続けた「柏市立酒井根中学校」！\n\nそのOB・OGによる演奏会です！\n\n場所：柏市立酒井根中学校体育館（だと思われる）\n一般入場：可能（だと思われる）\n値段：無料（これは確定）",
+        "location": ""
+      }
+    },
+    {
       "id": "6nksfe8ratnv2nucbdg0sgvq9r@google.com",
       "title": "元旦",
       "start": "2027-01-01",
@@ -276,19 +289,6 @@
       }
     },
     {
-      "id": "chj3iphj61gj8bb4cgo38b9k70pm8b9o70o62bb3chhjcp9h6ko6ccb2cg@google.com",
-      "title": "定期演奏会",
-      "start": "2027-03-20",
-      "end": "2027-03-21",
-      "allDay": true,
-      "description": "定期演奏会\n柏市民文化会館で行われます。\nたくさんの方のご来場、心よりお待ちしております。\n\n【CTB】",
-      "location": "柏市民文化会館大ホール",
-      "extendedProps": {
-        "description": "定期演奏会\n柏市民文化会館で行われます。\nたくさんの方のご来場、心よりお待ちしております。\n\n【CTB】",
-        "location": "柏市民文化会館大ホール"
-      }
-    },
-    {
       "id": "1qleaolhah3ifh85q6err123n0@google.com",
       "title": "修了式",
       "start": "2027-03-20",
@@ -299,6 +299,19 @@
       "extendedProps": {
         "description": "",
         "location": ""
+      }
+    },
+    {
+      "id": "chj3iphj61gj8bb4cgo38b9k70pm8b9o70o62bb3chhjcp9h6ko6ccb2cg@google.com",
+      "title": "定期演奏会",
+      "start": "2027-03-20",
+      "end": "2027-03-21",
+      "allDay": true,
+      "description": "定期演奏会\n柏市民文化会館で行われます。\nたくさんの方のご来場、心よりお待ちしております。\n\n【CTB】",
+      "location": "柏市民文化会館大ホール",
+      "extendedProps": {
+        "description": "定期演奏会\n柏市民文化会館で行われます。\nたくさんの方のご来場、心よりお待ちしております。\n\n【CTB】",
+        "location": "柏市民文化会館大ホール"
       }
     }
   ]
