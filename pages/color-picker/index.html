@@ -11,47 +11,39 @@
   <script src="../../src/js/main.js" defer></script>
   <script src="../../MENU/MENU.js" defer></script>
   <script src="script.js" defer></script>
+  <script src="invaders.js" defer></script>
 </head>
 <body>
   <div class="g5-ambient" id="ambient" aria-hidden="true"></div>
   <header class="tool-header">
     <a href="../../index.html" class="btn btn-ghost tool-back">← G⁵ Portal</a>
     <h1>カラーピッカー</h1>
-    <p class="tool-sub">画面 · 画像 · 手動入力</p>
+    <p class="tool-sub">HEX · RGB · HSL · 画像から抽出</p>
   </header>
   <main class="tool-main">
-    <div class="swatch-row">
-      <div id="swatch" class="swatch" title="current"></div>
-      <div class="values">
-        <div><span class="lbl">HEX</span> <code id="v-hex">#ff2d95</code></div>
-        <div><span class="lbl">RGB</span> <code id="v-rgb">255, 45, 149</code></div>
-        <div><span class="lbl">HSL</span> <code id="v-hsl">330°, 100%, 59%</code></div>
+    <div class="tool-card">
+      <div id="swatch" class="swatch" title="クリックでコピー"></div>
+      <div class="vals">
+        <button type="button" class="val-chip" id="v-hex" data-copy>HEX</button>
+        <button type="button" class="val-chip" id="v-rgb" data-copy>RGB</button>
+        <button type="button" class="val-chip" id="v-hsl" data-copy>HSL</button>
+      </div>
+      <div class="pick-row">
+        <label>色 <input type="color" id="color-input" value="#ff2d95"></label>
+        <label>HEX <input type="text" id="hex-input" value="#ff2d95" spellcheck="false"></label>
       </div>
     </div>
-    <div class="tool-actions">
-      <button type="button" id="btn-copy-hex" class="btn btn-primary">HEX コピー</button>
-      <button type="button" id="btn-copy-rgb" class="btn btn-ghost">RGB コピー</button>
+    <div class="tool-card">
+      <h2>画像から色を取る</h2>
+      <input type="file" id="img-file" accept="image/*">
+      <canvas id="img-canvas" class="img-canvas"></canvas>
+      <p class="hint">画像をクリックしてピクセル色を取得</p>
     </div>
-    <section class="tool-card">
-      <h2 class="card-title">手動</h2>
-      <label>カラー <input type="color" id="color-input" value="#ff2d95"></label>
-      <label>HEX <input type="text" id="hex-input" value="#ff2d95" spellcheck="false"></label>
-    </section>
-    <section class="tool-card">
-      <h2 class="card-title">画面から取得</h2>
-      <p class="hint">EyeDropper API。非対応時は画面共有キャプチャフォールバック。</p>
-      <button type="button" id="btn-eyedrop" class="btn btn-primary">スポイト</button>
-    </section>
-    <section class="tool-card">
-      <h2 class="card-title">画像から取得</h2>
-      <label class="btn btn-ghost file-btn">画像をアップロード
-        <input type="file" id="img-file" accept="image/*" hidden>
-      </label>
-      <div class="canvas-wrap"><canvas id="img-canvas"></canvas></div>
-      <p class="hint">画像上をクリック</p>
-    </section>
     <p id="toast" class="toast hidden" role="status"></p>
   </main>
-  <footer class="site-footer"><p><strong>G⁵ Portal</strong> · Color</p></footer>
+  <footer class="site-footer">
+    <p><strong>G⁵ Portal</strong> · カラーピッカー</p>
+    <p>© 2026 Reitaku H.S. 5G</p>
+  </footer>
 </body>
 </html>
