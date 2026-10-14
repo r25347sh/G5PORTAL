@@ -99,10 +99,10 @@
 
     function escapeHtml(s) {
       return String(s)
-        .replace(/&/g, "&")
-        .replace(/</g, "<")
-        .replace(/>/g, ">")
-        .replace(/"/g, """);
+        .replace(/&/g, String.fromCharCode(38) + "amp;")
+        .replace(/</g, String.fromCharCode(38) + "lt;")
+        .replace(/>/g, String.fromCharCode(38) + "gt;")
+        .replace(/"/g, String.fromCharCode(38) + "quot;");
     }
 
     var EXTRA = {
