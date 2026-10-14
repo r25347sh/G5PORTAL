@@ -22,16 +22,13 @@
       letter-spacing: 0.14em; color: #3a3a3a; margin-bottom: 1rem;
     }
     .gate-code span {
-      display: inline-block; padding: 0 0.08em; cursor: default;
-      transition: color 0.12s, text-shadow 0.12s, transform 0.15s;
+      display: inline-block; padding: 0 0.1em; cursor: pointer;
+      transition: color 0.12s, text-shadow 0.12s, transform 0.12s;
     }
     .gate-code span.lit {
-      color: #c8c8c8; text-shadow: 0 0 10px rgba(200,200,200,0.3);
+      color: #c8c8c8; text-shadow: 0 0 12px rgba(200,200,200,0.35);
     }
-    .gate-code span.held {
-      color: #e8e8e8; text-shadow: 0 0 16px rgba(220,220,220,0.45);
-      transform: scale(1.08);
-    }
+    .gate-code span:active { transform: scale(0.9); }
     .gate-msg {
       font-size: 0.75rem; letter-spacing: 0.22em;
       text-transform: uppercase; color: #2a2a2a;
@@ -39,10 +36,6 @@
     .gate-hint {
       margin-top: 2rem; font-size: 0.85rem; letter-spacing: 0.3em;
       color: #2e2e2e; min-height: 1.2em;
-    }
-    .gate-phase {
-      margin-top: 0.75rem; font-size: 0.65rem; letter-spacing: 0.15em;
-      color: #1e1e1e; min-height: 1em;
     }
   </style>
 </head>
@@ -53,224 +46,87 @@
     </div>
     <p class="gate-msg">not found</p>
     <p class="gate-hint" id="hint"></p>
-    <p class="gate-phase" id="phase"></p>
   </div>
   <script>
   (function () {
-    /*
-     * Gate v2 — more complex ritual to reach xr
-     *
-     * Sequence:
-     *  1) Long-press center O ≥ 1.1s  (arm)
-     *  2) Tap left-4
-     *  3) Tap right-4
-     *  4) Tap O twice (≤900ms apart)
-     *  5) Tap left-4
-     *  6) Tap right-4
-     *  7) Tap O once
-     *
-     * Any wrong key / timeout → full reset.
-     */
     var KEY = "__g5x";
     var TTL = 2 * 60 * 60 * 1000;
     var XR = "https://r25347sh.github.io/xr/";
-    var HOLD_MS = 1100;
-    var STEP_TIMEOUT = 3200;
-    var DOUBLE_O_MS = 900;
-
-    var phase = 0;
-    var oDouble = 0;
-    var oDoubleT = 0;
-    var holdTimer = null;
-    var phaseTimer = null;
+    var SEQ = ["o", "o", "a", "b", "o", "a", "b", "o"];
+    var step = 0;
     var lock = false;
-    var lastTapAt = 0;
-    var armed = false;
-
+    var lastTap = 0;
+    var timer = null;
     var spans = document.querySelectorAll("#code span");
     var hint = document.getElementById("hint");
-    var phaseEl = document.getElementById("phase");
-    var spanO = document.querySelector('#code span[data-k="o"]');
 
     function parseTs(v) {
       var n = parseInt(String(v || ""), 10);
       return isFinite(n) && n > 0 ? n : 0;
     }
-
     function already() {
       try {
         var t = parseTs(sessionStorage.getItem(KEY)) || parseTs(localStorage.getItem(KEY));
         return t > 0 && (Date.now() - t) < TTL;
-      } catch (e) {
-        return false;
-      }
+      } catch (e) { return false; }
     }
-
     function stamp() {
-      var t = Date.now();
-      var s = String(t);
+      var t = Date.now(), s = String(t);
       try { sessionStorage.setItem(KEY, s); } catch (e) {}
       try { localStorage.setItem(KEY, s); } catch (e) {}
       return t;
     }
-
     function go() {
-      var t = stamp();
-      location.replace(XR + "?x=" + t);
+      location.replace(XR + "?x=" + stamp());
     }
-
     if (already()) { go(); return; }
 
-    function setHint(dots) {
-      if (hint) hint.textContent = dots ? new Array(dots + 1).join("·") : "";
-    }
-    function setPhase(t) {
-      if (phaseEl) phaseEl.textContent = t || "";
-    }
-
     function reset() {
-      phase = 0;
-      oDouble = 0;
-      oDoubleT = 0;
-      armed = false;
-      lock = false;
-      clearTimeout(holdTimer);
-      clearTimeout(phaseTimer);
-      spans.forEach(function (s) {
-        s.classList.remove("lit", "held");
-      });
-      setHint(0);
-      setPhase("");
+      step = 0; lock = false;
+      clearTimeout(timer);
+      spans.forEach(function (s) { s.classList.remove("lit"); });
+      if (hint) hint.textContent = "";
     }
-
-    function armStepTimeout() {
-      clearTimeout(phaseTimer);
-      phaseTimer = setTimeout(reset, STEP_TIMEOUT);
+    function arm() {
+      clearTimeout(timer);
+      timer = setTimeout(reset, 3000);
     }
-
     function flash(el) {
       el.classList.add("lit");
-      setTimeout(function () { el.classList.remove("lit"); }, 160);
-    }
-
-    function onHoldStart(e) {
-      if (lock || armed || phase > 0) return;
-      e.preventDefault();
-      spanO.classList.add("held");
-      holdTimer = setTimeout(function () {
-        armed = true;
-        phase = 1;
-        spanO.classList.remove("held");
-        flash(spanO);
-        setHint(1);
-        setPhase("armed");
-        armStepTimeout();
-      }, HOLD_MS);
-    }
-
-    function onHoldEnd() {
-      clearTimeout(holdTimer);
-      if (!armed) spanO.classList.remove("held");
+      setTimeout(function () { el.classList.remove("lit"); }, 150);
     }
 
     function onTap(sp) {
       if (lock) return;
       var now = Date.now();
-      if (now - lastTapAt < 260) return;
-      lastTapAt = now;
-
+      if (now - lastTap < 200) return;
+      lastTap = now;
       var k = sp.getAttribute("data-k");
       flash(sp);
 
-      if (phase === 0) {
-        if (k === "o") return;
+      if (k !== SEQ[step]) {
         reset();
         return;
       }
-
-      if (phase === 1) {
-        if (k !== "a") { reset(); return; }
-        phase = 2;
-        setHint(2);
-        armStepTimeout();
-        return;
-      }
-
-      if (phase === 2) {
-        if (k !== "b") { reset(); return; }
-        phase = 3;
-        oDouble = 0;
-        setHint(3);
-        armStepTimeout();
-        return;
-      }
-
-      if (phase === 3) {
-        if (k !== "o") { reset(); return; }
-        if (oDouble > 0 && now - oDoubleT > DOUBLE_O_MS) {
-          oDouble = 0;
-        }
-        oDouble++;
-        oDoubleT = now;
-        setHint(3 + oDouble);
-        if (oDouble >= 2) {
-          phase = 4;
-          oDouble = 0;
-          setHint(5);
-          armStepTimeout();
-        } else {
-          armStepTimeout();
-        }
-        return;
-      }
-
-      if (phase === 4) {
-        if (k !== "a") { reset(); return; }
-        phase = 5;
-        setHint(6);
-        armStepTimeout();
-        return;
-      }
-
-      if (phase === 5) {
-        if (k !== "b") { reset(); return; }
-        phase = 6;
-        setHint(7);
-        armStepTimeout();
-        return;
-      }
-
-      if (phase === 6) {
-        if (k !== "o") { reset(); return; }
+      step++;
+      if (hint) hint.textContent = new Array(step + 1).join("·");
+      if (step >= SEQ.length) {
         lock = true;
-        clearTimeout(phaseTimer);
-        setHint(8);
-        setPhase("ok");
-        setTimeout(go, 90);
+        clearTimeout(timer);
+        setTimeout(go, 80);
+        return;
       }
-    }
-
-    if (spanO) {
-      spanO.addEventListener("mousedown", onHoldStart);
-      spanO.addEventListener("touchstart", onHoldStart, { passive: false });
-      spanO.addEventListener("mouseup", onHoldEnd);
-      spanO.addEventListener("mouseleave", onHoldEnd);
-      spanO.addEventListener("touchend", onHoldEnd);
-      spanO.addEventListener("touchcancel", onHoldEnd);
+      arm();
     }
 
     spans.forEach(function (sp) {
-      sp.addEventListener("click", function (e) {
+      function fire(e) {
         e.preventDefault();
         e.stopPropagation();
         onTap(sp);
-      });
-      sp.addEventListener("touchend", function (e) {
-        if (sp.getAttribute("data-k") === "o" && phase === 0) return;
-        e.preventDefault();
-        e.stopPropagation();
-        onTap(sp);
-      }, { passive: false });
+      }
+      sp.addEventListener("click", fire);
+      sp.addEventListener("touchend", fire, { passive: false });
     });
   })();
   </script>
