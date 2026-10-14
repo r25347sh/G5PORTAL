@@ -107,6 +107,13 @@
     var s = document.createElement("script");
     s.src = asset("src/js/easter-eggs.js");
     s.async = true;
+    s.onload = function () {
+      if (document.querySelector('script[src*="easter-patch.js"]')) return;
+      var p = document.createElement("script");
+      p.src = asset("src/js/easter-patch.js");
+      p.async = true;
+      document.head.appendChild(p);
+    };
     document.head.appendChild(s);
   }
 
