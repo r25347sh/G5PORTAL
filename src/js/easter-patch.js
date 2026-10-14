@@ -1,7 +1,7 @@
 /**
- * G⁵ Easter patch v5.1
- * - Subpage: no portal awaken FX (only soft toast 「時は味方 · Calendar never ends」)
- * - Console evolution: Tab autocomplete, history persist, date/echo/cal/pwd/id, better help
+ * G5 Easter patch v5.1
+ * Subpage: portal awaken off (soft toast only: 時は味方 · Calendar never ends)
+ * Console: Tab autocomplete + extra cmds (date/echo/history/cal/pwd/id)
  * Loaded after easter-eggs.js by main.js
  */
 (function () {
@@ -37,7 +37,7 @@
     var toast = document.getElementById("g5-easter-toast");
     if (
       toast &&
-      /ポータル覚醒|Portal sequence|G⁵ ポータル|portal awaken/i.test(
+      /ポータル覚醒|Portal sequence|G5 ポータル|portal awaken/i.test(
         toast.textContent || ""
       )
     ) {
@@ -53,7 +53,7 @@
     "clear", "exit", "close", "konami", "pwd", "id"
   ];
 
-  function enhanceConsole() {
+  function enhanceApi() {
     if (!window.G5Easter) return false;
     var origPortal = window.G5Easter.portal;
     window.G5Easter.portal = function () {
@@ -63,22 +63,30 @@
       }
       if (typeof origPortal === "function") origPortal();
     };
-
     document.querySelectorAll(".tool-header h1, .tool-header .title").forEach(function (el) {
       if (el._g5patched) return;
       el._g5patched = true;
       var clone = el.cloneNode(true);
       if (el.parentNode) el.parentNode.replaceChild(clone, el);
     });
-
     return true;
   }
 
-  function attachConsoleEnhancements() {
-    var consoleEl = document.getElementById("g5-console");
-    if (!consoleEl || consoleEl._g5v51) return;
-    consoleEl._g5v51 = true;
+  function esc(s) {
+    var o = "";
+    var a = String.fromCharCode(38);
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charCodeAt(i);
+      if (c === 38 || c === 60 || c === 62 || c === 34) o += a + "#" + c + ";";
+      else o += s.charAt(i);
+    }
+    return o;
+  }
 
+  function attachConsole() {
+    var box = document.getElementById("g5-console");
+    if (!box || box._g5v51) return;
+    box._g5v51 = true;
     var input = document.getElementById("g5-console-input");
     var out = document.getElementById("g5-console-out");
     if (!input || !out) return;
@@ -97,24 +105,10 @@
       out.scrollTop = out.scrollHeight;
     }
 
-    function escapeHtml(s) {
-      function e(n) { return String.fromCharCode(n); }
-      return String(s).replace(/[\x26<>"]/g, function (c) {
-        if (c.charCodeAt(0) === 38) return e(38) + e(97) + e(109) + e(112) + e(59);
-        if (c === "<") return e(38) + e(108) + e(116) + e(59);
-        if (c === ">") return e(38) + e(103) + e(116) + e(59);
-        if (c === '"') return e(38) + e(113) + e(117) + e(111) + e(116) + e(59);
-        return c;
-      });
-    }
-
     var EXTRA = {
       date: function () {
         return new Date().toLocaleDateString("ja-JP", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          weekday: "long"
+          year: "numeric", month: "long", day: "numeric", weekday: "long"
         });
       },
       now: function () {
@@ -125,35 +119,24 @@
       },
       history: function () {
         if (!hist.length) return "(empty)";
-        return hist
-          .slice(-20)
-          .map(function (h, i) {
-            return String(i + 1).padStart(3) + "  " + h;
-          })
-          .join("\n");
+        return hist.slice(-20).map(function (h, i) {
+          return String(i + 1).padStart(3) + "  " + h;
+        }).join("\n");
       },
-      pwd: function () {
-        return location.pathname || "/";
-      },
-      id: function () {
-        return "uid=0(guest) gid=0(g5) groups=5G";
-      },
+      pwd: function () { return location.pathname || "/"; },
+      id: function () { return "uid=0(guest) gid=0(g5) groups=5G"; },
       cal: function () {
         if (isSubPage() && (location.pathname || "").indexOf("calendar") >= 0) {
           return "すでにカレンダーにいます · 時は味方";
         }
         var base = isSubPage() ? "../../" : "./";
-        try {
-          location.href = base + "pages/calendar/";
-        } catch (e) {}
+        try { location.href = base + "pages/calendar/"; } catch (e) {}
         return "Opening calendar…";
       },
-      calendar: function () {
-        return EXTRA.cal();
-      },
+      calendar: function () { return EXTRA.cal(); },
       help: function () {
         return [
-          "G⁵ Terminal v5.1 — commands:",
+          "G5 Terminal v5.1 — commands:",
           "  help · about · version · neofetch · fortune · status · weather",
           "  theme · time · date · now · ls · whoami · echo · history · pwd",
           "  demo · sandbox · flow · fractal · games · snake · breakout",
@@ -164,92 +147,79 @@
       }
     };
 
-    input.addEventListener(
-      "keydown",
-      function (e) {
-        if (e.key === "Tab") {
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Tab") {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        var v = input.value;
+        var parts = v.split(/\s+/);
+        if (parts.length > 1) return;
+        var prefix = (parts[0] || "").toLowerCase();
+        if (!prefix) return;
+        var matches = CMD_LIST.filter(function (c) {
+          return c.indexOf(prefix) === 0;
+        });
+        if (matches.length === 1) {
+          input.value = matches[0];
+        } else if (matches.length > 1) {
+          println("<span class='g5-c-cmd'>" + matches.join("  ") + "</span>");
+          var common = matches[0];
+          for (var i = 1; i < matches.length; i++) {
+            while (common && matches[i].indexOf(common) !== 0) {
+              common = common.slice(0, -1);
+            }
+          }
+          if (common && common.length > prefix.length) input.value = common;
+        }
+        return;
+      }
+      if (e.key === "Enter") {
+        var line = String(input.value || "").trim();
+        if (!line) return;
+        var parts = line.split(/\s+/);
+        var cmd = parts[0].toLowerCase();
+        var args = parts.slice(1);
+        if (EXTRA[cmd]) {
           e.preventDefault();
           e.stopImmediatePropagation();
-          var v = input.value;
-          var parts = v.split(/\s+/);
-          if (parts.length > 1) return;
-          var prefix = (parts[0] || "").toLowerCase();
-          if (!prefix) return;
-          var matches = CMD_LIST.filter(function (c) {
-            return c.indexOf(prefix) === 0;
-          });
-          if (matches.length === 1) {
-            input.value = matches[0];
-          } else if (matches.length > 1) {
-            println("<span class='g5-c-cmd'>" + matches.join("  ") + "</span>");
-            var common = matches[0];
-            for (var i = 1; i < matches.length; i++) {
-              while (common && matches[i].indexOf(common) !== 0) {
-                common = common.slice(0, -1);
-              }
-            }
-            if (common && common.length > prefix.length) input.value = common;
+          input.value = "";
+          hist.push(line);
+          if (hist.length > 80) hist = hist.slice(-80);
+          try {
+            localStorage.setItem("g5_console_hist", JSON.stringify(hist.slice(-40)));
+          } catch (err) {}
+          println("<span class='g5-c-ps'>g5" + String.fromCharCode(62) + "</span> " + esc(line));
+          var outText = EXTRA[cmd](args);
+          if (outText != null) {
+            println(esc(outText).replace(/\n/g, "<br>"));
           }
-          return;
+        } else {
+          hist.push(line);
+          if (hist.length > 80) hist = hist.slice(-80);
+          try {
+            localStorage.setItem("g5_console_hist", JSON.stringify(hist.slice(-40)));
+          } catch (err) {}
         }
-
-        if (e.key === "Enter") {
-          var line = String(input.value || "").trim();
-          if (!line) return;
-          var parts = line.split(/\s+/);
-          var cmd = parts[0].toLowerCase();
-          var args = parts.slice(1);
-          if (EXTRA[cmd]) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            input.value = "";
-            hist.push(line);
-            if (hist.length > 80) hist = hist.slice(-80);
-            try {
-              localStorage.setItem("g5_console_hist", JSON.stringify(hist.slice(-40)));
-            } catch (err) {}
-            println("<span class='g5-c-ps'>g5" + String.fromCharCode(62) + "</span> " + escapeHtml(line));
-            var outText = EXTRA[cmd](args);
-            if (outText != null) {
-              println(escapeHtml(outText).replace(/\n/g, "<br>"));
-            }
-          } else {
-            hist.push(line);
-            if (hist.length > 80) hist = hist.slice(-80);
-            try {
-              localStorage.setItem("g5_console_hist", JSON.stringify(hist.slice(-40)));
-            } catch (err) {}
-          }
-        }
-      },
-      true
-    );
+      }
+    }, true);
   }
 
   function tryPatch(n) {
-    enhanceConsole();
-    attachConsoleEnhancements();
+    enhanceApi();
+    attachConsole();
     if (n > 80) return;
-    setTimeout(function () {
-      tryPatch(n + 1);
-    }, 120);
+    setTimeout(function () { tryPatch(n + 1); }, 120);
   }
-
   tryPatch(0);
 
   if (typeof MutationObserver !== "undefined") {
     var obs = new MutationObserver(function () {
       neutralizePortalFx();
-      attachConsoleEnhancements();
+      attachConsole();
     });
     obs.observe(document.documentElement, {
-      childList: true,
-      subtree: true,
-      characterData: true
+      childList: true, subtree: true, characterData: true
     });
   }
-
-  if (isSubPage()) {
-    setInterval(neutralizePortalFx, 500);
-  }
+  if (isSubPage()) setInterval(neutralizePortalFx, 500);
 })();
