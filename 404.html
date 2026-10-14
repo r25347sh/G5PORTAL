@@ -9,103 +9,71 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
-      height: 100%;
-      background: #0a0a0a;
-      color: #8a8a8a;
-      font-family: "SF Mono", "Consolas", "Liberation Mono", Menlo, monospace;
+      height: 100%; background: #0a0a0a; color: #8a8a8a;
+      font-family: "SF Mono", Consolas, Menlo, monospace;
       -webkit-font-smoothing: antialiased;
     }
     body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100%;
-      padding: 2rem 1.25rem;
-      user-select: none;
-      -webkit-user-select: none;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100%; padding: 2rem 1.25rem;
+      user-select: none; -webkit-user-select: none;
     }
     .code {
-      font-size: clamp(3.5rem, 14vw, 6rem);
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      color: #c4c4c4;
-      line-height: 1;
-      margin-bottom: 1.25rem;
+      font-size: clamp(3.5rem, 14vw, 6rem); font-weight: 600;
+      letter-spacing: 0.12em; color: #c4c4c4; line-height: 1; margin-bottom: 1.25rem;
     }
     .code span {
-      display: inline-block;
-      cursor: default;
-      padding: 0 0.05em;
-      transition: color 0.15s, text-shadow 0.15s, transform 0.15s;
+      display: inline-block; cursor: pointer; padding: 0 0.08em;
+      transition: color 0.12s, text-shadow 0.12s, transform 0.12s;
     }
     .code span.on {
-      color: #e8e8e8;
-      text-shadow: 0 0 12px rgba(200,200,200,0.35);
+      color: #e8e8e8; text-shadow: 0 0 14px rgba(200,200,200,0.4);
     }
-    .code span.held {
-      color: #fff;
-      text-shadow: 0 0 18px rgba(220,220,220,0.5);
-      transform: scale(1.1);
-    }
+    .code span:active { transform: scale(0.92); }
     .msg {
-      font-size: 0.85rem;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: #5a5a5a;
-      margin-bottom: 2.5rem;
+      font-size: 0.85rem; letter-spacing: 0.18em; text-transform: uppercase;
+      color: #5a5a5a; margin-bottom: 2.5rem;
     }
     .sub {
-      font-size: 0.75rem;
-      color: #3a3a3a;
-      max-width: 22rem;
-      text-align: center;
-      line-height: 1.6;
+      font-size: 0.75rem; color: #3a3a3a; max-width: 22rem;
+      text-align: center; line-height: 1.6;
     }
     a.back {
-      margin-top: 2.75rem;
-      color: #4a4a4a;
-      text-decoration: none;
-      font-size: 0.8rem;
-      letter-spacing: 0.06em;
-      border-bottom: 1px solid #2a2a2a;
-      padding-bottom: 2px;
+      margin-top: 2.75rem; color: #4a4a4a; text-decoration: none;
+      font-size: 0.8rem; letter-spacing: 0.06em;
+      border-bottom: 1px solid #2a2a2a; padding-bottom: 2px;
     }
     a.back:hover { color: #7a7a7a; }
     .foot {
-      position: fixed;
-      bottom: max(1rem, env(safe-area-inset-bottom));
-      left: 0; right: 0;
-      text-align: center;
-      font-size: 0.65rem;
-      color: #2a2a2a;
-      letter-spacing: 0.08em;
+      position: fixed; bottom: max(1rem, env(safe-area-inset-bottom));
+      left: 0; right: 0; text-align: center;
+      font-size: 0.65rem; color: #2a2a2a; letter-spacing: 0.08em;
+    }
+    .dots {
+      margin-top: 1.25rem; font-size: 0.8rem; letter-spacing: 0.35em;
+      color: #2e2e2e; min-height: 1.2em;
     }
   </style>
 </head>
 <body>
   <div class="code" id="code" aria-hidden="true">
-    <span data-d="4" data-role="a">4</span><span data-d="0" data-role="o">0</span><span data-d="4" data-role="b">4</span>
+    <span data-k="a">4</span><span data-k="o">0</span><span data-k="b">4</span>
   </div>
   <p class="msg">Resource not found</p>
   <p class="sub">The requested path does not exist on this server.</p>
+  <p class="dots" id="dots"></p>
   <a class="back" id="back" href="./">Return</a>
   <div class="foot">G⁵ · HTTP 404</div>
   <script>
   (function () {
-    /*
-     * Entry ritual v2:
-     *  1) Tap left 4
-     *  2) Long-press middle 0 (≥700ms)
-     *  3) Tap right 4
-     */
     var step = 0;
-    var timer = null;
-    var holdTimer = null;
+    var oCount = 0;
+    var oLast = 0;
     var busy = false;
+    var timer = null;
+    var lastTap = 0;
     var spans = document.querySelectorAll("#code span");
-    var span0 = document.querySelector('#code span[data-role="o"]');
-    var HOLD = 700;
+    var dots = document.getElementById("dots");
 
     function portalRoot() {
       try {
@@ -115,7 +83,7 @@
         if (i >= 0) return path.slice(0, i + marker.length) + "/";
         if (/404\.html$/i.test(path)) return path.replace(/404\.html$/i, "");
         var parts = path.split("/").filter(Boolean);
-        if (parts.length && !parts[parts.length - 1].includes(".")) {
+        if (parts.length && parts[parts.length - 1].indexOf(".") < 0) {
           return path.endsWith("/") ? path : path + "/";
         }
         if (parts.length > 1) {
@@ -127,85 +95,58 @@
         return "./";
       }
     }
-
     var root = portalRoot();
 
     function reset() {
-      step = 0;
-      busy = false;
-      clearTimeout(holdTimer);
-      spans.forEach(function (s) {
-        s.classList.remove("on", "held");
-      });
-    }
-
-    function armTimeout() {
+      step = 0; oCount = 0; oLast = 0; busy = false;
       clearTimeout(timer);
-      timer = setTimeout(reset, 3200);
+      spans.forEach(function (s) { s.classList.remove("on"); });
+      if (dots) dots.textContent = "";
+    }
+    function arm() {
+      clearTimeout(timer);
+      timer = setTimeout(reset, 3500);
+    }
+    function setDots(n) {
+      if (dots) dots.textContent = n > 0 ? new Array(n + 1).join("·") : "";
     }
 
-    function onTap(sp) {
+    function onTap(k, el) {
       if (busy) return;
-      var role = sp.getAttribute("data-role");
+      var now = Date.now();
+      if (now - lastTap < 180) return;
+      lastTap = now;
+      el.classList.add("on");
 
       if (step === 0) {
-        if (role !== "a") { reset(); return; }
-        sp.classList.add("on");
-        step = 1;
-        armTimeout();
-        return;
+        if (k !== "a") { reset(); return; }
+        step = 1; oCount = 0; setDots(1); arm(); return;
       }
       if (step === 1) {
-        reset();
+        if (k !== "o") { reset(); return; }
+        if (oCount > 0 && now - oLast > 700) oCount = 0;
+        oCount++; oLast = now;
+        setDots(1 + oCount);
+        if (oCount >= 2) { step = 2; arm(); }
+        else arm();
         return;
       }
       if (step === 2) {
-        if (role !== "b") { reset(); return; }
-        sp.classList.add("on");
-        busy = true;
-        clearTimeout(timer);
-        setTimeout(function () {
-          location.href = root + "4O4.html";
-        }, 220);
+        if (k !== "b") { reset(); return; }
+        busy = true; clearTimeout(timer); setDots(4);
+        setTimeout(function () { location.href = root + "4O4.html"; }, 200);
       }
     }
 
-    function onHoldStart(e) {
-      if (busy || step !== 1) return;
-      e.preventDefault();
-      span0.classList.add("held");
-      holdTimer = setTimeout(function () {
-        span0.classList.remove("held");
-        span0.classList.add("on");
-        step = 2;
-        armTimeout();
-      }, HOLD);
-    }
-    function onHoldEnd() {
-      clearTimeout(holdTimer);
-      if (step !== 2) span0.classList.remove("held");
-    }
-
     spans.forEach(function (sp) {
-      sp.addEventListener("click", function (e) {
+      function fire(e) {
         e.preventDefault();
-        onTap(sp);
-      });
-      sp.addEventListener("touchend", function (e) {
-        if (sp.getAttribute("data-role") === "o" && step === 1) return;
-        e.preventDefault();
-        onTap(sp);
-      }, { passive: false });
+        e.stopPropagation();
+        onTap(sp.getAttribute("data-k"), sp);
+      }
+      sp.addEventListener("click", fire);
+      sp.addEventListener("touchend", fire, { passive: false });
     });
-
-    if (span0) {
-      span0.addEventListener("mousedown", onHoldStart);
-      span0.addEventListener("touchstart", onHoldStart, { passive: false });
-      span0.addEventListener("mouseup", onHoldEnd);
-      span0.addEventListener("mouseleave", onHoldEnd);
-      span0.addEventListener("touchend", onHoldEnd);
-      span0.addEventListener("touchcancel", onHoldEnd);
-    }
 
     var a = document.getElementById("back");
     if (a) a.href = root;
