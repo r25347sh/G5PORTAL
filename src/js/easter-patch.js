@@ -98,11 +98,14 @@
     }
 
     function escapeHtml(s) {
-      return String(s)
-        .replace(/&/g, String.fromCharCode(38) + "amp;")
-        .replace(/</g, String.fromCharCode(38) + "lt;")
-        .replace(/>/g, String.fromCharCode(38) + "gt;")
-        .replace(/"/g, String.fromCharCode(38) + "quot;");
+      function e(n) { return String.fromCharCode(n); }
+      return String(s).replace(/[\x26<>"]/g, function (c) {
+        if (c.charCodeAt(0) === 38) return e(38) + e(97) + e(109) + e(112) + e(59);
+        if (c === "<") return e(38) + e(108) + e(116) + e(59);
+        if (c === ">") return e(38) + e(103) + e(116) + e(59);
+        if (c === '"') return e(38) + e(113) + e(117) + e(111) + e(116) + e(59);
+        return c;
+      });
     }
 
     var EXTRA = {
@@ -205,7 +208,7 @@
             try {
               localStorage.setItem("g5_console_hist", JSON.stringify(hist.slice(-40)));
             } catch (err) {}
-            println("<span class='g5-c-ps'>g5></span> " + escapeHtml(line));
+            println("<span class='g5-c-ps'>g5" + String.fromCharCode(62) + "</span> " + escapeHtml(line));
             var outText = EXTRA[cmd](args);
             if (outText != null) {
               println(escapeHtml(outText).replace(/\n/g, "<br>"));
