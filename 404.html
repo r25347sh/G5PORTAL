@@ -37,11 +37,16 @@
       display: inline-block;
       cursor: default;
       padding: 0 0.05em;
-      transition: color 0.15s, text-shadow 0.15s;
+      transition: color 0.15s, text-shadow 0.15s, transform 0.15s;
     }
     .code span.on {
       color: #e8e8e8;
       text-shadow: 0 0 12px rgba(200,200,200,0.35);
+    }
+    .code span.held {
+      color: #fff;
+      text-shadow: 0 0 18px rgba(220,220,220,0.5);
+      transform: scale(1.1);
     }
     .msg {
       font-size: 0.85rem;
@@ -80,7 +85,7 @@
 </head>
 <body>
   <div class="code" id="code" aria-hidden="true">
-    <span data-d="4">4</span><span data-d="0">0</span><span data-d="4">4</span>
+    <span data-d="4" data-role="a">4</span><span data-d="0" data-role="o">0</span><span data-d="4" data-role="b">4</span>
   </div>
   <p class="msg">Resource not found</p>
   <p class="sub">The requested path does not exist on this server.</p>
@@ -88,15 +93,20 @@
   <div class="foot">G⁵ · HTTP 404</div>
   <script>
   (function () {
-    var need = ["4", "0", "4"];
+    /*
+     * Entry ritual v2:
+     *  1) Tap left 4
+     *  2) Long-press middle 0 (≥700ms)
+     *  3) Tap right 4
+     */
     var step = 0;
     var timer = null;
+    var holdTimer = null;
     var busy = false;
     var spans = document.querySelectorAll("#code span");
+    var span0 = document.querySelector('#code span[data-role="o"]');
+    var HOLD = 700;
 
-    /* GitHub Pages serves 404.html for nested missing paths, but the
-       browser URL stays nested — relative links would resolve wrong.
-       Always resolve against the portal root. */
     function portalRoot() {
       try {
         var path = location.pathname || "";
@@ -104,7 +114,6 @@
         var i = path.indexOf(marker);
         if (i >= 0) return path.slice(0, i + marker.length) + "/";
         if (/404\.html$/i.test(path)) return path.replace(/404\.html$/i, "");
-        /* local file or custom domain: walk up to site root */
         var parts = path.split("/").filter(Boolean);
         if (parts.length && !parts[parts.length - 1].includes(".")) {
           return path.endsWith("/") ? path : path + "/";
@@ -124,44 +133,79 @@
     function reset() {
       step = 0;
       busy = false;
-      spans.forEach(function (s) { s.classList.remove("on"); });
+      clearTimeout(holdTimer);
+      spans.forEach(function (s) {
+        s.classList.remove("on", "held");
+      });
     }
 
     function armTimeout() {
       clearTimeout(timer);
-      timer = setTimeout(reset, 2800);
+      timer = setTimeout(reset, 3200);
     }
 
-    function onDigit(sp) {
+    function onTap(sp) {
       if (busy) return;
-      var d = sp.getAttribute("data-d");
-      if (d === need[step]) {
+      var role = sp.getAttribute("data-role");
+
+      if (step === 0) {
+        if (role !== "a") { reset(); return; }
         sp.classList.add("on");
-        step++;
+        step = 1;
         armTimeout();
-        if (step >= need.length) {
-          busy = true;
-          clearTimeout(timer);
-          setTimeout(function () {
-            location.href = root + "4O4.html";
-          }, 220);
-        }
-      } else {
-        reset();
+        return;
       }
+      if (step === 1) {
+        reset();
+        return;
+      }
+      if (step === 2) {
+        if (role !== "b") { reset(); return; }
+        sp.classList.add("on");
+        busy = true;
+        clearTimeout(timer);
+        setTimeout(function () {
+          location.href = root + "4O4.html";
+        }, 220);
+      }
+    }
+
+    function onHoldStart(e) {
+      if (busy || step !== 1) return;
+      e.preventDefault();
+      span0.classList.add("held");
+      holdTimer = setTimeout(function () {
+        span0.classList.remove("held");
+        span0.classList.add("on");
+        step = 2;
+        armTimeout();
+      }, HOLD);
+    }
+    function onHoldEnd() {
+      clearTimeout(holdTimer);
+      if (step !== 2) span0.classList.remove("held");
     }
 
     spans.forEach(function (sp) {
       sp.addEventListener("click", function (e) {
         e.preventDefault();
-        onDigit(sp);
+        onTap(sp);
       });
-      /* touch devices: prevent ghost click after touchend */
       sp.addEventListener("touchend", function (e) {
+        if (sp.getAttribute("data-role") === "o" && step === 1) return;
         e.preventDefault();
-        onDigit(sp);
+        onTap(sp);
       }, { passive: false });
     });
+
+    if (span0) {
+      span0.addEventListener("mousedown", onHoldStart);
+      span0.addEventListener("touchstart", onHoldStart, { passive: false });
+      span0.addEventListener("mouseup", onHoldEnd);
+      span0.addEventListener("mouseleave", onHoldEnd);
+      span0.addEventListener("touchend", onHoldEnd);
+      span0.addEventListener("touchcancel", onHoldEnd);
+    }
 
     var a = document.getElementById("back");
     if (a) a.href = root;
