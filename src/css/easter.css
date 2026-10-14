@@ -332,11 +332,12 @@ html.g5-askew {
   letter-spacing: 0.2em;
 }
 
+
 .g5-console-out .g5-c-cmd {
   color: #00f5ff;
 }
 .g5-console-chrome .g5-console-title::after {
-  content: " v5";
+  content: " v5.1";
   font-size: 0.65em;
   opacity: 0.55;
   letter-spacing: 0.06em;
