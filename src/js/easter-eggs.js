@@ -1,23 +1,15 @@
 /**
- * G⁵ Easter Eggs (gzip payload)
+ * G⁵ Easter Eggs — load known-good build, then local patch handles subpage awaken
  */
 (function () {
   "use strict";
   if (window.__G5_EASTER_V2__) return;
-  var B64 = "REPLACE_ME";
-  function boot(code) {
-    try { (0, eval)(code); } catch (e) { console.error("[G5 easter]", e); }
-  }
-  if (typeof DecompressionStream !== "undefined") {
-    var bin = atob(B64);
-    var bytes = new Uint8Array(bin.length);
-    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    var ds = new DecompressionStream("gzip");
-    var stream = new Blob([bytes]).stream().pipeThrough(ds);
-    new Response(stream).text().then(boot).catch(function (e) {
-      console.error("[G5 easter] decompress", e);
-    });
-  } else {
-    console.warn("[G5 easter] DecompressionStream unavailable");
-  }
+  var s = document.createElement("script");
+  s.src =
+    "https://cdn.jsdelivr.net/gh/r25347sh/G5PORTAL@bb6acd553048b1174b3793093f1704f5af3b3d6f/src/js/easter-eggs.js";
+  s.async = true;
+  s.onerror = function () {
+    console.error("[G5 easter] CDN load failed");
+  };
+  document.head.appendChild(s);
 })();
