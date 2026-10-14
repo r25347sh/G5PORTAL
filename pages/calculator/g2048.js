@@ -1,1 +1,1 @@
-PLACEHOLDER_2048
+window.G5_2048={start:function(){console.log('use full');}}

@@ -1,1 +1,1 @@
-PLACEHOLDER_INV
+window.invaders=function(){console.log('use full');};
