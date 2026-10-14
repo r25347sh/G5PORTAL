@@ -23,10 +23,14 @@
     }
     .gate-code span {
       display: inline-block; padding: 0 0.08em; cursor: default;
-      transition: color 0.12s, text-shadow 0.12s;
+      transition: color 0.12s, text-shadow 0.12s, transform 0.15s;
     }
     .gate-code span.lit {
       color: #c8c8c8; text-shadow: 0 0 10px rgba(200,200,200,0.3);
+    }
+    .gate-code span.held {
+      color: #e8e8e8; text-shadow: 0 0 16px rgba(220,220,220,0.45);
+      transform: scale(1.08);
     }
     .gate-msg {
       font-size: 0.75rem; letter-spacing: 0.22em;
@@ -35,6 +39,10 @@
     .gate-hint {
       margin-top: 2rem; font-size: 0.85rem; letter-spacing: 0.3em;
       color: #2e2e2e; min-height: 1.2em;
+    }
+    .gate-phase {
+      margin-top: 0.75rem; font-size: 0.65rem; letter-spacing: 0.15em;
+      color: #1e1e1e; min-height: 1em;
     }
   </style>
 </head>
@@ -45,16 +53,44 @@
     </div>
     <p class="gate-msg">not found</p>
     <p class="gate-hint" id="hint"></p>
+    <p class="gate-phase" id="phase"></p>
   </div>
   <script>
   (function () {
-    /* Must match xr/js/gate.js KEY */
+    /*
+     * Gate v2 — more complex ritual to reach xr
+     *
+     * Sequence:
+     *  1) Long-press center O ≥ 1.1s  (arm)
+     *  2) Tap left-4
+     *  3) Tap right-4
+     *  4) Tap O twice (≤900ms apart)
+     *  5) Tap left-4
+     *  6) Tap right-4
+     *  7) Tap O once
+     *
+     * Any wrong key / timeout → full reset.
+     */
     var KEY = "__g5x";
     var TTL = 2 * 60 * 60 * 1000;
     var XR = "https://r25347sh.github.io/xr/";
-    var phase = 0, oCount = 0, lastT = 0, phaseTimer = null;
+    var HOLD_MS = 1100;
+    var STEP_TIMEOUT = 3200;
+    var DOUBLE_O_MS = 900;
+
+    var phase = 0;
+    var oDouble = 0;
+    var oDoubleT = 0;
+    var holdTimer = null;
+    var phaseTimer = null;
+    var lock = false;
+    var lastTapAt = 0;
+    var armed = false;
+
     var spans = document.querySelectorAll("#code span");
     var hint = document.getElementById("hint");
+    var phaseEl = document.getElementById("phase");
+    var spanO = document.querySelector('#code span[data-k="o"]');
 
     function parseTs(v) {
       var n = parseInt(String(v || ""), 10);
@@ -80,69 +116,147 @@
 
     function go() {
       var t = stamp();
-      /* Cross-origin: G5PORTAL storage is invisible to xr.
-         Token travels only via ?x= (plain timestamp). */
       location.replace(XR + "?x=" + t);
     }
 
     if (already()) { go(); return; }
 
-    var lock = false;
-    var lastTapAt = 0;
+    function setHint(dots) {
+      if (hint) hint.textContent = dots ? new Array(dots + 1).join("·") : "";
+    }
+    function setPhase(t) {
+      if (phaseEl) phaseEl.textContent = t || "";
+    }
 
     function reset() {
-      phase = 0; oCount = 0; lastT = 0; lock = false;
+      phase = 0;
+      oDouble = 0;
+      oDoubleT = 0;
+      armed = false;
+      lock = false;
+      clearTimeout(holdTimer);
       clearTimeout(phaseTimer);
-      spans.forEach(function (s) { s.classList.remove("lit"); });
-      if (hint) hint.textContent = "";
+      spans.forEach(function (s) {
+        s.classList.remove("lit", "held");
+      });
+      setHint(0);
+      setPhase("");
     }
-    function arm(ms) {
+
+    function armStepTimeout() {
       clearTimeout(phaseTimer);
-      phaseTimer = setTimeout(reset, ms);
+      phaseTimer = setTimeout(reset, STEP_TIMEOUT);
     }
+
     function flash(el) {
       el.classList.add("lit");
-      setTimeout(function () { el.classList.remove("lit"); }, 180);
+      setTimeout(function () { el.classList.remove("lit"); }, 160);
+    }
+
+    function onHoldStart(e) {
+      if (lock || armed || phase > 0) return;
+      e.preventDefault();
+      spanO.classList.add("held");
+      holdTimer = setTimeout(function () {
+        armed = true;
+        phase = 1;
+        spanO.classList.remove("held");
+        flash(spanO);
+        setHint(1);
+        setPhase("armed");
+        armStepTimeout();
+      }, HOLD_MS);
+    }
+
+    function onHoldEnd() {
+      clearTimeout(holdTimer);
+      if (!armed) spanO.classList.remove("held");
     }
 
     function onTap(sp) {
       if (lock) return;
       var now = Date.now();
-      /* debounce touchend + synthetic click double-fire */
-      if (now - lastTapAt < 280) return;
+      if (now - lastTapAt < 260) return;
       lastTapAt = now;
 
       var k = sp.getAttribute("data-k");
       flash(sp);
 
       if (phase === 0) {
-        if (k !== "o") { reset(); return; }
-        if (oCount > 0 && now - lastT > 1200) { oCount = 0; }
-        oCount++;
-        lastT = now;
-        if (hint) hint.textContent = new Array(oCount + 1).join("·");
-        if (oCount >= 3) {
-          phase = 1;
-          arm(3000);
-        } else {
-          arm(1200);
-        }
+        if (k === "o") return;
+        reset();
         return;
       }
+
       if (phase === 1) {
         if (k !== "a") { reset(); return; }
         phase = 2;
-        if (hint) hint.textContent = "····";
-        arm(3000);
+        setHint(2);
+        armStepTimeout();
         return;
       }
+
       if (phase === 2) {
         if (k !== "b") { reset(); return; }
+        phase = 3;
+        oDouble = 0;
+        setHint(3);
+        armStepTimeout();
+        return;
+      }
+
+      if (phase === 3) {
+        if (k !== "o") { reset(); return; }
+        if (oDouble > 0 && now - oDoubleT > DOUBLE_O_MS) {
+          oDouble = 0;
+        }
+        oDouble++;
+        oDoubleT = now;
+        setHint(3 + oDouble);
+        if (oDouble >= 2) {
+          phase = 4;
+          oDouble = 0;
+          setHint(5);
+          armStepTimeout();
+        } else {
+          armStepTimeout();
+        }
+        return;
+      }
+
+      if (phase === 4) {
+        if (k !== "a") { reset(); return; }
+        phase = 5;
+        setHint(6);
+        armStepTimeout();
+        return;
+      }
+
+      if (phase === 5) {
+        if (k !== "b") { reset(); return; }
+        phase = 6;
+        setHint(7);
+        armStepTimeout();
+        return;
+      }
+
+      if (phase === 6) {
+        if (k !== "o") { reset(); return; }
         lock = true;
         clearTimeout(phaseTimer);
-        if (hint) hint.textContent = "·····";
-        setTimeout(go, 80);
+        setHint(8);
+        setPhase("ok");
+        setTimeout(go, 90);
       }
+    }
+
+    if (spanO) {
+      spanO.addEventListener("mousedown", onHoldStart);
+      spanO.addEventListener("touchstart", onHoldStart, { passive: false });
+      spanO.addEventListener("mouseup", onHoldEnd);
+      spanO.addEventListener("mouseleave", onHoldEnd);
+      spanO.addEventListener("touchend", onHoldEnd);
+      spanO.addEventListener("touchcancel", onHoldEnd);
     }
 
     spans.forEach(function (sp) {
@@ -152,6 +266,7 @@
         onTap(sp);
       });
       sp.addEventListener("touchend", function (e) {
+        if (sp.getAttribute("data-k") === "o" && phase === 0) return;
         e.preventDefault();
         e.stopPropagation();
         onTap(sp);
