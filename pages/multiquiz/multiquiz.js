@@ -1,26 +1,23 @@
-// MultiQuiz loader — sources live in r25347sh/multiquiz G5PORTAL/_viewer/
-(async function () {
-  async function loadJs(path) {
-    const urls = [
-      'https://cdn.jsdelivr.net/gh/r25347sh/multiquiz@main/' + path,
-      'https://raw.githubusercontent.com/r25347sh/multiquiz/main/' + path
-    ];
-    let lastErr;
-    for (const url of urls) {
-      try {
-        const res = await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(), { cache: 'no-store' });
-        if (!res.ok) { lastErr = new Error('HTTP ' + res.status); continue; }
-        const code = await res.text();
-        const s = document.createElement('script');
-        s.textContent = code;
-        document.head.appendChild(s);
-        return;
-      } catch (e) { lastErr = e; }
-    }
-    console.error('MultiQuiz load failed:', path, lastErr);
-    const el = document.getElementById('errorMessage');
-    if (el) { el.textContent = 'MultiQuiz本体の読み込みに失敗しました: ' + path; el.classList.remove('hidden'); }
+// MultiQuiz tiny loader (gzip payloads in same directory)
+(async function(){
+  async function load(path){
+    const r = await fetch(path + '?t=' + Date.now(), {cache:'no-store'});
+    if(!r.ok) throw new Error(path + ' HTTP ' + r.status);
+    return r.text();
   }
-  await loadJs('G5PORTAL/_viewer/multiquiz.js');
-  await loadJs('G5PORTAL/_viewer/scoring-overlay.js');
+  function b64ToU8(b64){const bin=atob(b64);const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);return u8;}
+  async function gunzip(b64){
+    const ds = new DecompressionStream('gzip');
+    const stream = new Blob([b64ToU8(b64)]).stream().pipeThrough(ds);
+    return await new Response(stream).text();
+  }
+  function inj(t){const s=document.createElement('script');s.textContent=t;document.head.appendChild(s);}
+  try {
+    inj(await gunzip(await load('payload_mq.b64')));
+    inj(await gunzip(await load('payload_so.b64')));
+  } catch(e) {
+    console.error(e);
+    const el=document.getElementById('errorMessage');
+    if(el){el.textContent='MultiQuiz load failed: '+e.message;el.classList.remove('hidden');}
+  }
 })();
