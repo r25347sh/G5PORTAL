@@ -13,8 +13,9 @@
   }
   function inj(t){const s=document.createElement('script');s.textContent=t;document.head.appendChild(s);}
   try {
-    inj(await gunzip(await load('payload_mq.b64')));
-    inj(await gunzip(await load('payload_so.b64')));
+    const mq = (await load('payload_mq_a.b64')).trim() + (await load('payload_mq_b.b64')).trim();
+    inj(await gunzip(mq));
+    inj(await gunzip((await load('payload_so.b64')).trim()));
   } catch(e) {
     console.error(e);
     const el=document.getElementById('errorMessage');
