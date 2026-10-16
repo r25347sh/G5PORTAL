@@ -1,24 +1,37 @@
-// MultiQuiz tiny loader (gzip payloads in same directory)
-(async function(){
-  async function load(path){
-    const r = await fetch(path + '?t=' + Date.now(), {cache:'no-store'});
-    if(!r.ok) throw new Error(path + ' HTTP ' + r.status);
+// MultiQuiz emergency fix: load last-good core then patch scoring hooks
+(async function () {
+  async function loadText(url) {
+    const r = await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error(url + ' ' + r.status);
     return r.text();
   }
-  function b64ToU8(b64){const bin=atob(b64);const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);return u8;}
-  async function gunzip(b64){
-    const ds = new DecompressionStream('gzip');
-    const stream = new Blob([b64ToU8(b64)]).stream().pipeThrough(ds);
-    return await new Response(stream).text();
+  function inj(code) {
+    const s = document.createElement('script');
+    s.textContent = code;
+    document.head.appendChild(s);
   }
-  function inj(t){const s=document.createElement('script');s.textContent=t;document.head.appendChild(s);}
   try {
-    const mq = (await load('payload_mq_a.b64')).trim() + (await load('payload_mq_b.b64')).trim();
-    inj(await gunzip(mq));
-    inj(await gunzip((await load('payload_so.b64')).trim()));
-  } catch(e) {
+    const coreUrl = 'https://raw.githubusercontent.com/r25347sh/G5PORTAL/502808ca69e3ea89f8c4f2fc99fb1bdf6e7fa6ff/pages/multiquiz/multiquiz.js';
+    const soUrl = 'https://raw.githubusercontent.com/r25347sh/G5PORTAL/502808ca69e3ea89f8c4f2fc99fb1bdf6e7fa6ff/pages/multiquiz/scoring-overlay.js';
+    let core = await loadText(coreUrl);
+    core = core.replace(
+      '<div class="question-text">\' + formatNoteHtml(q.question || \'\') + \'</div>\' +',
+      '<div class="question-text" id="text-\' + idx + \'">\' + formatNoteHtml(q.question || \'\') + \'</div>\' +'
+    );
+    const needle = "secDiv.appendChild(qDiv);\n        renderAnswers(qDiv.querySelector('#answers-' + idx), q, idx);";
+    const insert = "qDiv.insertAdjacentHTML('beforeend', '<button type=\"button\" class=\"btn btn-primary per-score-btn\" data-qidx=\"' + idx + '\" style=\"display:none\">この問題を採点</button>');\n        secDiv.appendChild(qDiv);\n        renderAnswers(qDiv.querySelector('#answers-' + idx), q, idx);\n        const _pb = qDiv.querySelector('.per-score-btn');\n        if (_pb) _pb.addEventListener('click', function () { if (typeof window.__mqScoreOneQuestion === 'function') window.__mqScoreOneQuestion(idx); });";
+    if (core.indexOf(needle) >= 0) core = core.replace(needle, insert);
+    inj(core);
+
+    let so = await loadText(soUrl);
+    so = so.replace(
+      "const textEl = document.getElementById('text-' + idx);\n      const qEl = textEl ? textEl.closest('.question') : null;",
+      "const textEl = document.getElementById('text-' + idx);\n      let qEl = textEl ? textEl.closest('.question') : null;\n      if (!qEl) qEl = document.querySelector('.question[data-qidx=\"' + idx + '\"]');"
+    );
+    inj(so);
+  } catch (e) {
     console.error(e);
-    const el=document.getElementById('errorMessage');
-    if(el){el.textContent='MultiQuiz load failed: '+e.message;el.classList.remove('hidden');}
+    const el = document.getElementById('errorMessage');
+    if (el) { el.textContent = 'MultiQuiz load failed: ' + e.message; el.classList.remove('hidden'); }
   }
 })();
